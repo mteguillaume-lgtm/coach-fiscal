@@ -12,8 +12,8 @@ import { anonymizePdf }   from '../lib/anonymizer';
 import { buildPatterns }  from '../lib/patterns';
 import Button             from '../components/Button';
 
-const MAX_FILES_SOLO   = 10;
-const MAX_FILES_TARGET = 5;   // par déclarant en mode couple
+const MAX_FILES_SOLO   = 15;
+const MAX_FILES_TARGET = 15;  // par déclarant en mode couple
 
 const GROUP_LABELS = {
   identite: 'Identité', employeur: 'Employeur', nss: 'N° Sécurité Sociale',
@@ -230,7 +230,11 @@ export default function Anonymize() {
 
   const [isCustomOpen,   setIsCustomOpen]   = useState(false);
   const [isPatternsOpen, setIsPatternsOpen] = useState(false);
-  const [disabledLabels, setDisabledLabels] = useState(new Set());
+  const [disabledLabels, setDisabledLabels] = useState(() => {
+    // Les patterns "salaires" masquent les montants utiles pour la collecte — désactivés par défaut
+    const initial = buildPatterns('', '', '');
+    return new Set(initial.filter(p => p.group === 'salaire').map(p => p.label));
+  });
   const [fileItems,      setFileItems]      = useState([]);
   const [isDragging,     setIsDragging]     = useState(false);
   const [isZipping,      setIsZipping]      = useState(false);
