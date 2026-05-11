@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ExternalLink, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, ExternalLink, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -173,6 +173,12 @@ export default function Setup() {
           Saisissez votre clé API pour continuer.
         </p>
       )}
+
+      <div className="flex justify-start -mt-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <ArrowLeft size={14} /> Retour à l&apos;accueil
+        </Button>
+      </div>
 
     </div>
   );

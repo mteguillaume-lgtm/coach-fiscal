@@ -45,3 +45,10 @@
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2;
   }
 }
+
+@layer components {
+  /* Hover élévation sur les cartes interactives */
+  .card-lift {
+    @apply transition-shadow duration-200 hover:shadow-md;
+  }
+}

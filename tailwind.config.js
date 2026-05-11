@@ -16,6 +16,15 @@ export default {
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'sans-serif'],
       },
+      keyframes: {
+        fadeIn: {
+          '0%':   { opacity: '0', transform: 'translateY(7px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)'   },
+        },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.18s ease-out both',
+      },
     },
   },
   plugins: [],

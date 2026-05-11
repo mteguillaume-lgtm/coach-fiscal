@@ -11,15 +11,25 @@ const STEP_ROUTES = ['/anonymize', '/collect', '/profile', '/chat'];
 export default function Layout() {
   const { pathname } = useLocation();
   const showStepper = STEP_ROUTES.some(r => pathname.startsWith(r));
+  const isChatPage  = pathname === '/chat';
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className={isChatPage
+      ? 'h-screen overflow-hidden flex flex-col bg-gray-50'
+      : 'min-h-screen flex flex-col bg-gray-50'
+    }>
       <Toaster
         position="top-right"
         toastOptions={{
-          className: 'text-sm',
-          success: { duration: 3000 },
-          error:   { duration: 5000 },
+          className: '!text-sm !font-medium !rounded-xl !shadow-lg !max-w-sm',
+          success: {
+            duration: 3000,
+            iconTheme: { primary: '#0F6E56', secondary: '#E1F5EE' },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: { primary: '#ef4444', secondary: '#fee2e2' },
+          },
         }}
       />
 
@@ -54,17 +64,26 @@ export default function Layout() {
       )}
 
       {/* Contenu principal */}
-      <main className="flex-1">
-        <div className="max-w-[720px] mx-auto px-4 py-8">
+      <main className={isChatPage
+        ? 'flex-1 flex flex-col overflow-hidden min-h-0'
+        : 'flex-1'
+      }>
+        {isChatPage ? (
           <Outlet />
-        </div>
+        ) : (
+          <div key={pathname} className="max-w-[720px] mx-auto px-4 py-8 animate-fade-in">
+            <Outlet />
+          </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200">
-        <div className="max-w-[720px] mx-auto px-4 py-4 flex items-center justify-between">
+      {/* Footer masqué sur /chat (l'input du chat fait office de pied de page) */}
+      {!isChatPage && <footer className="bg-white border-t border-gray-200">
+        <div className="max-w-[720px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 justify-between">
           <PrivacyBadge />
           <div className="flex items-center gap-4 text-sm text-gray-400">
+            <Link to="/about"   className="hover:text-gray-600 transition-colors">À propos</Link>
+            <Link to="/privacy" className="hover:text-gray-600 transition-colors">Confidentialité</Link>
             <span>v{VERSION}</span>
             <a
               href={GITHUB_URL}
@@ -72,11 +91,11 @@ export default function Layout() {
               rel="noreferrer"
               className="hover:text-gray-600 transition-colors"
             >
-              Open source
+              GitHub
             </a>
           </div>
         </div>
-      </footer>
+      </footer>}
     </div>
   );
 }

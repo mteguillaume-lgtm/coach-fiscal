@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    // pdfjs-dist v5 est un ESM natif — l'exclure évite les erreurs de pre-bundling Vite
+    exclude: ['pdfjs-dist'],
+  },
 })

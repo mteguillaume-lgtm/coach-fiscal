@@ -30,3 +30,17 @@ dist-ssr
 
 # macOS
 **/.DS_Store
+
+# Sources externes (fichiers bundlés dans src/data/paperasse/ — voir skillsLoader.js)
+_sources/
+
+# Docs de construction du kit (hors dépôt public)
+00_INSTALLATION_MAC.md
+01_README_PROJET.md
+02_CAHIER_DES_CHARGES.md
+03_ARCHITECTURE.md
+04_PROMPTS_CLAUDE_CODE.md
+05_GUIDE_DEBOGAGE.md
+
+# Claude Code
+.claude/

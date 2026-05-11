@@ -5,6 +5,7 @@ const API_KEY_STORAGE = 'coachFiscal.apiKey';
 
 const initialState = {
   mode: 'solo',         // "solo" | "couple"
+  model: 'sonnet',      // "sonnet" | "opus"
   formData: {},          // données foyer (formulaire collecte)
   d1Data: {},            // déclarant 1 (mode couple)
   d2Data: {},            // déclarant 2 (mode couple)
@@ -18,6 +19,8 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_MODE':
       return { ...state, mode: action.payload };
+    case 'SET_MODEL':
+      return { ...state, model: action.payload };
     case 'SET_FORM_DATA':
       return { ...state, formData: action.payload };
     case 'SET_D1_DATA':

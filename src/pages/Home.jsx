@@ -79,7 +79,7 @@ export default function Home() {
       {/* Promesses */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
         {PROMISES.map(({ icon, title, desc }) => (
-          <Card key={title} className="flex flex-col items-center text-center gap-3 py-8">
+          <Card key={title} hoverable className="flex flex-col items-center text-center gap-3 py-8">
             <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
               {icon}
             </div>
