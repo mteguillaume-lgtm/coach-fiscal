@@ -1,20 +1,21 @@
 import { useNavigate } from 'react-router-dom';
-import { Lock, Shield, AlertTriangle, CheckCircle, XCircle, Trash2 } from 'lucide-react';
-import Card from '../components/Card';
+import {
+  Lock, Shield, AlertTriangle, CheckCircle, XCircle, Trash2,
+} from 'lucide-react';
 import Button from '../components/Button';
 
 const STORAGE_KEY     = 'coachFiscal.state';
 const API_KEY_STORAGE = 'coachFiscal.apiKey';
 
 const LOCAL_STORED = [
-  { key: 'coachFiscal.state → mode',        what: 'Situation du foyer (solo / couple)' },
-  { key: 'coachFiscal.state → model',       what: 'Modèle Claude sélectionné (Sonnet ou Opus)' },
-  { key: 'coachFiscal.state → formData',    what: 'Données du formulaire de collecte (revenus, épargne, déductions, immobilier)' },
-  { key: 'coachFiscal.state → d1Data',      what: 'Données déclarant 1 (mode couple)' },
-  { key: 'coachFiscal.state → d2Data',      what: 'Données déclarant 2 (mode couple)' },
-  { key: 'coachFiscal.state → profile',     what: 'Profil fiscal synthétique généré (texte brut)' },
-  { key: 'coachFiscal.state → chatHistory', what: 'Historique de la conversation avec Claude' },
-  { key: 'coachFiscal.apiKey',              what: 'Clé API Anthropic (stockée séparément, jamais dans coachFiscal.state)' },
+  { key: 'state → mode',        what: 'Situation du foyer (solo / couple)' },
+  { key: 'state → model',       what: 'Modèle Claude sélectionné (Sonnet ou Opus)' },
+  { key: 'state → formData',    what: 'Données du formulaire de collecte (revenus, épargne, déductions, immobilier)' },
+  { key: 'state → d1Data',      what: 'Données déclarant 1 (mode couple)' },
+  { key: 'state → d2Data',      what: 'Données déclarant 2 (mode couple)' },
+  { key: 'state → profile',     what: 'Profil fiscal synthétique généré (texte brut)' },
+  { key: 'state → chatHistory', what: 'Historique de la conversation avec Claude' },
+  { key: 'apiKey',              what: 'Clé API Anthropic (stockée séparément, jamais dans coachFiscal.state)' },
 ];
 
 const LOCAL_NOT_STORED = [
@@ -38,14 +39,15 @@ const API_NOT_SENT = [
   'Les données des formulaires Collect brutes (seul le profil synthétique agrégé est envoyé)',
 ];
 
-function Row({ label, ok }) {
+function SectionBlock({ title, titleColor = 'text-gray-500', children }) {
   return (
-    <div className="flex items-start gap-2.5 py-2.5 border-b border-gray-50 last:border-0">
-      {ok
-        ? <CheckCircle size={15} className="text-teal-500 shrink-0 mt-0.5" />
-        : <XCircle    size={15} className="text-red-400  shrink-0 mt-0.5" />
-      }
-      <p className="text-sm text-gray-600 leading-relaxed">{label}</p>
+    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+      <div className={`px-5 py-3 border-b border-gray-50 text-xs font-semibold uppercase tracking-wide ${titleColor}`}>
+        {title}
+      </div>
+      <div className="divide-y divide-gray-50">
+        {children}
+      </div>
     </div>
   );
 }
@@ -74,11 +76,11 @@ export default function Privacy() {
 
       {/* Hero */}
       <div className="flex flex-col gap-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-100 w-fit">
-          <Lock size={12} /> Politique de confidentialité
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-100 w-fit">
+          <Lock size={11} /> Politique de confidentialité
         </div>
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Vos données</h1>
-        <p className="text-gray-500 leading-relaxed max-w-lg">
+        <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
           Cette page décrit précisément ce qui est stocké dans votre navigateur
           et ce qui est transmis à l'API Claude. Vous pouvez tout effacer en un clic.
         </p>
@@ -87,75 +89,77 @@ export default function Privacy() {
       {/* localStorage */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
-          <Shield size={18} className="text-teal-600" />
+          <div className="w-7 h-7 rounded-lg bg-teal-gradient flex items-center justify-center text-white shadow-sm">
+            <Shield size={14} />
+          </div>
           <h2 className="text-lg font-bold text-gray-900">Stockage local (localStorage)</h2>
         </div>
 
-        <Card className="flex flex-col gap-0 px-5">
-          <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide py-3 border-b border-gray-100">
-            Ce qui est stocké
-          </p>
+        <SectionBlock title="Ce qui est stocké" titleColor="text-teal-600">
           {LOCAL_STORED.map(({ key, what }) => (
-            <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-gray-50 last:border-0">
-              <code className="shrink-0 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono w-fit">
-                {key}
+            <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 px-5 py-3">
+              <code className="shrink-0 text-xs bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-lg font-mono w-fit">
+                coachFiscal.{key}
               </code>
               <p className="text-sm text-gray-500 leading-relaxed">{what}</p>
             </div>
           ))}
-        </Card>
+        </SectionBlock>
 
-        <Card className="flex flex-col gap-0 px-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide py-3 border-b border-gray-100">
-            Ce qui n'est PAS stocké
-          </p>
+        <SectionBlock title="Ce qui n'est PAS stocké" titleColor="text-gray-400">
           {LOCAL_NOT_STORED.map(item => (
-            <Row key={item} label={item} ok={false} />
+            <div key={item} className="flex items-start gap-2.5 px-5 py-3">
+              <XCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-gray-600 leading-relaxed">{item}</p>
+            </div>
           ))}
-        </Card>
+        </SectionBlock>
       </div>
 
       {/* API Anthropic */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
-          <AlertTriangle size={18} className="text-amber-500" />
+          <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shadow-sm">
+            <AlertTriangle size={14} className="text-amber-600" />
+          </div>
           <h2 className="text-lg font-bold text-gray-900">Transmis à api.anthropic.com</h2>
         </div>
         <p className="text-sm text-gray-500 -mt-2">
           Uniquement lors de l'étape 4 (Conseil). Chaque message envoyé génère une requête HTTPS
-          vers <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">api.anthropic.com/v1/messages</code>.
+          vers{' '}
+          <code className="text-xs bg-gray-100 border border-gray-150 px-1.5 py-0.5 rounded font-mono">
+            api.anthropic.com/v1/messages
+          </code>.
         </p>
 
-        <Card className="flex flex-col gap-0 px-5">
-          <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide py-3 border-b border-gray-100">
-            Ce qui est envoyé
-          </p>
+        <SectionBlock title="Ce qui est envoyé" titleColor="text-amber-600">
           {API_SENT.map(({ item, detail }) => (
-            <div key={item} className="flex items-start gap-2.5 py-3 border-b border-gray-50 last:border-0">
+            <div key={item} className="flex items-start gap-2.5 px-5 py-3">
               <CheckCircle size={15} className="text-amber-400 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
-                <p className="text-sm font-medium text-gray-700">{item}</p>
+                <p className="text-sm font-semibold text-gray-700">{item}</p>
                 <p className="text-xs text-gray-400 leading-relaxed">{detail}</p>
               </div>
             </div>
           ))}
-        </Card>
+        </SectionBlock>
 
-        <Card className="flex flex-col gap-0 px-5">
-          <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide py-3 border-b border-gray-100">
-            Ce qui n'est PAS envoyé
-          </p>
+        <SectionBlock title="Ce qui n'est PAS envoyé" titleColor="text-teal-600">
           {API_NOT_SENT.map(item => (
-            <Row key={item} label={item} ok={false} />
+            <div key={item} className="flex items-start gap-2.5 px-5 py-3">
+              <XCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-gray-600 leading-relaxed">{item}</p>
+            </div>
           ))}
-        </Card>
+        </SectionBlock>
 
-        <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700">
+        <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3.5 text-xs text-blue-700">
           <Lock size={13} className="shrink-0 mt-0.5" />
           <span>
             Vous pouvez vérifier en temps réel dans <strong>DevTools → Onglet Network</strong> :
-            filtrez sur <code className="font-mono bg-blue-100 px-1 rounded">anthropic.com</code> pour
-            voir exactement ce qui part et ce qui revient.
+            filtrez sur{' '}
+            <code className="font-mono bg-blue-100 border border-blue-200 px-1 rounded">anthropic.com</code>
+            {' '}pour voir exactement ce qui part et ce qui revient.
           </span>
         </div>
       </div>
@@ -163,7 +167,10 @@ export default function Privacy() {
       {/* Tout effacer */}
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-bold text-gray-900">Supprimer mes données</h2>
-        <Card className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-red-50 border-red-100">
+        <div className="rounded-2xl border border-red-100 bg-red-50/50 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <Trash2 size={16} className="text-red-500" />
+          </div>
           <div className="flex-1">
             <p className="font-semibold text-gray-800 text-sm">Tout effacer</p>
             <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
@@ -172,15 +179,14 @@ export default function Privacy() {
             </p>
           </div>
           <Button
-            variant="secondary"
+            variant="danger"
             size="sm"
             onClick={handleClearAll}
-            className="!border-red-200 !text-red-600 hover:!bg-red-100 shrink-0"
+            className="shrink-0"
           >
-            <Trash2 size={14} />
-            Tout effacer
+            <Trash2 size={13} /> Tout effacer
           </Button>
-        </Card>
+        </div>
       </div>
 
     </div>

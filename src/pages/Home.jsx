@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, MapPin, Bot, ArrowRight } from 'lucide-react';
+import { Lock, Layers, Bot, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import Button from '../components/Button';
-import Card from '../components/Card';
 
 const STORAGE_KEY = 'coachFiscal.state';
 
@@ -16,26 +15,40 @@ function hasActiveSession() {
       (parsed.profile ?? '').length > 0 ||
       (parsed.chatHistory ?? []).length > 0
     );
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-const PROMISES = [
+const STEPS = [
+  { n: '1', label: 'Anonymisation' },
+  { n: '2', label: 'Collecte'      },
+  { n: '3', label: 'Profil'        },
+  { n: '4', label: 'Conseil IA'    },
+];
+
+const FEATURES = [
   {
-    icon: <Lock size={22} className="text-teal-600" aria-hidden="true" />,
-    title: '100% local',
-    desc: 'Vos données ne quittent jamais votre navigateur.',
+    icon: <Lock size={20} />,
+    color: 'from-teal-500 to-teal-600',
+    bg:    'bg-teal-50',
+    title: '100 % local',
+    stat:  '0 donnée envoyée',
+    desc:  'Vos PDF ne quittent jamais votre appareil. Seul votre profil synthétique part à Claude.',
   },
   {
-    icon: <MapPin size={22} className="text-teal-600" aria-hidden="true" />,
+    icon: <Layers size={20} />,
+    color: 'from-violet-500 to-violet-600',
+    bg:    'bg-violet-50',
     title: '4 étapes guidées',
-    desc: 'Anonymisation · Collecte · Profil · Conseil expert.',
+    stat:  '~30 minutes',
+    desc:  'Anonymisation → Collecte → Profil → Conseil expert. Sauvegardé en local à chaque étape.',
   },
   {
-    icon: <Bot size={22} className="text-teal-600" aria-hidden="true" />,
-    title: 'Conseil expert IA',
-    desc: '7 skills fiscaux actifs, personnalisés sur votre profil.',
+    icon: <Bot size={20} />,
+    color: 'from-emerald-500 to-emerald-600',
+    bg:    'bg-emerald-50',
+    title: '7 experts IA',
+    stat:  'Barèmes 2025',
+    desc:  'Fiscaliste, notaire, comptable, contrôleur fiscal et plus — activés selon votre question.',
   },
 ];
 
@@ -43,57 +56,121 @@ export default function Home() {
   const navigate = useNavigate();
   const [sessionActive, setSessionActive] = useState(false);
 
-  useEffect(() => {
-    setSessionActive(hasActiveSession());
-  }, []);
+  useEffect(() => { setSessionActive(hasActiveSession()); }, []);
 
   return (
-    <div className="flex flex-col items-center text-center gap-10 py-8">
+    <div className="flex flex-col gap-8">
 
-      {/* Hero */}
-      <div className="flex flex-col items-center gap-4 max-w-lg">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-700 text-sm font-medium rounded-full border border-teal-100">
-          <Lock size={13} aria-hidden="true" />
-          100% privé · open source
+      {/* ── Hero ───────────────────────────────────────────────── */}
+      <div className="-mx-4 relative overflow-hidden rounded-3xl bg-hero-gradient px-6 pt-14 pb-12 text-center shadow-hero">
+
+        {/* Orbs décoratifs */}
+        <div aria-hidden="true" className="pointer-events-none">
+          <div className="absolute -top-12 -left-12 w-72 h-72 rounded-full bg-teal-400/20 blur-3xl animate-glow" />
+          <div className="absolute -bottom-16 -right-8 w-64 h-64 rounded-full bg-emerald-400/15 blur-3xl animate-glow-delay" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-teal-600/10 blur-3xl animate-float-slow" />
         </div>
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight tracking-tight">
-          Coach Fiscal
+
+        {/* Badge */}
+        <div className="animate-slide-up relative z-10 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-dark text-teal-200 text-xs font-semibold mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse2" aria-hidden="true" />
+          100 % privé · open source MIT
+          <ShieldCheck size={12} className="text-teal-400" aria-hidden="true" />
+        </div>
+
+        {/* Headline */}
+        <h1 className="animate-slide-up-d1 relative z-10 text-4xl sm:text-5xl font-extrabold text-white leading-[1.1] tracking-tight mb-4">
+          Votre bilan fiscal
+          <br />
+          <span className="text-gradient">personnalisé</span>
+          {' '}en 30&nbsp;min
         </h1>
-        <p className="text-lg text-gray-500 leading-relaxed">
-          Votre bilan fiscal personnalisé en 30 minutes,&nbsp;100%&nbsp;privé.
+
+        {/* Sous-titre */}
+        <p className="animate-slide-up-d2 relative z-10 text-teal-100/65 text-base sm:text-lg leading-relaxed mb-8 max-w-md mx-auto">
+          Analyse de vos documents fiscaux, profil synthétique et conseil expert IA —
+          entièrement dans votre navigateur.
         </p>
 
-        {/* CTA */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
-          <Button size="lg" onClick={() => navigate('/setup')}>
+        {/* CTAs */}
+        <div className="animate-slide-up-d3 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
+          <Button size="lg" onClick={() => navigate('/setup')}
+            className="!px-7 !py-3.5 !text-base !rounded-2xl !shadow-lg">
             Démarrer mon bilan <ArrowRight size={18} aria-hidden="true" />
           </Button>
           {sessionActive && (
-            <Button size="lg" variant="secondary" onClick={() => navigate('/collect')}>
+            <Button variant="dark" size="lg" onClick={() => navigate('/collect')}
+              className="!rounded-2xl">
               Reprendre mon bilan
             </Button>
           )}
         </div>
+
+        {/* Étapes pill */}
+        <div className="relative z-10 flex items-center justify-center gap-1 sm:gap-2 flex-wrap">
+          {STEPS.map((s, i) => (
+            <div key={s.n} className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/8 border border-white/12 text-xs text-teal-200/80 font-medium">
+                <span className="w-4 h-4 rounded-full bg-teal-500/40 flex items-center justify-center text-[10px] font-bold text-white">
+                  {s.n}
+                </span>
+                {s.label}
+              </div>
+              {i < STEPS.length - 1 && (
+                <span aria-hidden="true" className="text-white/20 text-xs">→</span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Promesses */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-        {PROMISES.map(({ icon, title, desc }) => (
-          <Card key={title} hoverable className="flex flex-col items-center text-center gap-3 py-8">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-              {icon}
+      {/* ── Feature cards ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {FEATURES.map(({ icon, color, bg, title, stat, desc }) => (
+          <div
+            key={title}
+            className="group relative flex flex-col gap-4 rounded-2xl bg-white border border-gray-100 shadow-sm p-6 card-lift overflow-hidden"
+          >
+            {/* Fond hover subtil */}
+            <div aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-br from-teal-50/0 to-teal-50/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+            />
+
+            <div className="relative z-10 flex items-start justify-between">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white shadow-sm`}>
+                {icon}
+              </div>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${bg} text-gray-600`}>
+                {stat}
+              </span>
             </div>
-            <p className="font-semibold text-gray-800">{title}</p>
-            <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-          </Card>
+
+            <div className="relative z-10">
+              <p className="font-bold text-gray-900 mb-1.5">{title}</p>
+              <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Bandeau confidentialité */}
-      <div className="w-full bg-teal-600 text-white rounded-xl px-6 py-4 flex items-center justify-center gap-2 text-sm font-medium">
-        <Lock size={15} aria-hidden="true" />
-        Vos données fiscales ne quittent jamais votre navigateur — vérifié dans&nbsp;
-        <span className="underline underline-offset-2">DevTools › Network</span>
+      {/* ── Bandeau confidentialité ─────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl bg-teal-gradient px-6 py-4 flex items-center justify-between gap-4 shadow-sm">
+        <div aria-hidden="true"
+          className="absolute right-0 top-0 w-32 h-full bg-white/5 rounded-l-full blur-2xl"
+        />
+        <div className="flex items-center gap-2.5 text-white text-sm font-medium">
+          <Lock size={15} className="shrink-0" aria-hidden="true" />
+          <span>
+            Données fiscales 100 % locales —{' '}
+            <span className="opacity-75 font-normal">
+              vérifiez dans DevTools › Network
+            </span>
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 text-teal-100 text-xs font-medium">
+          <Sparkles size={13} aria-hidden="true" />
+          Open source
+        </div>
       </div>
 
     </div>

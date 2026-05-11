@@ -1,27 +1,32 @@
 import { Link } from 'react-router-dom';
-import { Lock, FileSearch, ClipboardList, Bot, ArrowRight, ExternalLink } from 'lucide-react';
-import Card from '../components/Card';
+import {
+  Lock, FileSearch, ClipboardList, Bot, ArrowRight, ExternalLink, Sparkles,
+} from 'lucide-react';
 
 const STEPS = [
   {
-    icon: <Lock size={20} className="text-teal-600" />,
-    label: 'Étape 1 — Anonymisation',
+    Icon: Lock,
+    label: 'Anonymisation',
     desc: 'Vos PDF (bulletins de salaire, avis d\'imposition, relevés…) sont lus localement par pdf.js. Les données personnelles identifiantes sont masquées avant tout traitement.',
+    color: 'teal',
   },
   {
-    icon: <ClipboardList size={20} className="text-teal-600" />,
-    label: 'Étape 2 — Collecte',
+    Icon: ClipboardList,
+    label: 'Collecte',
     desc: 'Un formulaire guidé structure votre situation fiscale : revenus, épargne, déductions, immobilier. Les chiffres extraits de vos documents pré-remplissent les champs automatiquement.',
+    color: 'teal',
   },
   {
-    icon: <FileSearch size={20} className="text-teal-600" />,
-    label: 'Étape 3 — Profil',
+    Icon: FileSearch,
+    label: 'Profil',
     desc: 'Un profil fiscal synthétique est généré localement à partir de vos données. C\'est ce texte — et uniquement lui — qui sera transmis à Claude.',
+    color: 'teal',
   },
   {
-    icon: <Bot size={20} className="text-teal-600" />,
-    label: 'Étape 4 — Conseil expert IA',
+    Icon: Bot,
+    label: 'Conseil expert IA',
     desc: 'Claude reçoit votre profil + les skills fiscaux actifs (fiscaliste, notaire, comptable…) et répond à vos questions avec des données chiffrées à jour (barèmes 2025, plafonds PER, abattements…).',
+    color: 'teal',
   },
 ];
 
@@ -65,51 +70,25 @@ const CREDITS = [
   },
 ];
 
-function Step({ step, index }) {
-  return (
-    <div className="flex gap-4">
-      <div className="shrink-0 w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold">
-        {index + 1}
-      </div>
-      <div className="flex flex-col gap-1 pb-6 border-l border-gray-100 pl-4 -ml-8 ml-4">
-        <div className="flex items-center gap-2">
-          {step.icon}
-          <p className="font-semibold text-gray-800 text-sm">{step.label}</p>
-        </div>
-        <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
-      </div>
-    </div>
-  );
-}
-
-function FaqItem({ q, a }) {
-  return (
-    <div className="flex flex-col gap-2 py-4 border-b border-gray-100 last:border-0">
-      <p className="font-semibold text-gray-800 text-sm">{q}</p>
-      <p className="text-sm text-gray-500 leading-relaxed">{a}</p>
-    </div>
-  );
-}
-
 export default function About() {
   return (
     <div className="flex flex-col gap-10">
 
       {/* Hero */}
       <div className="flex flex-col gap-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-100 w-fit">
-          <Lock size={12} /> 100 % local · open source MIT
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-100 w-fit">
+          <Lock size={11} /> 100 % local · open source MIT
         </div>
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">À propos de Coach Fiscal</h1>
-        <p className="text-gray-500 leading-relaxed max-w-lg">
+        <p className="text-gray-500 leading-relaxed max-w-lg text-sm">
           Un assistant fiscal personnel qui tourne entièrement dans votre navigateur.
           Vos données ne quittent jamais votre appareil — sauf votre profil synthétique,
           envoyé à Claude pour le conseil expert.
         </p>
-        <div className="flex items-center gap-3 mt-1">
+        <div className="flex items-center gap-4 mt-1">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
           >
             Démarrer mon bilan <ArrowRight size={14} />
           </Link>
@@ -117,7 +96,7 @@ export default function About() {
             to="/privacy"
             className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
-            Politique de confidentialité
+            Confidentialité
           </Link>
         </div>
       </div>
@@ -125,32 +104,35 @@ export default function About() {
       {/* Comment ça marche */}
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-bold text-gray-900">Comment ça marche</h2>
-        <Card className="flex flex-col divide-y divide-gray-50 py-2">
-          {STEPS.map((step, i) => (
-            <div key={step.label} className="py-4 first:pt-2 last:pb-2 flex gap-4 items-start">
-              <div className="shrink-0 w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold mt-0.5">
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+          {STEPS.map(({ Icon, label, desc }, i) => (
+            <div key={label} className="flex gap-4 items-start px-5 py-5 border-b border-gray-50 last:border-0">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-teal-gradient text-white flex items-center justify-center text-xs font-bold mt-0.5 shadow-sm">
                 {i + 1}
               </div>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  {step.icon}
-                  <p className="font-semibold text-gray-800 text-sm">{step.label.replace(/^Étape \d+ — /, '')}</p>
+                  <Icon size={15} className="text-teal-500" aria-hidden="true" />
+                  <p className="font-semibold text-gray-800 text-sm">{label}</p>
                 </div>
-                <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
-        </Card>
+        </div>
       </div>
 
       {/* FAQ */}
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-bold text-gray-900">Questions fréquentes</h2>
-        <Card className="px-6">
-          {FAQ.map(item => (
-            <FaqItem key={item.q} {...item} />
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+          {FAQ.map(({ q, a }) => (
+            <div key={q} className="flex flex-col gap-2 px-5 py-5 border-b border-gray-50 last:border-0">
+              <p className="font-semibold text-gray-800 text-sm">{q}</p>
+              <p className="text-sm text-gray-500 leading-relaxed">{a}</p>
+            </div>
           ))}
-        </Card>
+        </div>
       </div>
 
       {/* Crédits */}
@@ -158,24 +140,44 @@ export default function About() {
         <h2 className="text-lg font-bold text-gray-900">Crédits & bibliothèques</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {CREDITS.map(c => (
-            <Card key={c.name} className="flex flex-col gap-2">
+            <div
+              key={c.name}
+              className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4 flex flex-col gap-2 hover:border-teal-200 hover:shadow-md transition-all duration-200"
+            >
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-gray-800 text-sm">{c.name}</p>
                 <a
                   href={c.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-gray-400 hover:text-teal-600 transition-colors"
-                  aria-label={`Voir ${c.name} sur le web`}
+                  className="text-gray-300 hover:text-teal-500 transition-colors"
+                  aria-label={`Voir ${c.name}`}
                 >
                   <ExternalLink size={13} />
                 </a>
               </div>
-              <p className="text-xs text-gray-400 leading-relaxed">{c.desc}</p>
-              <p className="text-xs text-gray-400">par {c.author}</p>
-            </Card>
+              <p className="text-xs text-gray-500 leading-relaxed flex-1">{c.desc}</p>
+              <p className="text-xs text-gray-400 font-medium">par {c.author}</p>
+            </div>
           ))}
         </div>
+      </div>
+
+      {/* CTA */}
+      <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-teal-gradient flex items-center justify-center text-white shrink-0 shadow-sm">
+          <Sparkles size={18} />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-gray-800 text-sm">Prêt à démarrer ?</p>
+          <p className="text-xs text-gray-500 mt-0.5">Votre bilan fiscal complet en 4 étapes, 100 % dans votre navigateur.</p>
+        </div>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-gradient text-white text-sm font-semibold rounded-xl shadow-sm hover:brightness-110 transition-all shrink-0"
+        >
+          Commencer <ArrowRight size={14} />
+        </Link>
       </div>
 
     </div>

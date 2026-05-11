@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,44 +13,63 @@
 
   body {
     @apply bg-gray-50 text-gray-900 m-0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   #root {
     @apply min-h-screen;
   }
 
-  /* Scrollbar discrète sur webkit */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
-  }
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-gray-100; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
 }
 
 @layer utilities {
-  /* Zone scrollable pour le profil / chat */
-  .scroll-area {
-    @apply overflow-y-auto max-h-[60vh] pr-2;
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-teal-300 to-emerald-300 bg-clip-text text-transparent;
+  }
+  .text-gradient-dark {
+    @apply bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-transparent;
+  }
+
+  /* Glassmorphism */
+  .glass {
+    @apply bg-white/70 backdrop-blur-sm border border-white/80;
+  }
+  .glass-dark {
+    @apply bg-white/10 backdrop-blur-md border border-white/15;
   }
 
   /* Focus ring cohérent */
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2;
   }
+
+  /* Shimmer overlay (bouton CTA) */
+  .shimmer-btn::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent;
+    animation: shimmer 2.4s ease-in-out infinite;
+  }
 }
 
 @layer components {
-  /* Hover élévation sur les cartes interactives */
   .card-lift {
-    @apply transition-shadow duration-200 hover:shadow-md;
+    @apply transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+  .scroll-area {
+    @apply overflow-y-auto max-h-[60vh] pr-2;
+  }
+}
+
+/* Respect des préférences d'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

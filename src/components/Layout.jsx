@@ -1,11 +1,10 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { ExternalLink } from 'lucide-react';
+import { GitFork, Lock } from 'lucide-react';
 import Stepper from './Stepper';
-import PrivacyBadge from './PrivacyBadge';
 
-const GITHUB_URL = 'https://github.com/coach-fiscal/coach-fiscal';
-const VERSION = '0.1.0';
+const GITHUB_URL  = 'https://github.com/coach-fiscal/coach-fiscal';
+const VERSION     = '0.1.0';
 const STEP_ROUTES = ['/anonymize', '/collect', '/profile', '/chat'];
 
 export default function Layout() {
@@ -21,49 +20,48 @@ export default function Layout() {
       <Toaster
         position="top-right"
         toastOptions={{
-          className: '!text-sm !font-medium !rounded-xl !shadow-lg !max-w-sm',
-          success: {
-            duration: 3000,
-            iconTheme: { primary: '#0F6E56', secondary: '#E1F5EE' },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: { primary: '#ef4444', secondary: '#fee2e2' },
-          },
+          className: '!text-sm !font-medium !rounded-2xl !shadow-xl !max-w-sm !border !border-gray-100',
+          success: { duration: 3000, iconTheme: { primary: '#0F6E56', secondary: '#E1F5EE' } },
+          error:   { duration: 5000, iconTheme: { primary: '#ef4444', secondary: '#fee2e2' } },
         }}
       />
 
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-[720px] mx-auto px-4 h-14 flex items-center justify-between">
-          <Link
-            to="/"
-            className="font-semibold text-teal-600 text-lg hover:text-teal-700 transition-colors"
-          >
-            Coach Fiscal
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 shadow-sm">
+        <div className="max-w-[720px] mx-auto px-4 h-14 flex items-center justify-between gap-4">
+
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="w-7 h-7 rounded-lg bg-teal-gradient flex items-center justify-center shadow-sm">
+              <Lock size={13} className="text-white" aria-hidden="true" />
+            </div>
+            <span className="font-bold text-gray-900 tracking-tight group-hover:text-teal-600 transition-colors">
+              Coach Fiscal
+            </span>
           </Link>
+
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="Code source sur GitHub"
-            className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100"
           >
-            GitHub <ExternalLink size={14} aria-hidden="true" />
+            <GitFork size={14} aria-hidden="true" />
+            <span className="hidden sm:inline">GitHub</span>
           </a>
         </div>
       </header>
 
-      {/* Stepper (étapes 1–4 uniquement) */}
+      {/* ── Stepper ─────────────────────────────────────────────── */}
       {showStepper && (
-        <div className="bg-white border-b border-gray-100">
+        <div className="bg-white/60 backdrop-blur-sm border-b border-gray-100">
           <div className="max-w-[720px] mx-auto px-4 py-3">
             <Stepper />
           </div>
         </div>
       )}
 
-      {/* Contenu principal */}
+      {/* ── Contenu ─────────────────────────────────────────────── */}
       <main className={isChatPage
         ? 'flex-1 flex flex-col overflow-hidden min-h-0'
         : 'flex-1'
@@ -77,25 +75,25 @@ export default function Layout() {
         )}
       </main>
 
-      {/* Footer masqué sur /chat (l'input du chat fait office de pied de page) */}
-      {!isChatPage && <footer className="bg-white border-t border-gray-200">
-        <div className="max-w-[720px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 justify-between">
-          <PrivacyBadge />
-          <div className="flex items-center gap-4 text-sm text-gray-400">
-            <Link to="/about"   className="hover:text-gray-600 transition-colors">À propos</Link>
-            <Link to="/privacy" className="hover:text-gray-600 transition-colors">Confidentialité</Link>
-            <span>v{VERSION}</span>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-gray-600 transition-colors"
-            >
-              GitHub
-            </a>
+      {/* ── Footer ──────────────────────────────────────────────── */}
+      {!isChatPage && (
+        <footer className="bg-white/70 backdrop-blur-sm border-t border-gray-100">
+          <div className="max-w-[720px] mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-0 justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-teal-600 font-medium">
+              <Lock size={12} aria-hidden="true" />
+              Données 100 % locales
+            </div>
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <Link to="/about"   className="hover:text-gray-600 transition-colors">À propos</Link>
+              <Link to="/privacy" className="hover:text-gray-600 transition-colors">Confidentialité</Link>
+              <span className="text-gray-200">·</span>
+              <span>v{VERSION}</span>
+              <a href={GITHUB_URL} target="_blank" rel="noreferrer"
+                className="hover:text-gray-600 transition-colors">GitHub</a>
+            </div>
           </div>
-        </div>
-      </footer>}
+        </footer>
+      )}
     </div>
   );
 }
