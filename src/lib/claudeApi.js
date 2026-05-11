@@ -1,9 +1,45 @@
 // Wrapper Anthropic API — streaming SSE avec fallback non-streaming.
 
 const MODELS = {
+  haiku:  'claude-haiku-4-5',
   sonnet: 'claude-sonnet-4-5',
   opus:   'claude-opus-4-5',
 };
+
+// ─── Détection de complexité ──────────────────────────────────────────────────
+
+const HAIKU_KEYWORDS  = ["c'est quoi", 'définition', 'quel est le taux', 'explique moi', 'explique-moi', 'kesako', "c'est combien"];
+const SONNET_KEYWORDS = ['optimise', 'compare', 'stratégie', 'recommande', 'simulation', 'meilleur'];
+const OPUS_KEYWORDS   = ['plan complet', 'stratégie globale', 'sur 10 ans', 'transmission patrimoine', 'optimisation complète', 'bilan complet', 'restructure', 'arbitrage global'];
+
+/**
+ * Détermine le modèle optimal pour un message donné.
+ * @param {string}   userMessage
+ * @param {string[]} skills  — liste retournée par detectRelevantSkills
+ * @returns {{ model: 'haiku'|'sonnet'|'opus', reason: string }}
+ */
+export function detectComplexity(userMessage, skills = []) {
+  const lower      = userMessage.toLowerCase();
+  const len        = userMessage.length;
+  const specialized = skills.filter(s => s !== 'gcp');
+  const sc         = specialized.length;
+
+  let model, reason;
+
+  if (len > 200 || sc >= 3 || OPUS_KEYWORDS.some(kw => lower.includes(kw))) {
+    model  = 'opus';
+    reason = len > 200 ? `${len} chars` : sc >= 3 ? `${sc} skills spécialisés` : 'mot-clé complexe';
+  } else if (len < 60 || sc <= 1 || HAIKU_KEYWORDS.some(kw => lower.includes(kw))) {
+    model  = 'haiku';
+    reason = len < 60 ? `${len} chars` : sc <= 1 ? `${sc} skill spécialisé` : 'mot-clé simple';
+  } else {
+    model  = 'sonnet';
+    reason = SONNET_KEYWORDS.some(kw => lower.includes(kw)) ? 'mot-clé intermédiaire' : `${len} chars, ${sc} skills`;
+  }
+
+  console.log(`Modèle : ${model} — Skills : ${skills.length} — Longueur : ${len} chars — Raison : ${reason}`);
+  return { model, reason };
+}
 const API_URL = 'https://api.anthropic.com/v1/messages';
 
 export async function chatWithClaude({ apiKey, messages, system, onChunk, model = 'sonnet' }) {

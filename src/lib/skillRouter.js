@@ -115,8 +115,7 @@ const SKILL_LABELS = {
  * @param {{ userMessage: string, profile: string, masterPrompt: string }} opts
  * @returns {string} system prompt prêt à envoyer à Claude
  */
-export function buildSystemPrompt({ userMessage, profile, masterPrompt }) {
-  const skills = detectRelevantSkills(userMessage);
+export function buildSystemPrompt({ skills, profile, masterPrompt }) {
 
   const skillsBlock = skills
     .map(id => {

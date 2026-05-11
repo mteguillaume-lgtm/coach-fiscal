@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate }  from 'react-router-dom';
 import toast            from 'react-hot-toast';
 import Markdown         from 'react-markdown';
@@ -6,7 +6,7 @@ import remarkGfm        from 'remark-gfm';
 import { Send, Menu, X, Trash2, Download, ArrowLeft, Zap, Sparkles, Bot } from 'lucide-react';
 
 import { useApp }                                    from '../context/AppContext';
-import { chatWithClaude }                            from '../lib/claudeApi';
+import { chatWithClaude, detectComplexity }           from '../lib/claudeApi';
 import { detectRelevantSkills, buildSystemPrompt }   from '../lib/skillRouter';
 import { MASTER_PROMPT }                             from '../data/masterPrompt';
 import Button                                        from '../components/Button';
@@ -137,7 +137,18 @@ export default function Chat() {
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
   }, [input]);
 
-  const handleSend = useCallback(async () => {
+  // Complexité temps réel (pour indicateur + bannière — recalcul à chaque frappe)
+  const inputComplexity = useMemo(() => {
+    const text = input.trim();
+    if (!text) return null;
+    const skills = detectRelevantSkills(text);
+    return { ...detectComplexity(text, skills), skills };
+  }, [input]);
+
+  // state.model sert de plancher de qualité : l'auto-router ne peut pas descendre en-dessous
+  const MODEL_RANK = { haiku: 0, sonnet: 1, opus: 2 };
+
+  const handleSend = useCallback(async (forceModel = null) => {
     const text = input.trim();
     if (!text || streaming) return;
     const apiKey = getApiKey();
@@ -150,9 +161,13 @@ export default function Chat() {
     setMessages(prev => [...prev, userMsg, draftMsg]);
     setStreaming(true);
 
-    const skills = detectRelevantSkills(text);
+    const skills           = detectRelevantSkills(text);
     setActiveSkills(skills);
-    const system = buildSystemPrompt({ userMessage: text, profile: state.profile, masterPrompt: MASTER_PROMPT });
+    const { model: autoModel } = detectComplexity(text, skills);
+    const modelToUse = forceModel ?? (
+      MODEL_RANK[autoModel] >= MODEL_RANK[state.model] ? autoModel : state.model
+    );
+    const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT });
     const historyForApi = [
       ...prevMessages.map(({ role, content }) => ({ role, content })),
       { role: 'user', content: text },
@@ -160,7 +175,7 @@ export default function Chat() {
 
     try {
       await chatWithClaude({
-        apiKey, messages: historyForApi, system, model: state.model,
+        apiKey, messages: historyForApi, system, model: modelToUse,
         onChunk: chunk => setMessages(prev => {
           const u = [...prev];
           const l = u[u.length - 1];
@@ -364,7 +379,42 @@ export default function Chat() {
 
         {/* ── Zone de saisie ────────────────────────────────────── */}
         <div className="shrink-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 px-4 pt-3 pb-4">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto flex flex-col gap-2">
+
+            {/* Bannière Opus */}
+            {inputComplexity?.model === 'opus' && input.trim() && (
+              <div className="rounded-xl border border-purple-200 bg-purple-50/80 px-4 py-3 flex flex-col gap-2.5">
+                <div>
+                  <p className="text-sm font-semibold text-purple-800">
+                    🔮 Question complexe détectée
+                  </p>
+                  <p className="text-xs text-purple-600 mt-0.5 leading-relaxed">
+                    Notre meilleur modèle sera utilisé.<br />
+                    Coût estimé : ~0,05–0,10 $ sur votre crédit API.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSend()}
+                    disabled={streaming}
+                    className="px-3 py-1.5 text-xs font-semibold bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  >
+                    Envoyer quand même
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSend('sonnet')}
+                    disabled={streaming}
+                    className="px-3 py-1.5 text-xs font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50"
+                  >
+                    Simplifier
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Zone de saisie principale */}
             <div className="flex items-end gap-2 bg-white rounded-2xl border border-gray-200 shadow-sm px-3 py-2 focus-within:border-teal-300 focus-within:ring-2 focus-within:ring-teal-100 transition-all">
               <textarea
                 ref={textareaRef}
@@ -378,7 +428,7 @@ export default function Chat() {
                 style={{ maxHeight: '120px', overflowY: 'auto' }}
               />
               <button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!input.trim() || streaming}
                 aria-label="Envoyer"
                 className={[
@@ -395,16 +445,25 @@ export default function Chat() {
               </button>
             </div>
 
-            <div className="flex items-center justify-between mt-2 px-1">
+            {/* Ligne bas : disclaimer + indicateur de complexité */}
+            <div className="flex items-center justify-between px-1">
               <p className="text-[10px] text-gray-400 leading-relaxed">
-                💡 Conseil indicatif — consultez un professionnel agréé pour les décisions importantes.
+                💡 Conseil indicatif — consultez un professionnel agréé.
               </p>
-              {activeSkills.length > 0 && (
-                <p className="text-[10px] font-mono text-gray-300 ml-2 shrink-0">
-                  {activeSkills.join(' · ')}
-                </p>
+              {inputComplexity && (
+                <span className={[
+                  'text-[10px] font-semibold flex items-center gap-1 shrink-0 ml-2',
+                  inputComplexity.model === 'haiku'  && 'text-gray-400',
+                  inputComplexity.model === 'sonnet' && 'text-teal-600',
+                  inputComplexity.model === 'opus'   && 'text-purple-600',
+                ].filter(Boolean).join(' ')}>
+                  {inputComplexity.model === 'haiku'  && '⚡ Haiku — Réponse rapide'}
+                  {inputComplexity.model === 'sonnet' && '🧠 Sonnet — Analyse approfondie'}
+                  {inputComplexity.model === 'opus'   && '🔮 Opus — Stratégie complexe'}
+                </span>
               )}
             </div>
+
           </div>
         </div>
 
