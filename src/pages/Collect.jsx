@@ -481,15 +481,27 @@ export default function Collect() {
 
   const anonymizedFiles = state.anonymizedFiles || [];
   const handleUseAnonymized = useCallback(() => {
-    const files = anonymizedFiles
-      .filter(f => f.blob)
-      .map(f => new File([f.blob], f.name, { type: 'application/pdf' }));
-    if (files.length === 0) {
+    if (anonymizedFiles.filter(f => f.blob).length === 0) {
       toast.error('Les fichiers ne sont plus disponibles — uploader manuellement.');
       return;
     }
-    const target = isCouple ? 'd1' : 'solo';
-    handleFiles(files, target);
+
+    if (!isCouple) {
+      const files = anonymizedFiles
+        .filter(f => f.blob)
+        .map(f => new File([f.blob], f.name, { type: 'application/pdf' }));
+      handleFiles(files, 'solo');
+      return;
+    }
+
+    // Mode couple : router selon le target enregistré dans l'étape Anonymize
+    const byTarget = { d1: [], d2: [] };
+    for (const f of anonymizedFiles.filter(f => f.blob)) {
+      const t = f.target === 'd2' ? 'd2' : 'd1'; // fallback → d1 si pas de target
+      byTarget[t].push(new File([f.blob], f.name, { type: 'application/pdf' }));
+    }
+    if (byTarget.d1.length > 0) handleFiles(byTarget.d1, 'd1');
+    if (byTarget.d2.length > 0) handleFiles(byTarget.d2, 'd2');
   }, [anonymizedFiles, handleFiles, isCouple]);
 
   const accProps    = { activeAcc, setActiveAcc };

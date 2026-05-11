@@ -4,7 +4,7 @@ import toast             from 'react-hot-toast';
 import {
   Upload, Settings, ChevronDown, ShieldCheck,
   CheckCircle, AlertCircle, Eye, Download, X, Archive,
-  FileText, ArrowLeft,
+  FileText, ArrowLeft, User, Users,
 } from 'lucide-react';
 
 import { useApp }         from '../context/AppContext';
@@ -12,7 +12,8 @@ import { anonymizePdf }   from '../lib/anonymizer';
 import { buildPatterns }  from '../lib/patterns';
 import Button             from '../components/Button';
 
-const MAX_FILES = 10;
+const MAX_FILES_SOLO   = 10;
+const MAX_FILES_TARGET = 5;   // par déclarant en mode couple
 
 const GROUP_LABELS = {
   identite: 'Identité', employeur: 'Employeur', nss: 'N° Sécurité Sociale',
@@ -39,7 +40,6 @@ function FileRow({ item, onRemove }) {
       item.status === 'processing' && 'border-gray-100 bg-white',
     ].filter(Boolean).join(' ')}>
 
-      {/* Status icon */}
       <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center">
         {item.status === 'processing' && (
           <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-500">
@@ -58,7 +58,6 @@ function FileRow({ item, onRemove }) {
         )}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
         {item.status === 'processing' && (
@@ -77,7 +76,6 @@ function FileRow({ item, onRemove }) {
         )}
       </div>
 
-      {/* Actions */}
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         {item.status === 'done' && item.objectUrl && (
           <>
@@ -118,10 +116,113 @@ function Accordion({ icon: Icon, title, badge, open, onToggle, children }) {
   );
 }
 
+// ─── Drop zone card (pour mode couple) ───────────────────────────────────────
+function DropZoneCard({ target, items, maxReached, onFiles, onRemove }) {
+  const fileInputRef   = useRef(null);
+  const dragCounterRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const isD1    = target === 'd1';
+  const label   = isD1 ? 'Déclarant 1' : 'Déclarant 2';
+  const myItems = items.filter(f => f.target === target);
+
+  function onDragEnter(e) { e.preventDefault(); if (++dragCounterRef.current === 1) setIsDragging(true); }
+  function onDragLeave(e) { e.preventDefault(); if (--dragCounterRef.current === 0) setIsDragging(false); }
+  function onDragOver(e)  { e.preventDefault(); }
+  function onDrop(e)      { e.preventDefault(); dragCounterRef.current = 0; setIsDragging(false); onFiles(e.dataTransfer.files, target); }
+
+  return (
+    <div className={[
+      'flex-1 rounded-2xl border-2 p-4 flex flex-col gap-3 transition-all duration-200',
+      isD1 ? 'border-teal-100 bg-teal-50/20' : 'border-purple-100 bg-purple-50/10',
+    ].join(' ')}>
+
+      {/* En-tête du bloc */}
+      <div className="flex items-center gap-2.5">
+        <div className={[
+          'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold font-mono border',
+          isD1
+            ? 'bg-teal-gradient border-transparent text-white'
+            : 'bg-purple-500 border-transparent text-white',
+        ].join(' ')}>
+          {isD1 ? <User size={14} /> : <User size={14} />}
+        </div>
+        <span className="font-semibold text-sm text-gray-800">{label}</span>
+        {myItems.length > 0 && (
+          <span className={`ml-auto text-xs font-mono ${isD1 ? 'text-teal-500' : 'text-purple-500'}`}>
+            {myItems.filter(f => f.status === 'done').length}/{myItems.length}
+          </span>
+        )}
+      </div>
+
+      {/* Zone de drop */}
+      {!maxReached ? (
+        <div
+          role="button" tabIndex={0}
+          aria-label={`Zone de dépôt pour ${label}`}
+          onDragEnter={onDragEnter} onDragLeave={onDragLeave}
+          onDragOver={onDragOver}   onDrop={onDrop}
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+          className={[
+            'border-2 border-dashed rounded-xl p-5 flex flex-col items-center gap-3',
+            'cursor-pointer transition-all duration-200 select-none outline-none',
+            'focus-visible:ring-2 focus-visible:ring-offset-2',
+            isDragging
+              ? (isD1
+                  ? 'border-teal-400 bg-teal-50 scale-[1.01] shadow-sm shadow-teal-100 focus-visible:ring-teal-500'
+                  : 'border-purple-400 bg-purple-50 scale-[1.01] shadow-sm shadow-purple-100 focus-visible:ring-purple-500')
+              : (isD1
+                  ? 'border-teal-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
+                  : 'border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50/20'),
+          ].join(' ')}
+        >
+          <input ref={fileInputRef} type="file" accept=".pdf,application/pdf"
+            multiple className="hidden" onChange={e => { onFiles(e.target.files, target); e.target.value = ''; }} />
+
+          <div className={[
+            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200',
+            isDragging
+              ? (isD1 ? 'bg-teal-gradient text-white' : 'bg-purple-500 text-white')
+              : (isD1 ? 'bg-teal-100 text-teal-400'   : 'bg-purple-100 text-purple-400'),
+          ].join(' ')}>
+            <Upload size={18} className={isDragging ? 'animate-bounce' : ''} />
+          </div>
+
+          <div className="text-center">
+            <p className={`font-semibold text-xs transition-colors ${
+              isDragging
+                ? (isD1 ? 'text-teal-700' : 'text-purple-700')
+                : 'text-gray-600'
+            }`}>
+              {isDragging ? 'Déposez ici ✓' : 'Glisser ou cliquer'}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              PDF · {MAX_FILES_TARGET - myItems.length} restant(s)
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center bg-white">
+          <p className="text-xs text-gray-400">Limite atteinte</p>
+        </div>
+      )}
+
+      {/* Liste fichiers du bloc */}
+      {myItems.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {myItems.map(item => <FileRow key={item.id} item={item} onRemove={onRemove} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 export default function Anonymize() {
-  const navigate     = useNavigate();
-  const { dispatch } = useApp();
+  const navigate          = useNavigate();
+  const { state, dispatch } = useApp();
+  const isCouple          = state.mode === 'couple';
 
   const [prenom,    setPrenom]    = useState('');
   const [nom,       setNom]       = useState('');
@@ -142,7 +243,7 @@ export default function Anonymize() {
 
   useEffect(() => {
     const done = fileItems.filter(f => f.status === 'done')
-      .map(f => ({ name: f.suggestedFilename, objectUrl: f.objectUrl, blob: f.blob }));
+      .map(f => ({ name: f.suggestedFilename, objectUrl: f.objectUrl, blob: f.blob, target: f.target }));
     dispatch({ type: 'SET_ANONYMIZED_FILES', payload: done });
   }, [fileItems, dispatch]);
 
@@ -157,16 +258,19 @@ export default function Anonymize() {
     return g;
   }, [allPatterns]);
 
-  const processFiles = useCallback(async (rawFiles) => {
-    const remaining   = MAX_FILES - fileItems.length;
+  const processFiles = useCallback(async (rawFiles, target = 'solo') => {
+    const maxForTarget = isCouple ? MAX_FILES_TARGET : MAX_FILES_SOLO;
+    const countForTarget = fileItems.filter(f => f.target === target).length;
+    const remaining = maxForTarget - countForTarget;
     if (remaining <= 0) return;
+
     const validFiles = Array.from(rawFiles)
       .filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
       .slice(0, remaining);
     if (validFiles.length === 0) { toast.error('Seuls les PDF sont acceptés.'); return; }
 
     const newItems = validFiles.map(file => ({
-      id: crypto.randomUUID(), name: file.name, file,
+      id: crypto.randomUUID(), name: file.name, file, target,
       status: 'processing', zonesCount: 0, suggestedFilename: '', blob: null, objectUrl: null, error: null,
     }));
     setFileItems(prev => [...prev, ...newItems]);
@@ -194,13 +298,14 @@ export default function Anonymize() {
       }
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileItems.length, prenom, nom, employeur, enabledLabels, disabledLabels]);
+  }, [fileItems, prenom, nom, employeur, enabledLabels, disabledLabels, isCouple]);
 
+  // Handlers zone solo
   function onDragEnter(e) { e.preventDefault(); if (++dragCounterRef.current === 1) setIsDragging(true); }
   function onDragLeave(e) { e.preventDefault(); if (--dragCounterRef.current === 0) setIsDragging(false); }
   function onDragOver(e)  { e.preventDefault(); }
-  function onDrop(e)      { e.preventDefault(); dragCounterRef.current = 0; setIsDragging(false); processFiles(e.dataTransfer.files); }
-  function onFileInputChange(e) { processFiles(e.target.files); e.target.value = ''; }
+  function onDrop(e)      { e.preventDefault(); dragCounterRef.current = 0; setIsDragging(false); processFiles(e.dataTransfer.files, 'solo'); }
+  function onFileInputChange(e) { processFiles(e.target.files, 'solo'); e.target.value = ''; }
 
   function removeFile(id) {
     setFileItems(prev => {
@@ -230,8 +335,12 @@ export default function Anonymize() {
 
   const doneCount       = fileItems.filter(f => f.status === 'done').length;
   const processingCount = fileItems.filter(f => f.status === 'processing').length;
-  const maxReached      = fileItems.length >= MAX_FILES;
+  const maxReached      = fileItems.length >= MAX_FILES_SOLO;
   const enabledCount    = allPatterns.filter(p => !disabledLabels.has(p.label)).length;
+
+  // Limites par cible en mode couple
+  const d1MaxReached = fileItems.filter(f => f.target === 'd1').length >= MAX_FILES_TARGET;
+  const d2MaxReached = fileItems.filter(f => f.target === 'd2').length >= MAX_FILES_TARGET;
 
   return (
     <div className="flex flex-col gap-5">
@@ -243,6 +352,11 @@ export default function Anonymize() {
         <p className="text-sm text-gray-500 mt-1">
           Noircissez les données sensibles avant envoi à Claude. Étape optionnelle.
         </p>
+        {isCouple && (
+          <div className="flex items-center gap-1.5 mt-2 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 w-fit">
+            <Users size={13} /> Mode couple — déposez séparément les documents de chaque déclarant
+          </div>
+        )}
       </div>
 
       {/* Personnalisation */}
@@ -308,59 +422,79 @@ export default function Anonymize() {
         </div>
       </Accordion>
 
-      {/* ── Drop zone ─────────────────────────────────────────────── */}
-      {!maxReached ? (
-        <div
-          role="button" tabIndex={0}
-          aria-label="Zone de dépôt de PDF"
-          onDragEnter={onDragEnter} onDragLeave={onDragLeave}
-          onDragOver={onDragOver}   onDrop={onDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
-          className={[
-            'relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-4',
-            'cursor-pointer transition-all duration-300 select-none outline-none',
-            'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2',
-            isDragging
-              ? 'border-teal-500 bg-teal-50 scale-[1.01] shadow-lg shadow-teal-100'
-              : 'border-gray-200 bg-white hover:border-teal-300 hover:bg-gray-50/80',
-          ].join(' ')}
-        >
-          <input ref={fileInputRef} type="file" accept=".pdf,application/pdf"
-            multiple className="hidden" onChange={onFileInputChange} />
-
-          {/* Icon container with animation */}
-          <div className={[
-            'w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300',
-            isDragging
-              ? 'bg-teal-gradient text-white shadow-md scale-110'
-              : 'bg-gray-100 text-gray-400',
-          ].join(' ')}>
-            <Upload size={24} className={isDragging ? 'animate-bounce' : ''} />
-          </div>
-
-          <div className="text-center">
-            <p className={`font-semibold text-sm transition-colors ${isDragging ? 'text-teal-700' : 'text-gray-700'}`}>
-              {isDragging ? 'Déposez vos PDF ici ✓' : 'Glissez-déposez vos PDF ou cliquez'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1.5">
-              Bulletins de paie, avis d&apos;imposition · PDF uniquement
-              {fileItems.length > 0 && ` · ${MAX_FILES - fileItems.length} restant(s)`}
-            </p>
-          </div>
+      {/* ── Zones de drop ─────────────────────────────────────────────── */}
+      {isCouple ? (
+        /* Mode couple : 2 blocs côte à côte */
+        <div className="flex flex-col sm:flex-row gap-3">
+          <DropZoneCard
+            target="d1"
+            items={fileItems}
+            maxReached={d1MaxReached}
+            onFiles={processFiles}
+            onRemove={removeFile}
+          />
+          <DropZoneCard
+            target="d2"
+            items={fileItems}
+            maxReached={d2MaxReached}
+            onFiles={processFiles}
+            onRemove={removeFile}
+          />
         </div>
       ) : (
-        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center bg-white">
-          <p className="text-sm text-gray-400">
-            Limite de {MAX_FILES} fichiers.{' '}
-            <button type="button" onClick={() => setFileItems([])}
-              className="text-teal-600 hover:underline font-medium">Tout effacer</button>
-          </p>
-        </div>
+        /* Mode solo : zone unique */
+        !maxReached ? (
+          <div
+            role="button" tabIndex={0}
+            aria-label="Zone de dépôt de PDF"
+            onDragEnter={onDragEnter} onDragLeave={onDragLeave}
+            onDragOver={onDragOver}   onDrop={onDrop}
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+            className={[
+              'relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-4',
+              'cursor-pointer transition-all duration-300 select-none outline-none',
+              'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2',
+              isDragging
+                ? 'border-teal-500 bg-teal-50 scale-[1.01] shadow-lg shadow-teal-100'
+                : 'border-gray-200 bg-white hover:border-teal-300 hover:bg-gray-50/80',
+            ].join(' ')}
+          >
+            <input ref={fileInputRef} type="file" accept=".pdf,application/pdf"
+              multiple className="hidden" onChange={onFileInputChange} />
+
+            <div className={[
+              'w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300',
+              isDragging
+                ? 'bg-teal-gradient text-white shadow-md scale-110'
+                : 'bg-gray-100 text-gray-400',
+            ].join(' ')}>
+              <Upload size={24} className={isDragging ? 'animate-bounce' : ''} />
+            </div>
+
+            <div className="text-center">
+              <p className={`font-semibold text-sm transition-colors ${isDragging ? 'text-teal-700' : 'text-gray-700'}`}>
+                {isDragging ? 'Déposez vos PDF ici ✓' : 'Glissez-déposez vos PDF ou cliquez'}
+              </p>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Bulletins de paie, avis d&apos;imposition · PDF uniquement
+                {fileItems.length > 0 && ` · ${MAX_FILES_SOLO - fileItems.length} restant(s)`}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center bg-white">
+            <p className="text-sm text-gray-400">
+              Limite de {MAX_FILES_SOLO} fichiers.{' '}
+              <button type="button" onClick={() => setFileItems([])}
+                className="text-teal-600 hover:underline font-medium">Tout effacer</button>
+            </p>
+          </div>
+        )
       )}
 
-      {/* ── Liste des fichiers ─────────────────────────────────────── */}
-      {fileItems.length > 0 && (
+      {/* ── Liste des fichiers solo (hors mode couple) ─────────────── */}
+      {!isCouple && fileItems.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -380,13 +514,30 @@ export default function Anonymize() {
         </div>
       )}
 
+      {/* Bouton ZIP pour le mode couple */}
+      {isCouple && doneCount >= 2 && (
+        <div className="flex justify-end">
+          <Button variant="secondary" size="sm" onClick={downloadAllAsZip} loading={isZipping}>
+            <Archive size={13} /> Télécharger ZIP ({doneCount} fichiers)
+          </Button>
+        </div>
+      )}
+
       {/* Résumé */}
       {doneCount > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 bg-teal-50 border border-teal-100 rounded-xl text-sm text-teal-700">
           <div className="w-7 h-7 rounded-lg bg-teal-gradient flex items-center justify-center text-white shrink-0">
             <FileText size={13} />
           </div>
-          <span><strong>{doneCount} fichier(s)</strong> anonymisé(s) et prêts pour l&apos;étape suivante.</span>
+          <span>
+            <strong>{doneCount} fichier(s)</strong> anonymisé(s) et prêts pour l&apos;étape suivante.
+            {isCouple && (
+              <span className="text-teal-600">
+                {' '}(D1 : {fileItems.filter(f => f.target === 'd1' && f.status === 'done').length},
+                D2 : {fileItems.filter(f => f.target === 'd2' && f.status === 'done').length})
+              </span>
+            )}
+          </span>
         </div>
       )}
 
