@@ -11,43 +11,28 @@ import { chatWithClaude }           from '../lib/claudeApi';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
 import { MASTER_PROMPT }            from '../data/masterPrompt';
 
-const ENRICHMENT_PROMPT = `Le profil fiscal ci-dessus contient les données brutes et les calculs vérifiés (RNI, IR, PER, régularisation). Les montants chiffrés sont exacts — utilise-les directement sans les recalculer.
+const ENRICHMENT_PROMPT = `Le profil fiscal ci-dessus contient les données brutes et les calculs vérifiés (RNI, IR, PER, régularisation). Les montants sont exacts — ne les recalcule pas.
 
-Tu es un fiscaliste expert. Génère les 4 sections suivantes, adaptées précisément à CE profil :
+En tant que fiscaliste expert, analyse CE profil spécifique et génère les 4 sections suivantes. Appuie-toi sur les skills fiscaliste, notaire, comptable et GCP injectés dans ce prompt pour identifier tout ce qui est pertinent. Ne mentionne que ce qui est réellement présent ou déductible des données du profil — n'invente aucune situation.
 
 == DÉCLARATION — CASES FORMULAIRE 2042 ==
-Dresse la liste exhaustive de TOUTES les cases à remplir pour ce foyer, avec le montant exact tiré du profil. Couvre dans l'ordre :
-• Cases salaires (1AJ/1BJ ou 1AJ seul selon le mode)
-• Cases PAS (8HV/8IV ou 8HV seul)
-• Cases revenus fonciers si présents (4BE micro-foncier ou 2044 régime réel)
-• Cases PERO/PERCO (6QS, 6QT, 6QU selon attestation)
-• Cases versements PER volontaires (6NS, 6NT) si présents
-• Cases dons, garde, domicile, travaux si présents
-• Cases comptes étrangers (8UU) si crypto ou compte hors France détecté
-Indique les formulaires ANNEXES obligatoires (3916 bis si crypto, 2044 si régime réel foncier, etc.)
-Signale en [⚠️ VÉRIFIER] les cases dont la valeur doit être confirmée par un document (attestation PERO, relevé 2 employeurs, etc.)
+Liste toutes les cases à remplir pour ce foyer avec le montant exact du profil.
+Pour chaque ligne de revenu, déduction ou crédit présent : indique la case, le montant, et si nécessaire [⚠️ À VÉRIFIER] quand la valeur doit être confirmée par un document externe.
+Indique les formulaires annexes déclenchés par les données de ce profil (2044, 3916 bis, 2074, etc.) et pourquoi.
 
-== ANALYSE CONTEXTUELLE ==
-Identifie et commente les situations particulières présentes dans CE profil qui ont un impact fiscal :
-• Changement d'employeur en cours d'année → risque de cumul PAS incomplet
-• Multi-employeurs → vérification des cases préremplies
-• Indivision / succession / fermage → régime micro-foncier ou réel, cohérence entre co-indivisaires
-• Nu-propriété / usufruit → aucune déclaration côté nu-propriétaire (art. 968 CGI pour IFI)
-• PEL selon date d'ouverture → exonération IR si < 12 ans, PS prélevés à la source
-• Crypto wallet déclaré → obligation 3916 bis (pénalité 1 500 € art. 1736 IV CGI)
-• PERCO / épargne salariale → aucune case déclarative, impacte plafond PER
-• Testament manquant pour PACS → risque patrimonial en cas de décès
-Ne liste que les situations RÉELLEMENT présentes dans le profil. Donne le texte CGI ou BOFiP quand pertinent.
+== ANALYSE DES SITUATIONS PARTICULIÈRES ==
+Identifie toutes les situations fiscales spécifiques à CE profil qui ont un impact déclaratif ou patrimonial.
+Pour chaque situation détectée : explique le régime applicable, les obligations, les pièges à éviter, et la référence légale (article CGI ou BOFiP).
+Si le profil ne contient aucune situation particulière sur un thème, ne l'aborde pas.
 
 == POINTS D'ATTENTION ==
-Classe par priorité :
-[🔴 CRITIQUE] Risque de redressement ou pénalité si ignoré — donne le montant de la pénalité si connu
-[🟡 À CONFIRMER] Document à récupérer ou valeur à vérifier avant dépôt
-[🟢 OPTIMISATION] Action à faire avant le 31 décembre avec gain fiscal estimé en €
+[🔴 CRITIQUE] Risques de redressement, pénalités ou omissions légalement obligatoires — avec montant de la pénalité si connu
+[🟡 À CONFIRMER] Documents à récupérer ou valeurs à vérifier avant le dépôt de la déclaration
+[🟢 OPTIMISATION] Actions à réaliser avant le 31 décembre avec gain fiscal estimé en €
 
 == OBJECTIFS PRIORITAIRES ==
-Liste 5 à 8 actions concrètes classées par impact fiscal décroissant.
-Pour chaque action : quoi faire, quand, gain estimé en €, et pourquoi c'est prioritaire pour CE profil.`;
+3 à 8 actions concrètes pour ce foyer, classées par impact décroissant.
+Pour chaque action : quoi faire, avant quelle date, gain estimé en €, et pourquoi c'est prioritaire compte tenu de la situation de ce foyer.`;
 
 export default function Profile() {
   const { state, dispatch, getApiKey } = useApp();
