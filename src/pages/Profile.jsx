@@ -1,17 +1,43 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate }         from 'react-router-dom';
 import toast                   from 'react-hot-toast';
-import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen } from 'lucide-react';
+import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2, Loader2 } from 'lucide-react';
 
 import { useApp }                   from '../context/AppContext';
 import { detectOpportunities }      from '../lib/opportunitiesDetector';
 import OpportunitiesPanel           from '../components/OpportunitiesPanel';
 import Button                       from '../components/Button';
+import { chatWithClaude }           from '../lib/claudeApi';
+import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
+import { MASTER_PROMPT }            from '../data/masterPrompt';
+
+const ENRICHMENT_PROMPT = `Le profil fiscal ci-dessus contient les données brutes et les calculs déterministes (RNI, IR, régularisation, PER).
+
+Tu dois maintenant générer les sections complémentaires qui ne peuvent être produites qu'avec une analyse experte. Ajoute à la suite du profil (sans répéter ce qui existe déjà) :
+
+== DÉCLARATION 2026 — CASES À REMPLIR ==
+Liste toutes les cases à remplir dans le formulaire 2042 (et annexes si nécessaire) avec les montants exacts tirés du profil. Format :
+1AJ - Salaires D1 (brut imposable) : XX XXX €
+1BJ - Salaires D2 (brut imposable) : XX XXX €
+[etc. pour chaque case pertinente : PAS, foncier, PERO, crypto, dons, etc.]
+Indique les formulaires annexes nécessaires (2044, 3916 bis, etc.)
+
+== POINTS D'ATTENTION CRITIQUES ==
+Liste les risques et vérifications obligatoires pour ce foyer spécifique, dans cet ordre :
+[CRITIQUE] — points qui peuvent entraîner un redressement ou une pénalité
+[À CONFIRMER] — documents à récupérer ou valeurs à vérifier
+[OPTIMISATION] — actions à faire avant le 31 décembre
+
+== OBJECTIFS 2026 ==
+Liste 5 à 8 actions concrètes, priorisées, avec les gains attendus en €.
+
+Utilise UNIQUEMENT les données du profil. Ne recalcule pas ce qui est déjà calculé. Sois précis, factuel, et référence les articles CGI pertinents quand tu mentionnes des obligations.`;
 
 export default function Profile() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, getApiKey } = useApp();
   const navigate   = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -55,6 +81,36 @@ export default function Profile() {
     };
     reader.readAsText(file, 'utf-8');
     e.target.value = '';
+  };
+
+  const handleEnrich = async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) { toast.error('Clé API manquante — configurez-la dans Paramètres.'); return; }
+    setEnriching(true);
+    toast('Analyse en cours avec Claude Sonnet…', { icon: '🤖' });
+    try {
+      const skills  = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation');
+      const system  = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'sonnet' });
+      let enriched  = '';
+      await chatWithClaude({
+        apiKey,
+        model: 'sonnet',
+        system,
+        messages: [{ role: 'user', content: ENRICHMENT_PROMPT }],
+        onChunk: chunk => { enriched += chunk; },
+      });
+      if (enriched.trim()) {
+        const newProfile = state.profile.trimEnd() + '\n\n' + enriched.trim();
+        dispatch({ type: 'SET_PROFILE', payload: newProfile });
+        toast.success('Profil enrichi avec l\'analyse IA !');
+      } else {
+        toast.error('Réponse vide — réessayez.');
+      }
+    } catch (err) {
+      toast.error('Erreur : ' + err.message);
+    } finally {
+      setEnriching(false);
+    }
   };
 
   const handleDownload = () => {
@@ -122,6 +178,19 @@ export default function Profile() {
 
       {/* ── Actions ───────────────────────────────────────────────── */}
       <input ref={fileInputRef} type="file" accept=".txt" className="hidden" onChange={handleImport} />
+
+      {/* Bouton enrichissement IA */}
+      <button
+        onClick={handleEnrich}
+        disabled={enriching}
+        className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-teal-300 bg-teal-50/60 hover:bg-teal-50 px-5 py-4 text-sm font-semibold text-teal-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {enriching
+          ? <><Loader2 size={16} className="animate-spin" /> Analyse en cours (30-60 s)…</>
+          : <><Wand2 size={16} /> Enrichir avec l'IA — cases 2042, points critiques, objectifs</>
+        }
+      </button>
+
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <Button variant="secondary" size="md" className="flex-1" onClick={handleCopy}>
           {copied ? <><Check size={14} /> Copié !</> : <><Copy size={14} /> Copier</>}
