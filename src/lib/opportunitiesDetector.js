@@ -1,6 +1,8 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
+import { calcIR } from './taxCalculator';
+
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 
 export function detectOpportunities(parsedProfile) {
@@ -28,15 +30,26 @@ export function detectOpportunities(parsedProfile) {
     hasCompteEtranger,
     hasIndivision,
     hasTestamentManquant,
+    irNet, foncierNet, pasTotal, pasD1, pasD2, parts,
   } = parsedProfile;
 
   const opps = [];
-  const perPlafond = plafondPerTotal || plafondPerD1;
-  const isPacseOuMarie = mode === 'couple';
-  const livretTotal = livretAD1 + livretAD2 + lddsD1 + lddsD2;
-  const hasPEA     = peaD1 > 0 || peaD2 > 0;
-  const hasLEP     = lepD1 > 0 || lepD2 > 0;
-  const tauxPAS    = tauxPasD1; // taux D1 pour la comparaison PAS
+  const isCouple      = mode === 'couple';
+  const perPlafond    = plafondPerTotal || plafondPerD1;
+  const isPacseOuMarie = isCouple;
+  const livretTotal   = livretAD1 + livretAD2 + lddsD1 + lddsD2;
+  const hasPEA        = peaD1 > 0 || peaD2 > 0;
+  const hasLEP        = lepD1 > 0 || lepD2 > 0;
+  const tauxPAS       = tauxPasD1;
+
+  // Taux effectif réel (IR net / RNI) — toujours plus bas que le TMI
+  const irNetEstime     = irNet > 0 ? irNet : calcIR(rniFoyer || 0, parts || 1, isCouple);
+  const tauxEffectif    = rniFoyer > 0 ? +((irNetEstime / rniFoyer) * 100).toFixed(1) : 0;
+  const psFoncierEstime = (foncierNet || 0) * 0.172;
+  const totalDuEstime   = irNetEstime + psFoncierEstime;
+  const pasTot          = pasTotal || (pasD1 + pasD2);
+  // Complément estimé (positif = à payer en septembre, négatif = remboursement)
+  const complementEstime = Math.round(totalDuEstime - pasTot);
 
   // ── GAINS ──────────────────────────────────────────────────────────────────
 
@@ -151,19 +164,21 @@ export function detectOpportunities(parsedProfile) {
     });
   }
 
-  // Taux PAS trop bas (écart > 5 pts vs TMI)
-  if (tauxPAS > 0 && tmi > 0 && tauxPAS < tmi - 5) {
-    const ecart = tmi - tauxPAS;
+  // PAS insuffisant : on compare le PAS total versé au total dû estimé.
+  // On n'utilise PAS le TMI — le TMI (taux marginal) est toujours bien supérieur
+  // au taux effectif, surtout quand on est juste au-dessus d'un seuil de tranche.
+  // Critère : complément estimé > 500 € (risque concret de solde en septembre).
+  if (complementEstime > 500 && pasTot > 0) {
     opps.push({
       id: 'taux_pas_trop_bas',
       type: 'risque',
       urgence: 'avant_decembre',
-      titre: '🟠 Taux PAS probablement trop bas',
-      description: `Taux PAS actuel : ${tauxPAS} % — TMI : ${tmi} %. Un écart de ${ecart} points expose à un solde d'impôt inattendu en septembre.`,
-      impact: `Risque de solde à payer en septembre (écart ${ecart} pts)`,
-      impactEuros: 400,
+      titre: '🟠 PAS insuffisant — complément prévisible',
+      description: `PAS versé : ${fmt(pasTot)} € — IR estimé : ${fmt(totalDuEstime)} € (taux effectif ${tauxEffectif} %). Complément à payer en septembre : ~${fmt(complementEstime)} €.`,
+      impact: `Risque de solde à payer en septembre : ~${fmt(complementEstime)} €`,
+      impactEuros: complementEstime,
       action: 'Augmenter votre taux PAS sur impots.gouv → Gérer mon prélèvement à la source',
-      questionChat: `Mon taux PAS est de ${tauxPAS} % mais ma TMI est de ${tmi} %. Comment ajuster mon taux de prélèvement à la source pour éviter un solde à payer en septembre ?`,
+      questionChat: `Mon taux effectif d'imposition est de ${tauxEffectif} % mais mon PAS verse seulement ${fmt(pasTot)} € contre un IR estimé à ${fmt(totalDuEstime)} €. Comment ajuster mon prélèvement pour éviter ${fmt(complementEstime)} € de complément en septembre ?`,
     });
   }
 
