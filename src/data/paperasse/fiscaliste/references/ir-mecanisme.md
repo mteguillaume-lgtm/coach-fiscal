@@ -113,7 +113,7 @@ Distinct du quotient familial. Permet de lisser fiscalement un revenu ponctuel e
 
 À mentionner systématiquement en cas de vesting RSU important, cession d'entreprise, indemnité de départ.
 
-## Prélèvement à la source (PAS)
+## Prélèvement à la source (PAS) et régularisation
 
 Mécanisme de collecte en temps réel — pas d'imposition supplémentaire.
 
@@ -121,8 +121,29 @@ Mécanisme de collecte en temps réel — pas d'imposition supplémentaire.
 - **Taux personnalisé** : calculé par la DGFIP sur N-2 puis N-1. Peut être individualisé au sein du couple.
 - **Taux neutre** : appliqué par défaut si le salarié ne communique pas son taux (équivalent célibataire sans enfant). Peut entraîner sur/sous-prélèvement.
 - **Acomptes** : pour les revenus hors salaires (fonciers, BNC, dividendes), prélevés directement (mensuels ou trimestriels).
-- **Régularisation** : en N+1 lors de la déclaration. Si les revenus changent fortement (vesting, chômage, départ retraite), actualiser le taux en cours d'année sur impots.gouv.fr.
 - **Impact cash-flow** : un vesting RSU en fin d'année peut déclencher un solde à payer significatif en N+1.
+
+### Formule de régularisation — RÈGLE CRITIQUE
+
+```
+TOTAL DÛ = IR net (barème + décote) + PS sur revenus fonciers/capital + CEHR éventuelle
+
+RÉGULARISATION = PAS versé − TOTAL DÛ
+  > 0 → remboursement (crédit d'impôt restitué en septembre N+1)
+  < 0 → complément à payer (prélevé en septembre N+1)
+```
+
+**ERREUR FRÉQUENTE** : calculer la régularisation comme `PAS − IR net` en oubliant d'ajouter les PS fonciers et la CEHR au total dû. Cela surestime le remboursement ou sous-estime le complément.
+
+**Exemple** :
+- IR net foyer = 6 024 €
+- PS foncier (17,2% × 493 €) = 85 €
+- TOTAL DÛ = 6 024 + 85 = **6 109 €**
+- PAS versé = 6 350 €
+- RÉGULARISATION = 6 350 − **6 109** = **+241 €** (remboursement)
+- ❌ FAUX : 6 350 − 6 024 = 326 € (oubli des PS)
+
+Les PS sur revenus fonciers ne transitent pas par le PAS — ils s'ajoutent à l'IR net pour former le total annuel dû. La régularisation de septembre porte sur ce total.
 
 ## Références CGI / BOFiP
 

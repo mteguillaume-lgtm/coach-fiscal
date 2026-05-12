@@ -129,10 +129,40 @@ L'abondement est un complément versé par l'entreprise pour chaque euro versé 
 - Versements : case 6NS (déclarant 1) / 6NT (déclarant 2) sur la 2042
 - Plafond calculé automatiquement par la DGFIP (figure sur l'avis d'imposition N-1, rubrique "Plafond pour l'épargne retraite")
 
-## Différence PER individuel vs PERCO / PERO
+## Différence PER individuel vs PERCO vs PERO
 
-- **PER individuel** (présent doc) : versements volontaires, déductibles dans la limite du plafond, sortie imposée au barème.
-- **PERCO / PEE** (plans d'épargne entreprise) : alimenté par intéressement, participation, abondement employeur. Voir la section Equity salarial listée depuis SKILL.md pour le détail.
+### PER individuel (compartiment 1)
+Versements volontaires, déductibles dans la limite du plafond, sortie imposée au barème.
+Cases déclaratives : **6NS** (D1) / **6NT** (D2).
+
+### PERCO / PEE (compartiment 2)
+Alimenté par intéressement, participation, abondement employeur.
+**AUCUNE case déclarative** — ces versements ne sont pas imposables à l'entrée.
+Impacte le plafond PER de l'année suivante (réduit le plafond disponible).
+
+### PERO — Retraite supplémentaire obligatoire (compartiment 3, ex-art. 83)
+
+**MÉCANIQUE FISCALEMENT SILENCIEUSE — ERREUR FRÉQUENTE**
+
+Le PERO (ex-contrat article 83) est un régime de retraite **obligatoire d'entreprise**.
+Les cotisations PERO sont prélevées **avant** le calcul du net imposable :
+
+```
+Salaire brut
+  − cotisations sociales salariales
+  − cotisations PERO obligatoires  ← déduites ici, avant le 1AJ
+= Net imposable (1AJ)
+```
+
+**Conséquences** :
+- Le 1AJ déclaré est DÉJÀ net de PERO → **aucune déduction supplémentaire sur la 2042**
+- La case **6QS** (ou 6QT, 6QU selon ventilation) sert uniquement à informer la DGFIP pour réduire le plafond PER de l'année suivante
+- **NE PAS inclure le PERO dans les charges déductibles du foyer** — ce serait déduire deux fois
+- L'attestation fiscale annuelle de l'employeur indique la ventilation exacte 6QS/6QT/6QU
+
+**Règle absolue** : si un profil mentionne des cotisations PERO, elles ne réduisent PAS l'IR de l'année — elles réduisent uniquement le plafond PER disponible pour les versements volontaires N+1.
+
+Référence : art. 163 quatervicies III CGI — BOI-RSA-ES-40-10-20
 
 **Règle d'or** : toujours saturer l'abondement employeur (PEE + PERCO) AVANT d'abonder un PER individuel. L'abondement est de l'argent gratuit — aucun rendement PER individuel n'égale un match à 50-300%.
 
