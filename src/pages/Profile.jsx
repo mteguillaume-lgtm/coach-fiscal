@@ -11,27 +11,43 @@ import { chatWithClaude }           from '../lib/claudeApi';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
 import { MASTER_PROMPT }            from '../data/masterPrompt';
 
-const ENRICHMENT_PROMPT = `Le profil fiscal ci-dessus contient les données brutes et les calculs déterministes (RNI, IR, régularisation, PER).
+const ENRICHMENT_PROMPT = `Le profil fiscal ci-dessus contient les données brutes et les calculs vérifiés (RNI, IR, PER, régularisation). Les montants chiffrés sont exacts — utilise-les directement sans les recalculer.
 
-Tu dois maintenant générer les sections complémentaires qui ne peuvent être produites qu'avec une analyse experte. Ajoute à la suite du profil (sans répéter ce qui existe déjà) :
+Tu es un fiscaliste expert. Génère les 4 sections suivantes, adaptées précisément à CE profil :
 
-== DÉCLARATION 2026 — CASES À REMPLIR ==
-Liste toutes les cases à remplir dans le formulaire 2042 (et annexes si nécessaire) avec les montants exacts tirés du profil. Format :
-1AJ - Salaires D1 (brut imposable) : XX XXX €
-1BJ - Salaires D2 (brut imposable) : XX XXX €
-[etc. pour chaque case pertinente : PAS, foncier, PERO, crypto, dons, etc.]
-Indique les formulaires annexes nécessaires (2044, 3916 bis, etc.)
+== DÉCLARATION — CASES FORMULAIRE 2042 ==
+Dresse la liste exhaustive de TOUTES les cases à remplir pour ce foyer, avec le montant exact tiré du profil. Couvre dans l'ordre :
+• Cases salaires (1AJ/1BJ ou 1AJ seul selon le mode)
+• Cases PAS (8HV/8IV ou 8HV seul)
+• Cases revenus fonciers si présents (4BE micro-foncier ou 2044 régime réel)
+• Cases PERO/PERCO (6QS, 6QT, 6QU selon attestation)
+• Cases versements PER volontaires (6NS, 6NT) si présents
+• Cases dons, garde, domicile, travaux si présents
+• Cases comptes étrangers (8UU) si crypto ou compte hors France détecté
+Indique les formulaires ANNEXES obligatoires (3916 bis si crypto, 2044 si régime réel foncier, etc.)
+Signale en [⚠️ VÉRIFIER] les cases dont la valeur doit être confirmée par un document (attestation PERO, relevé 2 employeurs, etc.)
 
-== POINTS D'ATTENTION CRITIQUES ==
-Liste les risques et vérifications obligatoires pour ce foyer spécifique, dans cet ordre :
-[CRITIQUE] — points qui peuvent entraîner un redressement ou une pénalité
-[À CONFIRMER] — documents à récupérer ou valeurs à vérifier
-[OPTIMISATION] — actions à faire avant le 31 décembre
+== ANALYSE CONTEXTUELLE ==
+Identifie et commente les situations particulières présentes dans CE profil qui ont un impact fiscal :
+• Changement d'employeur en cours d'année → risque de cumul PAS incomplet
+• Multi-employeurs → vérification des cases préremplies
+• Indivision / succession / fermage → régime micro-foncier ou réel, cohérence entre co-indivisaires
+• Nu-propriété / usufruit → aucune déclaration côté nu-propriétaire (art. 968 CGI pour IFI)
+• PEL selon date d'ouverture → exonération IR si < 12 ans, PS prélevés à la source
+• Crypto wallet déclaré → obligation 3916 bis (pénalité 1 500 € art. 1736 IV CGI)
+• PERCO / épargne salariale → aucune case déclarative, impacte plafond PER
+• Testament manquant pour PACS → risque patrimonial en cas de décès
+Ne liste que les situations RÉELLEMENT présentes dans le profil. Donne le texte CGI ou BOFiP quand pertinent.
 
-== OBJECTIFS 2026 ==
-Liste 5 à 8 actions concrètes, priorisées, avec les gains attendus en €.
+== POINTS D'ATTENTION ==
+Classe par priorité :
+[🔴 CRITIQUE] Risque de redressement ou pénalité si ignoré — donne le montant de la pénalité si connu
+[🟡 À CONFIRMER] Document à récupérer ou valeur à vérifier avant dépôt
+[🟢 OPTIMISATION] Action à faire avant le 31 décembre avec gain fiscal estimé en €
 
-Utilise UNIQUEMENT les données du profil. Ne recalcule pas ce qui est déjà calculé. Sois précis, factuel, et référence les articles CGI pertinents quand tu mentionnes des obligations.`;
+== OBJECTIFS PRIORITAIRES ==
+Liste 5 à 8 actions concrètes classées par impact fiscal décroissant.
+Pour chaque action : quoi faire, quand, gain estimé en €, et pourquoi c'est prioritaire pour CE profil.`;
 
 export default function Profile() {
   const { state, dispatch, getApiKey } = useApp();
