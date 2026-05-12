@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { GitFork, Lock, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw } from 'lucide-react';
+import { GitFork, Lock, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw, FileText } from 'lucide-react';
 import Stepper from './Stepper';
 import { useApp } from '../context/AppContext';
 
@@ -78,6 +78,11 @@ export default function Layout() {
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">
               <BookOpen size={14} aria-hidden="true" />
               <span className="hidden sm:inline">Déclaration</span>
+            </Link>
+            <Link to="/rapport"
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">
+              <FileText size={14} aria-hidden="true" />
+              <span className="hidden sm:inline">Rapport</span>
             </Link>
             <Link to="/chat"
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">

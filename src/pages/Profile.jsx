@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate }         from 'react-router-dom';
 import toast                   from 'react-hot-toast';
-import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2, Loader2 } from 'lucide-react';
+import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2, Loader2, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 
 import { useApp }                   from '../context/AppContext';
 import { detectOpportunities }      from '../lib/opportunitiesDetector';
@@ -39,6 +39,7 @@ export default function Profile() {
   const navigate   = useNavigate();
   const [copied, setCopied] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [enriched, setEnriched] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -103,7 +104,8 @@ export default function Profile() {
       if (enriched.trim()) {
         const newProfile = state.profile.trimEnd() + '\n\n' + enriched.trim();
         dispatch({ type: 'SET_PROFILE', payload: newProfile });
-        toast.success('Profil enrichi avec l\'analyse IA !');
+        toast.success('Profil enrichi — données actualisées dans toute l\'app !');
+        setEnriched(true);
       } else {
         toast.error('Réponse vide — réessayez.');
       }
@@ -191,6 +193,24 @@ export default function Profile() {
           : <><Wand2 size={16} /> Enrichir avec l'IA — cases 2042, points critiques, objectifs</>
         }
       </button>
+
+      {/* Bannière post-enrichissement */}
+      {enriched && (
+        <div className="rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2 text-teal-700">
+            <CheckCircle2 size={18} className="shrink-0" />
+            <p className="text-sm font-semibold">Analyse IA complète — toutes les données sont à jour</p>
+          </div>
+          <div className="flex gap-2 sm:ml-auto flex-wrap">
+            <Button size="sm" onClick={() => navigate('/rapport')}>
+              <FileText size={13} /> Voir le rapport
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => navigate('/dashboard')}>
+              <LayoutDashboard size={13} /> Tableau de bord
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <Button variant="secondary" size="md" className="flex-1" onClick={handleCopy}>

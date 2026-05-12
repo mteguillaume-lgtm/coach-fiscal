@@ -12,6 +12,7 @@ import Opportunites from './pages/Opportunites';
 import Simulator        from './pages/Simulator';
 import DeclarationGuide from './pages/DeclarationGuide';
 import Dashboard        from './pages/Dashboard';
+import Rapport          from './pages/Rapport';
 import About            from './pages/About';
 import Privacy   from './pages/Privacy';
 import NotFound  from './pages/NotFound';
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/opportunites" element={<Opportunites />} />
             <Route path="/simulator"    element={<Simulator />}    />
             <Route path="/declaration"  element={<DeclarationGuide />} />
+            <Route path="/rapport"      element={<Rapport />}         />
             <Route path="/about"     element={<About />}     />
             <Route path="/privacy"   element={<Privacy />}   />
             <Route path="*"          element={<NotFound />}  />
