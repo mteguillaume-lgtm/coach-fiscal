@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate }         from 'react-router-dom';
 import toast                   from 'react-hot-toast';
-import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles } from 'lucide-react';
+import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
-import Button     from '../components/Button';
+import { useApp }              from '../context/AppContext';
+import { detectOpportunities } from '../lib/opportunitiesDetector';
+import OpportunitiesPanel      from '../components/OpportunitiesPanel';
+import Button                  from '../components/Button';
 
 export default function Profile() {
   const { state }  = useApp();
@@ -21,9 +23,12 @@ export default function Profile() {
 
   if (!state.profile) return null;
 
-  const profile  = state.profile;
-  const lines    = profile.split('\n').length;
-  const chars    = profile.length;
+  const profile       = state.profile;
+  const lines         = profile.split('\n').length;
+  const chars         = profile.length;
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const opportunities = useMemo(() => detectOpportunities(profile), [profile]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profile).then(() => {
@@ -104,10 +109,29 @@ export default function Profile() {
         <Button variant="secondary" size="md" className="flex-1" onClick={handleDownload}>
           <Download size={14} /> Télécharger .txt
         </Button>
+        <Button variant="secondary" size="md" className="flex-1" onClick={() => navigate('/checklist')}>
+          <ClipboardList size={14} /> Checklist fiscale
+        </Button>
+        <Button variant="secondary" size="md" className="flex-1" onClick={() => navigate('/declaration')}>
+          <BookOpen size={14} /> Guide déclaration
+        </Button>
+        <Button variant="secondary" size="md" className="flex-1" onClick={() => navigate('/opportunites')}>
+          <TrendingUp size={14} /> Opportunités
+          {opportunities.length > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-500 text-white text-[10px] font-bold">
+              {opportunities.length}
+            </span>
+          )}
+        </Button>
         <Button variant="primary" size="md" className="flex-1 sm:flex-[2] !rounded-xl" onClick={() => navigate('/chat')}>
           <Sparkles size={14} /> Démarrer le conseil →
         </Button>
       </div>
+
+      {/* ── Opportunités ──────────────────────────────────────────── */}
+      {opportunities.length > 0 && (
+        <OpportunitiesPanel opportunities={opportunities} />
+      )}
 
       {/* CTA principal */}
       <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">

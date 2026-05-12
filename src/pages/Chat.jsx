@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate }  from 'react-router-dom';
+import { useNavigate, useLocation, Link }  from 'react-router-dom';
 import toast            from 'react-hot-toast';
 import Markdown         from 'react-markdown';
 import remarkGfm        from 'remark-gfm';
-import { Send, Menu, X, Trash2, Download, ArrowLeft, Zap, Sparkles, Bot } from 'lucide-react';
+import { Send, Menu, X, Trash2, Download, ArrowLeft, Zap, Sparkles, Bot, Calculator } from 'lucide-react';
 
 import { useApp }                                    from '../context/AppContext';
 import { chatWithClaude, detectComplexity }           from '../lib/claudeApi';
@@ -84,6 +84,18 @@ function Sidebar({ onSelect, onClose }) {
           </div>
         ))}
       </div>
+
+      {/* Lien simulateurs */}
+      <div className="shrink-0 px-3 py-3 border-t border-gray-100">
+        <Link
+          to="/simulator"
+          onClick={onClose}
+          className="flex items-center gap-2 w-full text-xs font-semibold text-gray-500 hover:text-teal-600 hover:bg-teal-50 px-2.5 py-2.5 rounded-xl transition-all duration-150"
+        >
+          <Calculator size={13} className="shrink-0" />
+          Simulateurs fiscaux interactifs
+        </Link>
+      </div>
     </div>
   );
 }
@@ -106,9 +118,10 @@ function TypingDots() {
 export default function Chat() {
   const { state, dispatch, getApiKey } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [messages,     setMessages]     = useState(() => state.chatHistory || []);
-  const [input,        setInput]        = useState('');
+  const [input,        setInput]        = useState(location.state?.prefill ?? '');
   const [streaming,    setStreaming]     = useState(false);
   const [activeSkills, setActiveSkills] = useState([]);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);

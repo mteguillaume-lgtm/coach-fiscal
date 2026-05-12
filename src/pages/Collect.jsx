@@ -476,7 +476,7 @@ export default function Collect() {
     dispatch({ type: 'SET_D2_DATA',   payload: d2Data });
     const profile = buildProfile(formData, d1Data, d2Data, docs, isCouple);
     dispatch({ type: 'SET_PROFILE',   payload: profile });
-    navigate('/profile');
+    navigate('/dashboard');
   };
 
   const anonymizedFiles = state.anonymizedFiles || [];
