@@ -73,8 +73,6 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}
 - Optimiser déclaration IR 2025 (toutes déductions)
 - Simuler impact versement PER / comparer frais réels vs forfait 10%
 - Suivi budget mensuel et projection épargne annuelle`;
-    console.log("=== PROFIL GÉNÉRÉ ===");
-    console.log(_soloText.substring(0, 2000));
     return _soloText;
   }
 
@@ -164,7 +162,5 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}
 - Comparer frais réels vs forfait 10% pour chaque déclarant
 - Vérifier déductibilité dons, garde, emploi domicile
 - Projection épargne foyer annuelle`;
-  console.log("=== PROFIL GÉNÉRÉ ===");
-  console.log(_coupleText.substring(0, 2000));
   return _coupleText;
 }
