@@ -24,7 +24,7 @@ export function buildProfile(formData, d1Data, d2Data, docs, isCouple) {
     .join('\n\n');
 
   if (!isCouple) {
-    return `== PROFIL FISCAL PERSONNEL 2025 ==
+    const _soloText = `== PROFIL FISCAL PERSONNEL 2025 ==
 Généré le ${new Date().toLocaleDateString('fr-FR')} — Outil ${APP_VERSION}
 
 == SITUATION PERSONNELLE ==
@@ -73,6 +73,9 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}
 - Optimiser déclaration IR 2025 (toutes déductions)
 - Simuler impact versement PER / comparer frais réels vs forfait 10%
 - Suivi budget mensuel et projection épargne annuelle`;
+    console.log("=== PROFIL GÉNÉRÉ ===");
+    console.log(_soloText.substring(0, 2000));
+    return _soloText;
   }
 
   const d1 = d1Data;
@@ -83,7 +86,7 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}
   const per1 = parseFloat(d1.per || 0);
   const per2 = parseFloat(d2.per || 0);
 
-  return `== PROFIL FISCAL FOYER 2025 ==
+  const _coupleText = `== PROFIL FISCAL FOYER 2025 ==
 Généré le ${new Date().toLocaleDateString('fr-FR')} — Outil ${APP_VERSION}
 Mode : Déclaration commune (${d.statut || 'couple'})
 
@@ -161,4 +164,7 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}
 - Comparer frais réels vs forfait 10% pour chaque déclarant
 - Vérifier déductibilité dons, garde, emploi domicile
 - Projection épargne foyer annuelle`;
+  console.log("=== PROFIL GÉNÉRÉ ===");
+  console.log(_coupleText.substring(0, 2000));
+  return _coupleText;
 }
