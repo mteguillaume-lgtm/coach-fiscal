@@ -10,7 +10,9 @@ import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
 
-const TMI_OPTIONS = [0, 11, 30, 41, 45];
+const TMI_OPTIONS  = [0, 11, 30, 41, 45];
+const PASS_2025    = 47_100;
+const MIN_PLAFOND  = Math.round(PASS_2025 * 0.1); // 4 710 €
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -612,16 +614,31 @@ export default function Simulator() {
   const [mode, setMode] = useState('profile');
 
   // Champs saisie manuelle
-  const [manualTMI,     setManualTMI]     = useState(30);
-  const [manualRNI,     setManualRNI]     = useState('65000');
-  const [manualPlafond, setManualPlafond] = useState('10000');
+  const [manualTMI,        setManualTMI]        = useState(30);
+  const [manualRNI,        setManualRNI]        = useState('65000');
+  const [manualPERO,       setManualPERO]       = useState('');
+  const [manualAnterieurs, setManualAnterieurs] = useState('');
+
+  // Calcul plafond PER en mode manuel
+  const perCalc = useMemo(() => {
+    const rni        = parseInt(manualRNI, 10) || 0;
+    const pero       = parseInt(manualPERO, 10) || 0;
+    const anterieurs = parseInt(manualAnterieurs, 10) || 0;
+    const plafondBrut = Math.max(Math.round(rni * 0.1), MIN_PLAFOND);
+    const plafondNet  = Math.max(0, plafondBrut - pero);
+    const plafondTotal = plafondNet + anterieurs;
+    return { rni, plafondBrut, plafondNet, plafondTotal };
+  }, [manualRNI, manualPERO, manualAnterieurs]);
 
   // Données transmises aux simulateurs
   const profileData = useMemo(() => {
     if (mode === 'manual') {
-      const rni     = parseInt(manualRNI, 10)     || 65_000;
-      const plafond = parseInt(manualPlafond, 10) || 10_000;
-      return { rni, tmi: manualTMI, plafond, isDefault: false };
+      return {
+        rni:       perCalc.rni || 65_000,
+        tmi:       manualTMI,
+        plafond:   perCalc.plafondTotal || 10_000,
+        isDefault: false,
+      };
     }
     const raw = fromProfile(state.profile);
     const isDefault = !raw.rni && !raw.tmi && !raw.perPlafond;
@@ -631,7 +648,7 @@ export default function Simulator() {
       plafond: raw.perPlafond || 10_000,
       isDefault,
     };
-  }, [mode, manualTMI, manualRNI, manualPlafond, state.profile]);
+  }, [mode, manualTMI, perCalc, state.profile]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -665,9 +682,11 @@ export default function Simulator() {
 
       {/* Saisie manuelle */}
       {mode === 'manual' && (
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-4">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Vos paramètres</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          {/* Ligne 1 : TMI + RNI */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-gray-600">TMI actuel</label>
               <select
@@ -675,9 +694,7 @@ export default function Simulator() {
                 onChange={e => setManualTMI(Number(e.target.value))}
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400 bg-white"
               >
-                {TMI_OPTIONS.map(t => (
-                  <option key={t} value={t}>{t} %</option>
-                ))}
+                {TMI_OPTIONS.map(t => <option key={t} value={t}>{t} %</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -690,13 +707,61 @@ export default function Simulator() {
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
               />
             </div>
+          </div>
+
+          {/* Calcul automatique plafond PER */}
+          {perCalc.rni > 0 && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 flex flex-col gap-1.5 text-xs">
+              <p className="font-bold text-blue-600 flex items-center gap-1.5">💡 Plafond PER calculé automatiquement</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-gray-600 mt-0.5">
+                <span>10 % × votre RNI</span>
+                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(Math.round(perCalc.rni * 0.1))} €</span>
+                <span>Minimum légal (10 % PASS)</span>
+                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(MIN_PLAFOND)} €</span>
+                <span className="font-semibold text-blue-700">→ Plafond brut retenu</span>
+                <span className="font-mono font-bold text-blue-700 text-right">{fmt(perCalc.plafondBrut)} €</span>
+                {parseInt(manualPERO, 10) > 0 && <>
+                  <span className="text-amber-600">− PERO employeur</span>
+                  <span className="font-mono font-semibold text-amber-600 text-right">− {fmt(parseInt(manualPERO, 10))} €</span>
+                </>}
+                {parseInt(manualAnterieurs, 10) > 0 && <>
+                  <span className="text-teal-600">+ Plafonds antérieurs</span>
+                  <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(parseInt(manualAnterieurs, 10))} €</span>
+                </>}
+                <span className="font-bold text-teal-700 border-t border-blue-200 pt-1">→ Plafond disponible net</span>
+                <span className="font-mono font-bold text-teal-700 border-t border-blue-200 pt-1 text-right">{fmt(perCalc.plafondTotal)} €</span>
+              </div>
+            </div>
+          )}
+
+          {/* Champs optionnels */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-gray-600">Plafond PER disponible (€)</label>
+              <label className="text-xs font-medium text-gray-600">
+                Cotisations PERO employeur (€)
+                <span className="ml-1 text-gray-400 font-normal">— optionnel</span>
+              </label>
               <input
                 type="number"
-                value={manualPlafond}
-                onChange={e => setManualPlafond(e.target.value)}
-                placeholder="10 000"
+                value={manualPERO}
+                onChange={e => setManualPERO(e.target.value)}
+                placeholder="0"
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                Plafonds antérieurs N-3/N-2/N-1 (€)
+                <span
+                  className="ml-1 text-gray-400 font-normal cursor-help"
+                  title="Vous pouvez mobiliser vos plafonds des 3 années précédentes si non utilisés (art. 163 quatervicies II CGI). Ces plafonds apparaissent sur votre avis d'imposition."
+                >ⓘ</span>
+              </label>
+              <input
+                type="number"
+                value={manualAnterieurs}
+                onChange={e => setManualAnterieurs(e.target.value)}
+                placeholder="0"
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
               />
             </div>

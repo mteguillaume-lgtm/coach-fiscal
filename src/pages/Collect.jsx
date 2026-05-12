@@ -9,6 +9,7 @@ import {
 import { useApp }                   from '../context/AppContext';
 import { analyzeDoc, mapExtracted } from '../lib/extractor';
 import { buildProfile }             from '../lib/profileGenerator';
+import { parseProfileToFormData }   from '../lib/profileParser';
 import Button                       from '../components/Button';
 import Card                         from '../components/Card';
 
@@ -515,8 +516,14 @@ export default function Collect() {
     reader.onload = (ev) => {
       const text = ev.target?.result;
       if (typeof text === 'string' && text.trim()) {
-        dispatch({ type: 'SET_PROFILE', payload: text.trim() });
-        toast.success('Profil importé — redirection…');
+        const trimmed = text.trim();
+        const { data, count } = parseProfileToFormData(trimmed);
+        dispatch({ type: 'SET_PROFILE',   payload: trimmed });
+        if (Object.keys(data).length > 0) {
+          dispatch({ type: 'SET_FORM_DATA', payload: data });
+          if (data.mode === 'couple') dispatch({ type: 'SET_MODE', payload: 'couple' });
+        }
+        toast.success(`Profil importé — ${count} champ${count > 1 ? 's' : ''} extrait${count > 1 ? 's' : ''} automatiquement.`);
         setTimeout(() => navigate('/profile'), 400);
       } else {
         toast.error('Fichier vide ou invalide.');

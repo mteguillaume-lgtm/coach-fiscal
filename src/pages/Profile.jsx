@@ -3,10 +3,11 @@ import { useNavigate }         from 'react-router-dom';
 import toast                   from 'react-hot-toast';
 import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen } from 'lucide-react';
 
-import { useApp }              from '../context/AppContext';
-import { detectOpportunities } from '../lib/opportunitiesDetector';
-import OpportunitiesPanel      from '../components/OpportunitiesPanel';
-import Button                  from '../components/Button';
+import { useApp }                   from '../context/AppContext';
+import { detectOpportunities }      from '../lib/opportunitiesDetector';
+import { parseProfileToFormData }   from '../lib/profileParser';
+import OpportunitiesPanel           from '../components/OpportunitiesPanel';
+import Button                       from '../components/Button';
 
 export default function Profile() {
   const { state, dispatch } = useApp();
@@ -46,8 +47,14 @@ export default function Profile() {
     reader.onload = (ev) => {
       const text = ev.target?.result;
       if (typeof text === 'string' && text.trim()) {
-        dispatch({ type: 'SET_PROFILE', payload: text.trim() });
-        toast.success('Profil importé avec succès.');
+        const trimmed = text.trim();
+        const { data, count } = parseProfileToFormData(trimmed);
+        dispatch({ type: 'SET_PROFILE',   payload: trimmed });
+        if (Object.keys(data).length > 0) {
+          dispatch({ type: 'SET_FORM_DATA', payload: data });
+          if (data.mode === 'couple') dispatch({ type: 'SET_MODE', payload: 'couple' });
+        }
+        toast.success(`Profil importé — ${count} champ${count > 1 ? 's' : ''} extrait${count > 1 ? 's' : ''} automatiquement.`);
       } else {
         toast.error('Fichier vide ou invalide.');
       }
