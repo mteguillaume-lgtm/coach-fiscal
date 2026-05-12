@@ -4,6 +4,7 @@ import toast                   from 'react-hot-toast';
 import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2, Loader2, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 
 import { useApp }                   from '../context/AppContext';
+import { parseProfile }             from '../lib/profileParser';
 import { detectOpportunities }      from '../lib/opportunitiesDetector';
 import OpportunitiesPanel           from '../components/OpportunitiesPanel';
 import Button                       from '../components/Button';
@@ -75,8 +76,10 @@ export default function Profile() {
       const text = ev.target?.result;
       if (typeof text === 'string' && text.trim()) {
         const trimmed = text.trim();
+        const pp = parseProfile(trimmed);
+        dispatch({ type: 'SET_MODE',    payload: pp.mode });
         dispatch({ type: 'SET_PROFILE', payload: trimmed });
-        toast.success('Profil importé et analysé automatiquement.');
+        toast.success('Profil importé — données rechargées.');
       } else {
         toast.error('Fichier vide ou invalide.');
       }

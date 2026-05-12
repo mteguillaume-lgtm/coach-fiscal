@@ -108,7 +108,9 @@ export function parseProfile(text) {
              || abattement10(salaireNetImposableD2);
 
   // ── REVENUS FOYER ────────────────────────────────────────────────────────────
-  const revensFonciers = n(text, /Revenus fonciers\s*:\s*([\d\s,]+)\s*€/);
+  // "Revenus fonciers bruts :" (nouveau générateur) ou "Revenus fonciers :" (ancien/V5)
+  const revensFonciers = n(text, /Revenus fonciers bruts\s*:\s*([\d\s,]+)\s*€/i)
+                      || n(text, /Revenus fonciers\s*:\s*([\d\s,]+)\s*€/);
   const dividendes     = n(text, /Dividendes\/intérêts\s*:\s*([\d\s,]+)\s*€/);
   const revenusLoc     = n(text, /Revenus locatifs 2025\s*:\s*([\d\s,]+)\s*€/);
   const revenusCrypto  = n(text, /Revenus crypto\s*:\s*([\d\s,]+)\s*€/);
