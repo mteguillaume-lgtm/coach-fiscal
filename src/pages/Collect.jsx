@@ -8,6 +8,7 @@ import {
 
 import { useApp }                   from '../context/AppContext';
 import { analyzeDoc, mapExtracted } from '../lib/extractor';
+import { parseProfile }             from '../lib/profileParser';
 import { buildProfile }             from '../lib/profileGenerator';
 import Button                       from '../components/Button';
 import Card                         from '../components/Card';
@@ -516,8 +517,74 @@ export default function Collect() {
       const text = ev.target?.result;
       if (typeof text === 'string' && text.trim()) {
         const trimmed = text.trim();
-        dispatch({ type: 'SET_PROFILE', payload: trimmed });
-        toast.success('Profil importé et analysé automatiquement.');
+        const pp = parseProfile(trimmed);
+
+        // Reconstruit formData (champs partagés + solo)
+        const str = v => (v && v !== 0) ? String(v) : '';
+        const newFormData = {
+          parts:      str(pp.parts),
+          dept:       pp.departement || '',
+          foncier:    str(pp.revensFonciers),
+          divid:      str(pp.dividendes),
+          crypto:     str(pp.revenusCrypto),
+          pero_d1:    str(pp.peroD1),
+          pero_d2:    str(pp.peroD2),
+          // Solo : revenus et épargne dans formData
+          ...(pp.mode === 'solo' ? {
+            brut:         str(pp.salairesBrutImposableD1),
+            net_imp:      str(pp.salaireNetImposableD1),
+            taux_pas:     str(pp.tauxPasD1),
+            pas_tot:      str(pp.pasD1),
+            livret_a:     str(pp.livretAD1),
+            ldd:          str(pp.lddsD1),
+            lep:          str(pp.lepD1),
+            livret_plus:  str(pp.livretPlusD1),
+            pel:          str(pp.pelD1),
+            pea:          str(pp.peaD1),
+            per:          str(pp.percoD1),
+            av:           str(pp.avD1),
+            crypto_wallet:str(pp.cryptoD1),
+          } : {}),
+        };
+
+        // Couple : revenus/épargne dans d1Data / d2Data séparés
+        const newD1 = pp.mode === 'couple' ? {
+          brut:         str(pp.salairesBrutImposableD1),
+          net_imp:      str(pp.salaireNetImposableD1),
+          taux_pas:     str(pp.tauxPasD1),
+          pas_tot:      str(pp.pasD1),
+          livret_a:     str(pp.livretAD1),
+          ldd:          str(pp.lddsD1),
+          lep:          str(pp.lepD1),
+          livret_plus:  str(pp.livretPlusD1),
+          pel:          str(pp.pelD1),
+          pea:          str(pp.peaD1),
+          per:          str(pp.percoD1),
+          av:           str(pp.avD1),
+          crypto_wallet:str(pp.cryptoD1),
+        } : null;
+
+        const newD2 = pp.mode === 'couple' ? {
+          brut:         str(pp.salairesBrutImposableD2),
+          net_imp:      str(pp.salaireNetImposableD2),
+          taux_pas:     str(pp.tauxPasD2),
+          pas_tot:      str(pp.pasD2),
+          livret_a:     str(pp.livretAD2),
+          ldd:          str(pp.lddsD2),
+          lep:          str(pp.lepD2),
+          livret_plus:  str(pp.livretPlusD2),
+          pel:          str(pp.pelD2),
+          pea:          str(pp.peaD2),
+          per:          str(pp.percoD2),
+          av:           str(pp.avD2),
+          crypto_wallet:str(pp.cryptoD2),
+        } : null;
+
+        dispatch({ type: 'SET_PROFILE',   payload: trimmed });
+        dispatch({ type: 'SET_FORM_DATA', payload: newFormData });
+        if (newD1) dispatch({ type: 'SET_D1_DATA', payload: newD1 });
+        if (newD2) dispatch({ type: 'SET_D2_DATA', payload: newD2 });
+        toast.success('Profil importé — formulaire pré-rempli.');
         setTimeout(() => navigate('/profile'), 400);
       } else {
         toast.error('Fichier vide ou invalide.');
