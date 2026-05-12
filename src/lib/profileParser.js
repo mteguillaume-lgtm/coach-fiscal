@@ -12,10 +12,11 @@
 
 /** Entier depuis "45 161,77 €" → 45161. parseInt s'arrête à la virgule. */
 function n(src, rx) {
-  const m = src.match(rx);
+  const m = (src || '').match(rx);
   if (!m?.[1]) return 0;
-  const v = parseInt(m[1].replace(/[\s ]/g, ''), 10);
-  return isNaN(v) ? 0 : v;
+  const str = m[1].replace(/[\s ]/g, '').replace(',', '.');
+  const v = parseFloat(str);
+  return isNaN(v) ? 0 : Math.round(v);
 }
 
 /** Flottant depuis "11,80" ou "11.80" → 11.8. */

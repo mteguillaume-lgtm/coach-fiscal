@@ -53,6 +53,10 @@ const DECOTE = baremeRaw.decote;
 
 const ABT = baremeRaw.abattement_salaires_10pct;
 
+// ─── Exports pour affichage (Rapport.jsx) ────────────────────────────────────
+
+export { TRANCHES, DECOTE, ABT };
+
 // ─── PASS et plafonds PER (depuis le JSON) ────────────────────────────────────
 
 export const PASS_2025       = perRaw._meta.pass_2025;
