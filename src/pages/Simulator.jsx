@@ -5,10 +5,12 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import toast                       from 'react-hot-toast';
-import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight } from 'lucide-react';
+import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, PenLine } from 'lucide-react';
 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
+
+const TMI_OPTIONS = [0, 11, 30, 41, 45];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -187,19 +189,9 @@ function ChartTooltip({ active, payload, label }) {
 
 // ─── Simulateur PER ───────────────────────────────────────────────────────────
 
-function SimPER({ profile }) {
+function SimPER({ data }) {
   const navigate = useNavigate();
-
-  const profData = useMemo(() => {
-    const raw = fromProfile(profile);
-    const isDefault = !raw.rni && !raw.tmi && !raw.perPlafond;
-    return {
-      rni:     raw.rni      || 65_000,
-      tmi:     raw.tmi      || 30,
-      plafond: raw.perPlafond || 10_000,
-      isDefault,
-    };
-  }, [profile]);
+  const profData = data;
 
   const [versement, setVersement] = useState(
     () => Math.round(Math.min(profData.plafond, 5000) / 100) * 100
@@ -291,10 +283,9 @@ function SimPER({ profile }) {
 
 // ─── Simulateur Enveloppes ────────────────────────────────────────────────────
 
-function SimEnveloppes({ profile }) {
+function SimEnveloppes({ data }) {
   const navigate = useNavigate();
-
-  const tmi = useMemo(() => fromProfile(profile).tmi || 30, [profile]);
+  const tmi = data.tmi;
 
   const [capital,  setCapital]  = useState(10_000);
   const [duration, setDuration] = useState(20);
@@ -454,10 +445,9 @@ function SimEnveloppes({ profile }) {
 
 // ─── Simulateur Foncier ───────────────────────────────────────────────────────
 
-function SimFoncier({ profile }) {
+function SimFoncier({ data }) {
   const navigate = useNavigate();
-
-  const tmi = useMemo(() => fromProfile(profile).tmi || 30, [profile]);
+  const tmi = data.tmi;
 
   const [loyers,  setLoyers]  = useState(12_000);
   const [charges, setCharges] = useState(30);
@@ -611,9 +601,37 @@ const TABS = [
   { id: 'foncier',    label: 'Foncier',    Icon: Home       },
 ];
 
+const MODES = [
+  { id: 'profile', label: 'Depuis mon profil', Icon: FileText },
+  { id: 'manual',  label: 'Saisie manuelle',   Icon: PenLine  },
+];
+
 export default function Simulator() {
   const { state } = useApp();
-  const [tab, setTab] = useState('per');
+  const [tab,  setTab]  = useState('per');
+  const [mode, setMode] = useState('profile');
+
+  // Champs saisie manuelle
+  const [manualTMI,     setManualTMI]     = useState(30);
+  const [manualRNI,     setManualRNI]     = useState('65000');
+  const [manualPlafond, setManualPlafond] = useState('10000');
+
+  // Données transmises aux simulateurs
+  const profileData = useMemo(() => {
+    if (mode === 'manual') {
+      const rni     = parseInt(manualRNI, 10)     || 65_000;
+      const plafond = parseInt(manualPlafond, 10) || 10_000;
+      return { rni, tmi: manualTMI, plafond, isDefault: false };
+    }
+    const raw = fromProfile(state.profile);
+    const isDefault = !raw.rni && !raw.tmi && !raw.perPlafond;
+    return {
+      rni:     raw.rni        || 65_000,
+      tmi:     raw.tmi        || 30,
+      plafond: raw.perPlafond || 10_000,
+      isDefault,
+    };
+  }, [mode, manualTMI, manualRNI, manualPlafond, state.profile]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -622,11 +640,71 @@ export default function Simulator() {
         <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Outils interactifs</span>
         <h1 className="text-2xl font-bold text-gray-900 mt-1">Simulateurs fiscaux</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Visualisez l'impact de vos décisions en temps réel, pré-rempli depuis votre profil.
+          Visualisez l'impact de vos décisions en temps réel.
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Toggle mode */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl">
+        {MODES.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setMode(id)}
+            className={[
+              'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200',
+              mode === id
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700',
+            ].join(' ')}
+          >
+            <Icon size={13} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Saisie manuelle */}
+      {mode === 'manual' && (
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Vos paramètres</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-600">TMI actuel</label>
+              <select
+                value={manualTMI}
+                onChange={e => setManualTMI(Number(e.target.value))}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400 bg-white"
+              >
+                {TMI_OPTIONS.map(t => (
+                  <option key={t} value={t}>{t} %</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-600">RNI foyer (€)</label>
+              <input
+                type="number"
+                value={manualRNI}
+                onChange={e => setManualRNI(e.target.value)}
+                placeholder="65 000"
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-600">Plafond PER disponible (€)</label>
+              <input
+                type="number"
+                value={manualPlafond}
+                onChange={e => setManualPlafond(e.target.value)}
+                placeholder="10 000"
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs simulateur */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl">
         {TABS.map(({ id, label, Icon }) => (
           <button
@@ -648,9 +726,9 @@ export default function Simulator() {
 
       {/* Contenu simulateur */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5">
-        {tab === 'per'        && <SimPER        profile={state.profile} />}
-        {tab === 'enveloppes' && <SimEnveloppes profile={state.profile} />}
-        {tab === 'foncier'    && <SimFoncier    profile={state.profile} />}
+        {tab === 'per'        && <SimPER        data={profileData} />}
+        {tab === 'enveloppes' && <SimEnveloppes data={profileData} />}
+        {tab === 'foncier'    && <SimFoncier    data={profileData} />}
       </div>
 
     </div>

@@ -3,6 +3,7 @@ import {
   Lock, Shield, AlertTriangle, CheckCircle, XCircle, Trash2,
 } from 'lucide-react';
 import Button from '../components/Button';
+import { useApp } from '../context/AppContext';
 
 const STORAGE_KEY     = 'coachFiscal.state';
 const API_KEY_STORAGE = 'coachFiscal.apiKey';
@@ -53,7 +54,8 @@ function SectionBlock({ title, titleColor = 'text-gray-500', children }) {
 }
 
 export default function Privacy() {
-  const navigate = useNavigate();
+  const navigate     = useNavigate();
+  const { dispatch } = useApp();
 
   function handleClearAll() {
     if (!window.confirm(
@@ -62,6 +64,7 @@ export default function Privacy() {
       'Cette action est irréversible.'
     )) return;
 
+    dispatch({ type: 'RESET_ALL' });
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(API_KEY_STORAGE);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Layers, Bot, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import Button from '../components/Button';
+import { useApp } from '../context/AppContext';
 
 const STORAGE_KEY = 'coachFiscal.state';
 
@@ -54,9 +55,16 @@ const FEATURES = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const { dispatch } = useApp();
   const [sessionActive, setSessionActive] = useState(false);
 
   useEffect(() => { setSessionActive(hasActiveSession()); }, []);
+
+  const handleStart = () => {
+    dispatch({ type: 'RESET_ALL' });
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    navigate('/setup');
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -94,7 +102,7 @@ export default function Home() {
 
         {/* CTAs */}
         <div className="animate-slide-up-d3 relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
-          <Button size="lg" onClick={() => navigate('/setup')}
+          <Button size="lg" onClick={handleStart}
             className="!px-7 !py-3.5 !text-base !rounded-2xl !shadow-lg">
             Démarrer mon bilan <ArrowRight size={18} aria-hidden="true" />
           </Button>

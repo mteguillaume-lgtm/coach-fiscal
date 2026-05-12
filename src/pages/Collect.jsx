@@ -3,7 +3,7 @@ import { useNavigate }    from 'react-router-dom';
 import toast              from 'react-hot-toast';
 import {
   ChevronDown, X, CheckCircle, AlertCircle, Loader2, ArrowLeft,
-  Upload, Sparkles, Users, User, Home, TrendingUp, Scissors, Building2,
+  Upload, Sparkles, Users, User, Home, TrendingUp, Scissors, Building2, FolderOpen,
 } from 'lucide-react';
 
 import { useApp }                   from '../context/AppContext';
@@ -507,6 +507,25 @@ export default function Collect() {
   const accProps    = { activeAcc, setActiveAcc };
   const uploadProps = { uploading, docs, onFiles: handleFiles, onRemove: removeDoc };
 
+  const importFileRef = useRef(null);
+  const handleImportProfile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === 'string' && text.trim()) {
+        dispatch({ type: 'SET_PROFILE', payload: text.trim() });
+        toast.success('Profil importé — redirection…');
+        setTimeout(() => navigate('/profile'), 400);
+      } else {
+        toast.error('Fichier vide ou invalide.');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+    e.target.value = '';
+  };
+
   return (
     <div className="flex flex-col gap-5">
 
@@ -532,6 +551,19 @@ export default function Collect() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* Import profil existant */}
+      <input ref={importFileRef} type="file" accept=".txt" className="hidden" onChange={handleImportProfile} />
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-teal-200 bg-teal-50/40 px-4 py-3">
+        <p className="text-xs text-gray-500">Vous avez déjà un profil .txt ?</p>
+        <button
+          type="button"
+          onClick={() => importFileRef.current?.click()}
+          className="flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700 border border-teal-200 bg-white rounded-lg px-3 py-1.5 hover:bg-teal-50 transition-colors shrink-0"
+        >
+          <FolderOpen size={13} /> Importer directement
+        </button>
       </div>
 
       {/* Bannière fichiers anonymisés */}

@@ -40,6 +40,7 @@ function reducer(state, action) {
     case 'CLEAR_CHAT':
       return { ...state, chatHistory: [] };
     case 'RESET':
+    case 'RESET_ALL':
       return initialState;
     case 'HYDRATE':
       return { ...state, ...action.payload };

@@ -1,7 +1,10 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { GitFork, Lock, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp } from 'lucide-react';
+import { GitFork, Lock, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw } from 'lucide-react';
 import Stepper from './Stepper';
+import { useApp } from '../context/AppContext';
+
+const STORAGE_KEY = 'coachFiscal.state';
 
 const GITHUB_URL  = 'https://github.com/coach-fiscal/coach-fiscal';
 const VERSION     = '0.1.0';
@@ -9,6 +12,17 @@ const STEP_ROUTES = ['/anonymize', '/collect', '/profile', '/chat'];
 
 export default function Layout() {
   const { pathname } = useLocation();
+  const navigate     = useNavigate();
+  const { dispatch } = useApp();
+
+  const handleReset = () => {
+    if (!window.confirm(
+      'Êtes-vous sûr ? Toutes vos données seront effacées.\nVotre clé API sera conservée.'
+    )) return;
+    dispatch({ type: 'RESET_ALL' });
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    navigate('/');
+  };
   const showStepper = STEP_ROUTES.some(r => pathname.startsWith(r));
   const isChatPage  = pathname === '/chat';
 
@@ -70,6 +84,14 @@ export default function Layout() {
               <MessageSquare size={14} aria-hidden="true" />
               <span className="hidden sm:inline">Chat</span>
             </Link>
+            <button
+              type="button"
+              onClick={handleReset}
+              title="Réinitialiser toutes les données"
+              className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-red-500 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-red-50"
+            >
+              <RotateCcw size={13} aria-hidden="true" />
+            </button>
             <a
               href={GITHUB_URL}
               target="_blank"

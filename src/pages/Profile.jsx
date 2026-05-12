@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate }         from 'react-router-dom';
 import toast                   from 'react-hot-toast';
-import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen } from 'lucide-react';
+import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen } from 'lucide-react';
 
 import { useApp }              from '../context/AppContext';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
@@ -9,9 +9,10 @@ import OpportunitiesPanel      from '../components/OpportunitiesPanel';
 import Button                  from '../components/Button';
 
 export default function Profile() {
-  const { state }  = useApp();
+  const { state, dispatch } = useApp();
   const navigate   = useNavigate();
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!state.profile) {
@@ -36,6 +37,23 @@ export default function Profile() {
       toast.success('Copié dans le presse-papiers !');
       setTimeout(() => setCopied(false), 2500);
     }).catch(() => toast.error('Échec de la copie.'));
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === 'string' && text.trim()) {
+        dispatch({ type: 'SET_PROFILE', payload: text.trim() });
+        toast.success('Profil importé avec succès.');
+      } else {
+        toast.error('Fichier vide ou invalide.');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+    e.target.value = '';
   };
 
   const handleDownload = () => {
@@ -102,18 +120,22 @@ export default function Profile() {
       </div>
 
       {/* ── Actions ───────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <input ref={fileInputRef} type="file" accept=".txt" className="hidden" onChange={handleImport} />
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <Button variant="secondary" size="md" className="flex-1" onClick={handleCopy}>
           {copied ? <><Check size={14} /> Copié !</> : <><Copy size={14} /> Copier</>}
         </Button>
         <Button variant="secondary" size="md" className="flex-1" onClick={handleDownload}>
           <Download size={14} /> Télécharger .txt
         </Button>
+        <Button variant="secondary" size="md" className="flex-1" onClick={() => fileInputRef.current?.click()}>
+          <FolderOpen size={14} /> Importer .txt
+        </Button>
         <Button variant="secondary" size="md" className="flex-1" onClick={() => navigate('/checklist')}>
-          <ClipboardList size={14} /> Checklist fiscale
+          <ClipboardList size={14} /> Checklist
         </Button>
         <Button variant="secondary" size="md" className="flex-1" onClick={() => navigate('/declaration')}>
-          <BookOpen size={14} /> Guide déclaration
+          <BookOpen size={14} /> Déclaration
         </Button>
         <Button variant="secondary" size="md" className="flex-1" onClick={() => navigate('/opportunites')}>
           <TrendingUp size={14} /> Opportunités
@@ -123,7 +145,7 @@ export default function Profile() {
             </span>
           )}
         </Button>
-        <Button variant="primary" size="md" className="flex-1 sm:flex-[2] !rounded-xl" onClick={() => navigate('/chat')}>
+        <Button variant="primary" size="lg" className="flex-1 sm:flex-[2] !whitespace-nowrap !min-h-[44px]" onClick={() => navigate('/chat')}>
           <Sparkles size={14} /> Démarrer le conseil →
         </Button>
       </div>
