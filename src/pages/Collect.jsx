@@ -76,7 +76,7 @@ const SECTION_DED_SOLO = {
     { key: 'garde',    label: 'Frais garde enfants (€)',                type: 'number', ph: '0' },
     { key: 'domicile', label: 'Emploi à domicile (€)',                  type: 'number', ph: '0' },
     { key: 'travaux',  label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0' },
-    { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0' },
+    { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0' },
     { key: 'frais_r',  label: 'Frais réels (€)',                        type: 'number', ph: 'vide = forfait 10%' },
@@ -97,8 +97,8 @@ const SECTION_DED = {
     { key: 'garde',    label: 'Frais garde enfants (€)',                type: 'number', ph: '0' },
     { key: 'domicile', label: 'Emploi à domicile (€)',                  type: 'number', ph: '0' },
     { key: 'travaux',  label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0' },
-    { key: 'pero_d1',  label: 'PERO D1 — cotisations 2025 (€)',         type: 'number', ph: '0' },
-    { key: 'pero_d2',  label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0' },
+    { key: 'pero_d1',  label: 'PERO D1 — cotisations 2025 (€)',         type: 'number', ph: '0', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D1 disponible N+1.' },
+    { key: 'pero_d2',  label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0' },
   ],
@@ -152,6 +152,9 @@ function FieldRow({ f, value, onChange, autoFKeys }) {
           onChange={e => onChange(f.key, e.target.value)}
           className={base}
         />
+      )}
+      {f.hint && (
+        <p className="mt-1.5 text-xs text-amber-600 leading-snug">{f.hint}</p>
       )}
     </div>
   );
@@ -477,7 +480,7 @@ export default function Collect() {
     dispatch({ type: 'SET_D2_DATA',   payload: d2Data });
     const profile = buildProfile(formData, d1Data, d2Data, docs, isCouple);
     dispatch({ type: 'SET_PROFILE',   payload: profile });
-    navigate('/dashboard');
+    navigate('/profile');
   };
 
   const anonymizedFiles = state.anonymizedFiles || [];

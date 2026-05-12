@@ -8,7 +8,7 @@ const STORAGE_KEY = 'coachFiscal.state';
 
 const GITHUB_URL  = 'https://github.com/coach-fiscal/coach-fiscal';
 const VERSION     = '0.1.0';
-const STEP_ROUTES = ['/anonymize', '/collect', '/profile', '/chat'];
+const HIDE_STEPPER = ['/', '/about', '/privacy'];
 
 export default function Layout() {
   const { pathname } = useLocation();
@@ -23,7 +23,7 @@ export default function Layout() {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     navigate('/');
   };
-  const showStepper = STEP_ROUTES.some(r => pathname.startsWith(r));
+  const showStepper = !HIDE_STEPPER.some(r => pathname === r || (r !== '/' && pathname.startsWith(r)));
   const isChatPage  = pathname === '/chat';
 
   return (
