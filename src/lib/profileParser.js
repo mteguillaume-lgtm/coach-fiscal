@@ -1,4 +1,5 @@
-// Extraction structurée des données numériques depuis un profil fiscal .txt
+// Extraction structurée des données depuis un profil fiscal .txt
+// Convention : clés snake_case alignées sur Collect.jsx
 
 function n(profile, rx) {
   const m = profile.match(rx);
@@ -14,96 +15,94 @@ function f(profile, rx) {
   return isNaN(v) ? null : v;
 }
 
+/**
+ * Extrait les données d'un profil fiscal texte.
+ * Retourne { formData, d1Data, d2Data, mode, count }
+ * alignés sur les clés Collect.jsx.
+ */
 export function parseProfileToFormData(profile) {
-  if (!profile) return { data: {}, count: 0 };
+  if (!profile) return { formData: {}, d1Data: {}, d2Data: {}, mode: null, count: 0 };
 
-  const data = {};
-  let count  = 0;
-  const set  = (key, val) => { if (val != null) { data[key] = val; count++; } };
+  const formData = {};
+  const d1Data   = {};
+  const d2Data   = {};
+  let count      = 0;
+  let mode       = null;
+
+  const setForm = (key, val) => { if (val != null) { formData[key] = val; count++; } };
+  const setD1   = (key, val) => { if (val != null) { d1Data[key]   = val; count++; } };
+  const setD2   = (key, val) => { if (val != null) { d2Data[key]   = val; count++; } };
 
   // ── Situation ────────────────────────────────────────────────────────────────
   if (/pacsé|pacs|marié|couple|déclarant 2|\bD2\b/i.test(profile)) {
-    data.mode = 'couple'; count++;
+    mode = 'couple';
   }
 
-  set('parts',       f(profile, /parts?\s*fiscales?[^:\d\n]{0,20}[:\s]+(\d[\.,]?\d?)/i));
-  set('departement', profile.match(/département[^:\d\n]{0,10}[:\s]+(\d{2,3})/i)?.[1] ?? null);
+  setForm('parts', f(profile, /parts?\s*fiscales?[^:\d\n]{0,20}[:\s]+(\d[\.,]?\d?)/i));
+  setForm('dept',  profile.match(/département[^:\d\n]{0,10}[:\s]+(\d{2,3})/i)?.[1] ?? null);
 
-  // ── Revenus D1 ───────────────────────────────────────────────────────────────
-  set('salaireD1',
+  // ── Revenus D1 → d1Data ──────────────────────────────────────────────────────
+  setD1('net_imp',
     n(profile, /net\s+imposable[^D\n]{0,10}D1[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i) ??
     n(profile, /1AJ[^€\d]{0,15}(\d[\d\s]{1,10})/i) ??
     n(profile, /net\s+imposable\b[^D€\n]{0,40}(\d[\d\s]{2,10})\s*€/i)
   );
-  set('pasD1',
+  setD1('pas_tot',
     n(profile, /PAS\s+prélevé[^D\n]{0,10}D1[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i) ??
     n(profile, /8HV[^€\d]{0,15}(\d[\d\s]{1,10})/i) ??
     n(profile, /PAS\s+prélevé[^€\d]{0,40}(\d[\d\s]{2,10})\s*€/i)
   );
-  set('tauxPasD1',
+  setD1('taux_pas',
     f(profile, /taux\s+PAS[^D\n]{0,10}D1[^%\d]{0,10}(\d+[,\.]\d+)\s*%/i) ??
     f(profile, /taux\s+PAS[^%\d]{0,40}(\d+[,\.]\d+)\s*%/i)
   );
-  set('peroD1',
+
+  // ── PERO D1 → formData (champ de déduction, pas revenu individuel) ───────────
+  setForm('pero_d1',
     n(profile, /6QS[^€\d]{0,15}(\d[\d\s]{1,10})/i) ??
     n(profile, /PERO[^D\n]{0,10}D1[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i) ??
     n(profile, /cotisations?\s+PERO[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i)
   );
 
-  // ── Revenus D2 ───────────────────────────────────────────────────────────────
-  set('salaireD2',
+  // ── Revenus D2 → d2Data ──────────────────────────────────────────────────────
+  setD2('net_imp',
     n(profile, /net\s+imposable[^D\n]{0,10}D2[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i) ??
     n(profile, /1BJ[^€\d]{0,15}(\d[\d\s]{1,10})/i)
   );
-  set('pasD2',
+  setD2('pas_tot',
     n(profile, /PAS\s+prélevé[^D\n]{0,10}D2[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i) ??
     n(profile, /8IV[^€\d]{0,15}(\d[\d\s]{1,10})/i)
   );
-  set('tauxPasD2',
+  setD2('taux_pas',
     f(profile, /taux\s+PAS[^D\n]{0,10}D2[^%\d]{0,10}(\d+[,\.]\d+)\s*%/i)
   );
 
-  // ── Épargne ──────────────────────────────────────────────────────────────────
-  const savings = [
-    ['livretA',    /livret\s*a\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-    ['ldds',       /\bldds\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-    ['lep',        /\blep\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-    ['livretPlus', /livret[\s+][^€\n]{0,20}(\d[\d\s]{1,10})\s*€/i],
-    ['pel',        /\bpel\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-    ['pea',        /\bpea\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-    ['av',         /assurance[- ]vie[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-    ['crypto',     /crypto[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i],
-  ];
-  for (const [key, rx] of savings) set(key, n(profile, rx));
+  // ── Épargne individuelle → d1Data (ou formData en mode solo) ─────────────────
+  const setEp = mode === 'couple' ? setD1 : setForm;
 
-  // ── Foncier ──────────────────────────────────────────────────────────────────
-  set('loyersBruts',
+  setEp('livret_a',    n(profile, /livret\s*a\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+  setEp('ldd',         n(profile, /\bldds?\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+  setEp('lep',         n(profile, /\blep\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+  setEp('livret_plus', n(profile, /livret\s*\+[^€\n]{0,20}(\d[\d\s]{1,10})\s*€/i));
+  setEp('pel',         n(profile, /\bpel\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+  setEp('pea',         n(profile, /\bpea\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+  setEp('av',          n(profile, /assurance[- ]vie[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+  setEp('crypto_wallet', n(profile, /crypto[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+
+  // PER individuel → d1Data (epargne)
+  setEp('per', n(profile, /\bper\b[^€\n]{0,30}(\d[\d\s]{1,10})\s*€/i));
+
+  // ── Foncier → formData ────────────────────────────────────────────────────────
+  setForm('foncier',
     n(profile, /4BE[^€\d]{0,15}(\d[\d\s]{1,10})/i) ??
     n(profile, /loyers?\s+bruts?[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i) ??
     n(profile, /fermage[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i)
   );
 
-  // ── Fiscal calculé ───────────────────────────────────────────────────────────
-  set('tmi',
-    n(profile, /\btmi\b[^%\d]{0,15}(\d{1,2})\s*%/i)
-  );
-  set('plafondPerD1',
-    n(profile, /plafond\s+disponible[^D\n]{0,10}D1[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i) ??
-    n(profile, /plafond\s+disponible[^€\d]{0,30}(\d[\d\s]{1,10})\s*€/i) ??
-    n(profile, /plafond\s+PER[^€\d]{0,30}(\d[\d\s]{1,10})\s*€/i)
-  );
-  set('plafondPerD2',
-    n(profile, /plafond\s+disponible[^D\n]{0,10}D2[^€\d]{0,15}(\d[\d\s]{1,10})\s*€/i)
-  );
-  set('irNet',
-    n(profile, /ir\s+net[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i) ??
-    n(profile, /impôt\s+net[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i) ??
-    n(profile, /total\s+dû[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i)
-  );
-  set('remboursement',
-    n(profile, /remboursement[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i)
-  );
+  // ── Revenus foyer couple → formData ──────────────────────────────────────────
+  setForm('divid',  n(profile, /dividendes?[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i));
+  setForm('crypto', n(profile, /plus-values?\s+crypto[^€\d]{0,20}(\d[\d\s]{1,10})\s*€/i));
 
-  console.log('[profileParser] Extraction :', count, 'champ(s)', data);
-  return { data, count };
+  console.log('[profileParser] Extraction :', count, 'champ(s)', { formData, d1Data, d2Data, mode });
+  return { formData, d1Data, d2Data, mode, count };
 }

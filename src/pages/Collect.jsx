@@ -517,12 +517,12 @@ export default function Collect() {
       const text = ev.target?.result;
       if (typeof text === 'string' && text.trim()) {
         const trimmed = text.trim();
-        const { data, count } = parseProfileToFormData(trimmed);
-        dispatch({ type: 'SET_PROFILE',   payload: trimmed });
-        if (Object.keys(data).length > 0) {
-          dispatch({ type: 'SET_FORM_DATA', payload: data });
-          if (data.mode === 'couple') dispatch({ type: 'SET_MODE', payload: 'couple' });
-        }
+        const { formData, d1Data, d2Data, mode, count } = parseProfileToFormData(trimmed);
+        dispatch({ type: 'SET_PROFILE', payload: trimmed });
+        if (mode) dispatch({ type: 'SET_MODE', payload: mode });
+        if (Object.keys(formData).length > 0) dispatch({ type: 'SET_FORM_DATA', payload: formData });
+        if (Object.keys(d1Data).length > 0)   dispatch({ type: 'SET_D1_DATA',   payload: d1Data });
+        if (Object.keys(d2Data).length > 0)   dispatch({ type: 'SET_D2_DATA',   payload: d2Data });
         toast.success(`Profil importé — ${count} champ${count > 1 ? 's' : ''} extrait${count > 1 ? 's' : ''} automatiquement.`);
         setTimeout(() => navigate('/profile'), 400);
       } else {
