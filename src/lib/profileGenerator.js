@@ -1,5 +1,7 @@
 // Port de genProfile() depuis collecte-fiscal-v3.jsx — renommé buildProfile().
 
+import { abattement10 } from './taxCalculator';
+
 const APP_VERSION = 'v3.0.0';
 
 const fmt    = v => v && v !== '0' ? Number(v).toLocaleString('fr-FR') + ' €' : 'Néant';
@@ -24,6 +26,7 @@ export function buildProfile(formData, d1Data, d2Data, docs, isCouple) {
     .join('\n\n');
 
   if (!isCouple) {
+    const rniSolo = abattement10(parseFloat(d.net_imp || 0));
     const _soloText = `== PROFIL FISCAL PERSONNEL 2025 ==
 Généré le ${new Date().toLocaleDateString('fr-FR')} — Outil ${APP_VERSION}
 
@@ -35,7 +38,8 @@ Département : ${d.dept || 'Non renseigné'}
 
 == REVENUS 2025 ==
 Brut imposable annuel : ${d.brut ? Number(d.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
-Net imposable annuel : ${d.net_imp ? Number(d.net_imp).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
+Net imposable annuel (1AJ — case déclaration) : ${d.net_imp ? Number(d.net_imp).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
+RNI après abattement 10% salaires : ${rniSolo > 0 ? rniSolo.toLocaleString('fr-FR') + ' €' : 'Non calculable'}
 Taux PAS : ${d.taux_pas ? d.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${d.pas_tot ? Number(d.pas_tot).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
 Revenus fonciers : ${fmt(d.foncier)}
@@ -78,8 +82,12 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}
 
   const d1 = d1Data;
   const d2 = d2Data;
-  const rfr = [d1.net_imp, d2.net_imp, d.foncier, d.divid, d.crypto, d.rev_loc]
-    .reduce((a, v) => a + parseFloat(v || 0), 0);
+  const rniD1   = abattement10(parseFloat(d1.net_imp || 0));
+  const rniD2   = abattement10(parseFloat(d2.net_imp || 0));
+  const foncier = parseFloat(d.foncier || 0);
+  const rniFoyer = rniD1 + rniD2 + foncier;
+  const rfrFoyer = parseFloat(d1.net_imp || 0) + parseFloat(d2.net_imp || 0)
+                 + foncier + parseFloat(d.divid || 0) + parseFloat(d.crypto || 0) + parseFloat(d.rev_loc || 0);
   const pasFoyer = parseFloat(d1.pas_tot || 0) + parseFloat(d2.pas_tot || 0);
   const per1 = parseFloat(d1.per || 0);
   const per2 = parseFloat(d2.per || 0);
@@ -96,14 +104,16 @@ Département : ${d.dept || 'Non renseigné'}
 
 == REVENUS 2025 — DÉCLARANT 1 ==
 Brut imposable annuel : ${d1.brut ? Number(d1.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
-Net imposable annuel : ${d1.net_imp ? Number(d1.net_imp).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
+Net imposable annuel (1AJ — case déclaration) : ${d1.net_imp ? Number(d1.net_imp).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
+RNI D1 après abattement 10% salaires : ${rniD1 > 0 ? rniD1.toLocaleString('fr-FR') + ' €' : 'Non calculable'}
 Taux PAS : ${d1.taux_pas ? d1.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${d1.pas_tot ? Number(d1.pas_tot).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
 Frais réels : ${d1.frais_r && d1.frais_r !== '0' ? Number(d1.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
 
 == REVENUS 2025 — DÉCLARANT 2 ==
 Brut imposable annuel : ${d2.brut ? Number(d2.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
-Net imposable annuel : ${d2.net_imp ? Number(d2.net_imp).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
+Net imposable annuel (1AJ — case déclaration) : ${d2.net_imp ? Number(d2.net_imp).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
+RNI D2 après abattement 10% salaires : ${rniD2 > 0 ? rniD2.toLocaleString('fr-FR') + ' €' : 'Non calculable'}
 Taux PAS : ${d2.taux_pas ? d2.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${d2.pas_tot ? Number(d2.pas_tot).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
 Frais réels : ${d2.frais_r && d2.frais_r !== '0' ? Number(d2.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
@@ -115,7 +125,8 @@ Revenus crypto : ${fmt(d.crypto)}
 Revenus locatifs 2025 : ${fmt(d.rev_loc)}
 
 == SYNTHÈSE FISCALE FOYER ==
-Revenu net imposable total estimé : ${rfr > 0 ? rfr.toLocaleString('fr-FR') + ' €' : 'Non calculable'}
+RNI foyer (après abattements) : ${rniFoyer > 0 ? rniFoyer.toLocaleString('fr-FR') + ' €' : 'Non calculable'}
+Revenu fiscal de référence (RFR) : ${rfrFoyer > 0 ? rfrFoyer.toLocaleString('fr-FR') + ' €' : 'Non calculable'}
 PAS total foyer 2025 : ${pasFoyer > 0 ? pasFoyer.toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
 
 == ÉPARGNE — DÉCLARANT 1 ==
