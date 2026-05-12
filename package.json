@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "update-bareme": "node scripts/update-bareme.js",
+    "update-bareme:dry": "node scripts/update-bareme.js --dry-run"
   },
   "dependencies": {
     "jszip": "^3.10.1",

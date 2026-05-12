@@ -39,15 +39,7 @@ function oui(src, rx) {
   return isNaN(v) ? 0 : v;
 }
 
-/** TMI barème 2025 par part — fallback si absent du profil. */
-function tmiFromRNI(rni, parts) {
-  const base = parts > 0 ? rni / parts : rni;
-  if (base <= 11_497) return 0;
-  if (base <= 29_315) return 11;
-  if (base <= 83_823) return 30;
-  if (base <= 180_294) return 41;
-  return 45;
-}
+import { getTMI, baseIRFoyer, abattement10 } from './taxCalculator';
 
 // ─── Section extractor ────────────────────────────────────────────────────────
 
@@ -136,7 +128,7 @@ export function parseProfile(text) {
                 || (pasD1 + pasD2);
 
   const tmi = n(text, /TMI[^\n%]*?:\s*(\d{1,2})\s*%/i)
-           || (rniFoyer > 0 ? tmiFromRNI(rniFoyer, parts || 1) : 0);
+           || getTMI(baseIRFoyer({ salaireNetImposableD1, salaireNetImposableD2, revensFonciers, regimeFoncier: null }), parts || 1);
 
   const irNet         = n(text, /IR net[^:\n]*:\s*([\d\s,]+)\s*€/i)
                      || n(text, /Impôt net[^:\n]*:\s*([\d\s,]+)\s*€/i);
@@ -181,7 +173,8 @@ export function parseProfile(text) {
   const percoD2      = n(secEpD2, /PER versements 2025\s*:\s*([\d\s,]+)\s*€/);
 
   // ── PATRIMOINE CALCULÉ ───────────────────────────────────────────────────────
-  const epargneLiquide   = livretAD1 + lddsD1 + lepD1 + livretAD2 + lddsD2 + lepD2;
+  const epargneLiquide   = livretAD1 + lddsD1 + lepD1 + livretPlusD1
+                         + livretAD2 + lddsD2 + lepD2 + livretPlusD2;
   const epargneLongTerme = peaD1 + avD1 + percoD1 + pelD1 + peaD2 + avD2 + percoD2 + pelD2;
   const cryptoTotal      = cryptoD1 + cryptoD2;
   const patrimoineTotal  = epargneLiquide + epargneLongTerme + cryptoTotal;

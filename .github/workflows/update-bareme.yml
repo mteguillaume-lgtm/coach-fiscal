@@ -1,0 +1,75 @@
+name: Mise à jour barème IR annuelle
+
+# Déclenché le 20 janvier de chaque année (LFI publiée en décembre)
+# + déclenchement manuel depuis l'onglet Actions sur GitHub
+on:
+  schedule:
+    - cron: '0 9 20 1 *'  # 9h UTC = 10h Paris, le 20 janvier
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Année des revenus cible (ex: 2026)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry-run (affiche le JSON sans écrire)'
+        type: boolean
+        default: false
+
+jobs:
+  update-bareme:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lancer le script d'extraction
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.year }}" ]; then
+            ARGS="--year=${{ github.event.inputs.year }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          node scripts/update-bareme.js $ARGS
+
+      - name: Vérifier si des fichiers ont changé
+        id: changes
+        run: |
+          git diff --quiet && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Créer une Pull Request avec le nouveau barème
+        if: steps.changes.outputs.changed == 'true' && github.event.inputs.dry_run != 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: barème IR ${{ github.event.inputs.year || github.run_id }} — mise à jour automatique"
+          branch: "bareme-auto-update"
+          title: "📊 Nouveau barème IR détecté — à valider"
+          body: |
+            ## Mise à jour automatique du barème IR
+
+            Ce PR a été créé automatiquement par le script `update-bareme.js`.
+
+            **Avant de merger :**
+            - [ ] Vérifier les tranches dans `bareme-ir-YYYY.json`
+            - [ ] Comparer avec le texte officiel de la LFI
+            - [ ] Valider les valeurs de décote
+            - [ ] Vérifier le PASS dans `per-plafonds.json`
+
+            Sources consultées : BOFIP + service-public.fr
+
+            > ⚠️ Ne pas merger sans validation humaine — les montants d'impôt en dépendent.
+          labels: "fiscal, automation"

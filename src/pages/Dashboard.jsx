@@ -2,6 +2,7 @@ import { useState, useMemo }   from 'react';
 import { useNavigate, Link }    from 'react-router-dom';
 import { useApp }               from '../context/AppContext';
 import { detectOpportunities }  from '../lib/opportunitiesDetector';
+import { calcIR, baseIRSolo, baseIRFoyer, getTMI } from '../lib/taxCalculator';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -15,24 +16,6 @@ import {
 const fmt  = n => Math.round(n || 0).toLocaleString('fr-FR');
 const fmtE = n => (n || 0) > 0 ? `${fmt(n)} €` : '—';
 
-/** Barème IR 2025 approximatif (décote non appliquée). */
-function calcIR(rni, parts = 1) {
-  if ((rni || 0) <= 0 || parts <= 0) return 0;
-  const base = rni / parts;
-  const TRANCHES = [
-    [0,      11497,    0    ],
-    [11497,  29315,    0.11 ],
-    [29315,  83823,    0.30 ],
-    [83823,  180294,   0.41 ],
-    [180294, Infinity, 0.45 ],
-  ];
-  let tax = 0;
-  for (const [lo, hi, rate] of TRANCHES) {
-    if (base <= lo) break;
-    tax += (Math.min(base, hi) - lo) * rate;
-  }
-  return Math.round(tax * parts);
-}
 
 function diversificationScore(p) {
   let score = 0;
@@ -220,17 +203,16 @@ function ContributionTable({ p, sectionNum }) {
 
   if (!rniFoyer) return null;
 
-  const irEstime  = irNet > 0 ? irNet : calcIR(rniFoyer, parts);
-  const ratioD1   = rniFoyer > 0 ? rniD1 / rniFoyer : 0.5;
-  const ratioD2   = rniFoyer > 0 ? rniD2 / rniFoyer : 0.5;
-  const contribD1 = Math.round(irEstime * ratioD1);
-  const contribD2 = Math.round(irEstime * ratioD2);
-  const regD1     = pasD1 - contribD1; // positif = trop prélevé → remboursé
-  const regD2     = pasD2 - contribD2;
+  // Méthode célibataire de référence — barème 2025 + décote + abattement 10% salaires.
+  // Chaque déclarant paie ce qu'il aurait payé seul (1 part, décote célibataire).
+  const irD1Solo        = calcIR(baseIRSolo(rniD1), 1, false);
+  const irD2Solo        = calcIR(baseIRSolo(rniD2), 1, false);
+  const irFoyerEnsemble = irNet > 0 ? irNet : calcIR(baseIRFoyer(p), parts, true);
+  const gainCouple      = Math.max(0, irD1Solo + irD2Solo - irFoyerEnsemble);
 
-  const irD1Solo   = calcIR(rniD1, 1);
-  const irD2Solo   = calcIR(rniD2, 1);
-  const gainCouple = Math.max(0, irD1Solo + irD2Solo - irEstime);
+  // Régularisation : PAS prélevé vs IR solo estimé
+  const regD1 = pasD1 - irD1Solo;  // positif = trop prélevé → à rembourser
+  const regD2 = pasD2 - irD2Solo;
 
   const fmtReg   = v => {
     if (Math.abs(v) < 10) return '≈ 0 €';
@@ -269,14 +251,9 @@ function ContributionTable({ p, sectionNum }) {
               <td className="py-2.5 text-right font-semibold text-gray-800">{fmtE(rniD2)}</td>
             </tr>
             <tr>
-              <td className="py-2.5 text-gray-600 pr-4">Quote-part IR</td>
-              <td className="py-2.5 text-right font-semibold text-gray-800 pr-4">{Math.round(ratioD1 * 100)} %</td>
-              <td className="py-2.5 text-right font-semibold text-gray-800">{Math.round(ratioD2 * 100)} %</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 text-gray-600 pr-4">Contribution équitable</td>
-              <td className="py-2.5 text-right font-semibold text-gray-800 pr-4">{fmtE(contribD1)}</td>
-              <td className="py-2.5 text-right font-semibold text-gray-800">{fmtE(contribD2)}</td>
+              <td className="py-2.5 text-gray-600 pr-4">IR solo estimé</td>
+              <td className="py-2.5 text-right font-semibold text-gray-800 pr-4">{fmtE(irD1Solo)}</td>
+              <td className="py-2.5 text-right font-semibold text-gray-800">{fmtE(irD2Solo)}</td>
             </tr>
             <tr>
               <td className="py-2.5 text-gray-600 pr-4">PAS prélevé 2025</td>
@@ -302,11 +279,11 @@ function ContributionTable({ p, sectionNum }) {
         </div>
       )}
 
-      {irNet === 0 && (
-        <p className="text-[10px] text-gray-400 leading-relaxed">
-          IR estimé d'après le barème 2025 (décote non appliquée). Utilisez le simulateur pour l'IR exact.
-        </p>
-      )}
+      <p className="text-[10px] text-gray-400 leading-relaxed">
+        Méthode célibataire de référence : chaque déclarant paie l'IR qu'il aurait payé seul (1 part).
+        Le gain du quotient conjugal est un avantage partagé du foyer, non imputé à l'un ou l'autre.
+        {irNet === 0 && ' IR estimé d\'après le barème 2025 (décote non appliquée).'}
+      </p>
     </section>
   );
 }

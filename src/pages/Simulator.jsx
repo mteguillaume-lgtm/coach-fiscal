@@ -9,25 +9,14 @@ import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, 
 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
+import { calcIR, getTMI, calcPlafondPer, baseIRFoyer, baseIRSolo, MIN_PLAFOND_PER } from '../lib/taxCalculator';
 
-const TMI_OPTIONS  = [0, 11, 30, 41, 45];
-const PASS_2025    = 47_100;
-const MIN_PLAFOND  = Math.round(PASS_2025 * 0.1); // 4 710 €
+const TMI_OPTIONS = [0, 11, 30, 41, 45];
+const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
-
-
-// Tranches TMI 2025 (par part fiscale, indicatif)
-const BRACKETS = [
-  { rate: 0,  max: 11_497  },
-  { rate: 11, max: 29_315  },
-  { rate: 30, max: 83_823  },
-  { rate: 41, max: 180_294 },
-  { rate: 45, max: Infinity },
-];
-const getTMI = rni => (BRACKETS.find(b => rni <= b.max) ?? BRACKETS.at(-1)).rate;
 
 // Capital net après impôts pour chaque enveloppe
 function envNet(id, P, r, t, tmi) {
@@ -187,7 +176,7 @@ function SimPER({ data }) {
     const economie  = Math.round(versement * (profData.tmi / 100));
     const effort    = versement - economie;
     const newRNI    = profData.rni - versement;
-    const newTMI    = getTMI(newRNI);
+    const newTMI    = getTMI(newRNI * 0.9, 1); // approx : 1 part, abattement 10%
     const rendement = versement > 0 ? Math.round((economie / versement) * 100) : 0;
     return { economie, effort, newRNI, newTMI, rendement };
   }, [versement, profData]);
@@ -624,13 +613,18 @@ export default function Simulator() {
         isDefault: false,
       };
     }
-    const pp = state.parsedProfile ?? {};
-    const isDefault = !pp.rniFoyer && !pp.tmi && !pp.plafondPerD1;
+    const pp      = state.parsedProfile ?? {};
+    const hasData = !!(pp.salaireNetImposableD1 || pp.rniFoyer);
+    // Plafond PER D1 : base = salaire net imposable D1 après abattement 10%
+    const plafond = calcPlafondPer(pp.salaireNetImposableD1 || 0, pp.peroD1 || 0);
+    // TMI foyer : calculé depuis la vraie base IR (abattement + barème 2025)
+    const baseFoyer = baseIRFoyer(pp);
+    const tmi       = hasData ? getTMI(baseFoyer, pp.parts || (pp.mode === 'couple' ? 2 : 1)) : 30;
     return {
-      rni:     pp.rniFoyer      || 65_000,
-      tmi:     pp.tmi           || 30,
-      plafond: pp.plafondPerD1  || pp.plafondPerTotal || 10_000,
-      isDefault,
+      rni:       pp.rniFoyer || 65_000,
+      tmi,
+      plafond:   plafond || MIN_PLAFOND,
+      isDefault: !hasData,
     };
   }, [mode, manualTMI, perCalc, state.parsedProfile]);
 
