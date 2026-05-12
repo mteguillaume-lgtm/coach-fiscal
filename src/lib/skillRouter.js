@@ -115,7 +115,13 @@ const SKILL_LABELS = {
  * @param {{ userMessage: string, profile: string, masterPrompt: string }} opts
  * @returns {string} system prompt prêt à envoyer à Claude
  */
-export function buildSystemPrompt({ skills, profile, masterPrompt }) {
+const MODEL_LABELS = {
+  haiku:  '⚡ Haiku — réponse rapide',
+  sonnet: '🧠 Sonnet — analyse approfondie',
+  opus:   '🔮 Opus — stratégie complexe',
+};
+
+export function buildSystemPrompt({ skills, profile, masterPrompt, model }) {
 
   const skillsBlock = skills
     .map(id => {
@@ -157,5 +163,9 @@ export function buildSystemPrompt({ skills, profile, masterPrompt }) {
     ? `\n\n## PROFIL FISCAL CLIENT\n${profile.trim()}`
     : '';
 
-  return `${masterPrompt.trim()}\n\n${skillsBlock}${profileBlock}`.trim();
+  const modelBlock = model
+    ? `\n\n## IDENTITÉ\nTu es Coach Fiscal, un conseiller fiscal IA. Le routeur de complexité a sélectionné le niveau : **${MODEL_LABELS[model] ?? model}**.\nSi l'utilisateur te demande quel modèle tu utilises, réponds : "Je suis Coach Fiscal. Pour cette question, le niveau **${MODEL_LABELS[model] ?? model}** a été sélectionné automatiquement." Ne mentionne jamais de numéros de version (3.7, 4.5…) ni le nom "Claude" seul.`
+    : '';
+
+  return `${masterPrompt.trim()}\n\n${skillsBlock}${profileBlock}${modelBlock}`.trim();
 }

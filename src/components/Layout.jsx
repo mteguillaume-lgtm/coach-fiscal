@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { GitFork, Lock, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare } from 'lucide-react';
+import { GitFork, Lock, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp } from 'lucide-react';
 import Stepper from './Stepper';
 
 const GITHUB_URL  = 'https://github.com/coach-fiscal/coach-fiscal';
@@ -44,6 +44,11 @@ export default function Layout() {
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">
               <LayoutDashboard size={14} aria-hidden="true" />
               <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+            <Link to="/opportunites"
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">
+              <TrendingUp size={14} aria-hidden="true" />
+              <span className="hidden sm:inline">Opportunités</span>
             </Link>
             <Link to="/checklist"
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">

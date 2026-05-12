@@ -161,6 +161,13 @@ export default function Chat() {
   // state.model sert de plancher de qualité : l'auto-router ne peut pas descendre en-dessous
   const MODEL_RANK = { haiku: 0, sonnet: 1, opus: 2 };
 
+  // Modèle réellement utilisé (auto-détecté OU plancher state.model, le plus élevé des deux)
+  const effectiveModel = useMemo(() => {
+    const auto = inputComplexity?.model ?? 'haiku';
+    return MODEL_RANK[auto] >= MODEL_RANK[state.model] ? auto : state.model;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputComplexity, state.model]);
+
   const handleSend = useCallback(async (forceModel = null) => {
     const text = input.trim();
     if (!text || streaming) return;
@@ -169,10 +176,6 @@ export default function Chat() {
 
     setInput('');
     const prevMessages = messages;
-    const userMsg  = { role: 'user',      content: text };
-    const draftMsg = { role: 'assistant', content: '', streaming: true };
-    setMessages(prev => [...prev, userMsg, draftMsg]);
-    setStreaming(true);
 
     const skills           = detectRelevantSkills(text);
     setActiveSkills(skills);
@@ -180,7 +183,14 @@ export default function Chat() {
     const modelToUse = forceModel ?? (
       MODEL_RANK[autoModel] >= MODEL_RANK[state.model] ? autoModel : state.model
     );
-    const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT });
+    console.log(`[Chat] Envoi → modèle retenu : ${modelToUse}`);
+
+    const userMsg  = { role: 'user',      content: text };
+    const draftMsg = { role: 'assistant', content: '', streaming: true, model: modelToUse };
+    setMessages(prev => [...prev, userMsg, draftMsg]);
+    setStreaming(true);
+
+    const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: modelToUse });
     const historyForApi = [
       ...prevMessages.map(({ role, content }) => ({ role, content })),
       { role: 'user', content: text },
@@ -198,7 +208,7 @@ export default function Chat() {
       });
       setMessages(prev => {
         const final = prev.map((m, i) =>
-          i === prev.length - 1 ? { role: m.role, content: m.content } : m
+          i === prev.length - 1 ? { role: m.role, content: m.content, model: m.model } : m
         );
         dispatch({ type: 'SET_CHAT_HISTORY', payload: final });
         return final;
@@ -344,7 +354,8 @@ export default function Chat() {
           ) : (
             <div className="space-y-5 max-w-2xl mx-auto">
               {messages.map((msg, idx) => (
-                <div key={idx}
+                <div key={idx} className={`flex flex-col gap-0.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div
                   className={`flex gap-3 items-end ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
 
                   {/* Avatar */}
@@ -383,6 +394,20 @@ export default function Chat() {
                       </div>
                     )}
                   </div>
+                </div>
+                {/* Badge modèle — sous chaque bulle assistant */}
+                {msg.role === 'assistant' && !msg.streaming && msg.content && (
+                  <span className={[
+                    'ml-10 text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                    !msg.model || msg.model === 'haiku'  ? 'bg-gray-100 text-gray-600 border-gray-300' : '',
+                    msg.model === 'sonnet' ? 'bg-teal-50 text-teal-700 border-teal-300' : '',
+                    msg.model === 'opus'   ? 'bg-purple-50 text-purple-700 border-purple-300' : '',
+                  ].filter(Boolean).join(' ')}>
+                    {(!msg.model || msg.model === 'haiku') && '⚡ Haiku'}
+                    {msg.model === 'sonnet' && '🧠 Sonnet'}
+                    {msg.model === 'opus'   && '🔮 Opus'}
+                  </span>
+                )}
                 </div>
               ))}
               <div ref={messagesEndRef} />
@@ -458,23 +483,21 @@ export default function Chat() {
               </button>
             </div>
 
-            {/* Ligne bas : disclaimer + indicateur de complexité */}
+            {/* Ligne bas : disclaimer + indicateur de modèle */}
             <div className="flex items-center justify-between px-1">
               <p className="text-[10px] text-gray-400 leading-relaxed">
                 💡 Conseil indicatif — consultez un professionnel agréé.
               </p>
-              {inputComplexity && (
-                <span className={[
-                  'text-[10px] font-semibold flex items-center gap-1 shrink-0 ml-2',
-                  inputComplexity.model === 'haiku'  && 'text-gray-400',
-                  inputComplexity.model === 'sonnet' && 'text-teal-600',
-                  inputComplexity.model === 'opus'   && 'text-purple-600',
-                ].filter(Boolean).join(' ')}>
-                  {inputComplexity.model === 'haiku'  && '⚡ Haiku — Réponse rapide'}
-                  {inputComplexity.model === 'sonnet' && '🧠 Sonnet — Analyse approfondie'}
-                  {inputComplexity.model === 'opus'   && '🔮 Opus — Stratégie complexe'}
-                </span>
-              )}
+              <span className={[
+                'text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ml-2',
+                effectiveModel === 'haiku'  && 'bg-gray-100 text-gray-600 border-gray-300',
+                effectiveModel === 'sonnet' && 'bg-teal-50 text-teal-700 border-teal-300',
+                effectiveModel === 'opus'   && 'bg-purple-50 text-purple-700 border-purple-300',
+              ].filter(Boolean).join(' ')}>
+                {effectiveModel === 'haiku'  && '⚡ Haiku'}
+                {effectiveModel === 'sonnet' && '🧠 Sonnet'}
+                {effectiveModel === 'opus'   && '🔮 Opus'}
+              </span>
             </div>
 
           </div>
