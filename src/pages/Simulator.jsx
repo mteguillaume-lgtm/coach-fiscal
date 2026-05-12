@@ -18,22 +18,6 @@ const MIN_PLAFOND  = Math.round(PASS_2025 * 0.1); // 4 710 €
 
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
 
-function extractNum(profile, rx) {
-  if (!profile) return null;
-  const m = profile.match(rx);
-  if (!m) return null;
-  const n = parseInt(m[1].replace(/[\s.]/g, ''), 10);
-  return isNaN(n) ? null : n;
-}
-
-function fromProfile(profile) {
-  return {
-    rni:       extractNum(profile, /rni[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i)
-            || extractNum(profile, /revenu net imposable[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i),
-    tmi:       extractNum(profile, /tmi[^%\d]{0,20}(\d{1,2})\s*%/i),
-    perPlafond: extractNum(profile, /plafond[^€]{0,40}(\d[\d\s.]{1,10})\s*€/i),
-  };
-}
 
 // Tranches TMI 2025 (par part fiscale, indicatif)
 const BRACKETS = [
@@ -640,15 +624,15 @@ export default function Simulator() {
         isDefault: false,
       };
     }
-    const raw = fromProfile(state.profile);
-    const isDefault = !raw.rni && !raw.tmi && !raw.perPlafond;
+    const pp = state.parsedProfile ?? {};
+    const isDefault = !pp.rniFoyer && !pp.tmi && !pp.plafondPerD1;
     return {
-      rni:     raw.rni        || 65_000,
-      tmi:     raw.tmi        || 30,
-      plafond: raw.perPlafond || 10_000,
+      rni:     pp.rniFoyer      || 65_000,
+      tmi:     pp.tmi           || 30,
+      plafond: pp.plafondPerD1  || pp.plafondPerTotal || 10_000,
       isDefault,
     };
-  }, [mode, manualTMI, perCalc, state.profile]);
+  }, [mode, manualTMI, perCalc, state.parsedProfile]);
 
   return (
     <div className="flex flex-col gap-6">

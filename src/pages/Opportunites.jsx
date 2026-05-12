@@ -24,8 +24,8 @@ export default function Opportunites() {
   }, []);
 
   const opportunities = useMemo(
-    () => detectOpportunities(state.profile),
-    [state.profile]
+    () => detectOpportunities(state.parsedProfile ?? {}),
+    [state.parsedProfile]
   );
 
   if (!state.profile) return null;

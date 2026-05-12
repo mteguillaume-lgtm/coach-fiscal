@@ -14,67 +14,14 @@ import {
 
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
 
-function extractNum(text, rx) {
-  const m = text.match(rx);
-  if (!m || !m[1]) return 0;
-  return parseInt(m[1].replace(/[\s.]/g, ''), 10) || 0;
-}
-
-function parsePatrimoine(profile) {
-  const p = profile;
-  const livretA = extractNum(p, /livret\s*a[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const ldds    = extractNum(p, /ldds[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const lep     = extractNum(p, /lep[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const pea     = extractNum(p, /pea[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const av      = extractNum(p, /assurance[- ]vie[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const per     = extractNum(p, /\bper\b[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const immo    = extractNum(p, /immobilier[^€\n]{0,80}?(\d[\d\s.]{1,10})\s*€/i)
-                  || extractNum(p, /valeur\s+du\s+bien[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-  const crypto  = extractNum(p, /crypto[^€\n]{0,40}?(\d[\d\s.]{1,10})\s*€/i);
-
-  const epargLiq    = livretA + ldds + lep;
-  const epargLong   = pea + av + per;
-  const immoTotal   = immo;
-  const cryptoTotal = crypto;
-
-  return { epargLiq, epargLong, immoTotal, cryptoTotal, livretA, ldds, lep, pea, av, per, immo, crypto };
-}
-
-function parseScores(profile) {
-  const rni = extractNum(profile, /revenu\s+net\s+impos[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i)
-           || extractNum(profile, /rni[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i);
-  const sal = extractNum(profile, /salaire[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i);
-  const rev = rni || sal || 0;
-
-  const BRACKETS = [
-    { max: 11_497, rate: 0  },
-    { max: 29_315, rate: 11 },
-    { max: 83_823, rate: 30 },
-    { max: 180_294, rate: 41 },
-    { max: Infinity, rate: 45 },
-  ];
-  const tmi = BRACKETS.find(b => rev <= b.max)?.rate ?? 0;
-
-  const epargne = extractNum(profile, /épargne?\s+annuel[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i)
-               || extractNum(profile, /capacité\s+d.épargne[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i);
-  const txEpargne = rev > 0 && epargne > 0 ? Math.round(epargne / (rev / 12) * 100) : null;
-
-  const perPlafond = extractNum(profile, /plafond\s+per[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i)
-                  || (rev > 0 ? Math.round(rev * 0.1) : 0);
-  const perAnnuel  = extractNum(profile, /versement[^€\n]{0,30}?per[^€\n]{0,30}?(\d[\d\s.]{1,10})\s*€/i);
-  const txPER      = perPlafond > 0 && perAnnuel > 0 ? Math.round(perAnnuel / perPlafond * 100) : null;
-
-  return { tmi, txEpargne, txPER, rev };
-}
-
-function diversificationScore(pat) {
+function diversificationScore(p) {
   let score = 0;
-  if (pat.epargLiq  > 0) score += 2;
-  if (pat.pea       > 0) score += 2;
-  if (pat.av        > 0) score += 2;
-  if (pat.per       > 0) score += 1;
-  if (pat.immoTotal > 0) score += 2;
-  if (pat.crypto    > 0) score += 1;
+  if (p.epargneLiquide  > 0) score += 2;
+  if (p.peaD1 + p.peaD2 > 0) score += 2;
+  if (p.avD1  + p.avD2  > 0) score += 2;
+  if (p.percoD1         > 0) score += 1;
+  if (p.immoTotal       > 0) score += 2;
+  if (p.cryptoTotal     > 0) score += 1;
   return Math.min(score, 10);
 }
 
@@ -155,25 +102,24 @@ const PIE_COLORS = ['#0d9488', '#14b8a6', '#94a3b8', '#f59e0b'];
 export default function Dashboard() {
   const { state }  = useApp();
   const navigate   = useNavigate();
-  const profile    = state.profile ?? '';
+  const p          = state.parsedProfile ?? {};
 
-  const pat    = useMemo(() => parsePatrimoine(profile), [profile]);
-  const scores = useMemo(() => parseScores(profile),     [profile]);
-  const opps   = useMemo(() => detectOpportunities(profile), [profile]);
-  const divScore = useMemo(() => diversificationScore(pat), [pat]);
+  const opps     = useMemo(() => detectOpportunities(p), [p]);
+  const divScore = useMemo(() => diversificationScore(p), [p]);
 
   // ── Pie data ──
   const pieData = [
-    { name: 'Épargne liquide',    value: pat.epargLiq    },
-    { name: 'Épargne long terme', value: pat.epargLong   },
-    { name: 'Immobilier',         value: pat.immoTotal   },
-    { name: 'Crypto',             value: pat.cryptoTotal },
+    { name: 'Épargne liquide',    value: p.epargneLiquide   ?? 0 },
+    { name: 'Épargne long terme', value: p.epargneLongTerme ?? 0 },
+    { name: 'Immobilier',         value: p.immoTotal        ?? 0 },
+    { name: 'Crypto',             value: p.cryptoTotal      ?? 0 },
   ].filter(d => d.value > 0);
 
-  const totalPat = pat.epargLiq + pat.epargLong + pat.immoTotal + pat.cryptoTotal;
+  const totalPat = (p.epargneLiquide ?? 0) + (p.epargneLongTerme ?? 0) + (p.immoTotal ?? 0) + (p.cryptoTotal ?? 0);
 
   // ── Gauge configs ──
-  const tmiColor = scores.tmi > 30 ? '#ef4444' : scores.tmi === 30 ? '#f59e0b' : '#0d9488';
+  const tmi      = p.tmi ?? 0;
+  const tmiColor = tmi > 30 ? '#ef4444' : tmi === 30 ? '#f59e0b' : '#0d9488';
 
   // ── Timeline items ──
   const timeline = useMemo(() => {
@@ -282,8 +228,8 @@ export default function Dashboard() {
           {/* TMI */}
           <div className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
             <CircularGauge
-              value={scores.tmi} max={45}
-              label={`${scores.tmi} %`} sublabel="TMI"
+              value={tmi} max={45}
+              label={`${tmi} %`} sublabel="TMI"
               color={tmiColor}
             />
             <p className="text-[10px] text-center text-gray-500 leading-tight">
@@ -291,29 +237,23 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Taux épargne */}
+          {/* Plafond PER */}
           <div className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
-            <CircularGauge
-              value={scores.txEpargne ?? 0} max={30}
-              label={scores.txEpargne != null ? `${scores.txEpargne} %` : '—'}
-              sublabel="Épargne"
-              color="#14b8a6"
-            />
+            {(() => {
+              const plaf = p.plafondPerD1 || p.plafondPerTotal || 0;
+              const rni  = p.rniFoyer || 0;
+              const pctPer = plaf > 0 && rni > 0 ? Math.round(plaf / rni * 100) : null;
+              return (
+                <CircularGauge
+                  value={pctPer ?? 0} max={30}
+                  label={pctPer != null ? `${pctPer} %` : '—'}
+                  sublabel="PER"
+                  color="#8b5cf6"
+                />
+              );
+            })()}
             <p className="text-[10px] text-center text-gray-500 leading-tight">
-              Taux d'épargne<br />mensuel
-            </p>
-          </div>
-
-          {/* Score PER */}
-          <div className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
-            <CircularGauge
-              value={scores.txPER ?? 0} max={100}
-              label={scores.txPER != null ? `${scores.txPER} %` : '—'}
-              sublabel="PER"
-              color="#8b5cf6"
-            />
-            <p className="text-[10px] text-center text-gray-500 leading-tight">
-              Plafond PER<br />utilisé
+              Plafond PER<br />du RNI
             </p>
           </div>
 

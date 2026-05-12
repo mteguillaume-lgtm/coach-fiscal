@@ -5,7 +5,6 @@ import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, Cl
 
 import { useApp }                   from '../context/AppContext';
 import { detectOpportunities }      from '../lib/opportunitiesDetector';
-import { parseProfileToFormData }   from '../lib/profileParser';
 import OpportunitiesPanel           from '../components/OpportunitiesPanel';
 import Button                       from '../components/Button';
 
@@ -30,7 +29,7 @@ export default function Profile() {
   const chars         = profile.length;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const opportunities = useMemo(() => detectOpportunities(profile), [profile]);
+  const opportunities = useMemo(() => detectOpportunities(state.parsedProfile ?? {}), [state.parsedProfile]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profile).then(() => {
@@ -48,13 +47,8 @@ export default function Profile() {
       const text = ev.target?.result;
       if (typeof text === 'string' && text.trim()) {
         const trimmed = text.trim();
-        const { formData, d1Data, d2Data, mode, count } = parseProfileToFormData(trimmed);
         dispatch({ type: 'SET_PROFILE', payload: trimmed });
-        if (mode) dispatch({ type: 'SET_MODE', payload: mode });
-        if (Object.keys(formData).length > 0) dispatch({ type: 'SET_FORM_DATA', payload: formData });
-        if (Object.keys(d1Data).length > 0)   dispatch({ type: 'SET_D1_DATA',   payload: d1Data });
-        if (Object.keys(d2Data).length > 0)   dispatch({ type: 'SET_D2_DATA',   payload: d2Data });
-        toast.success(`Profil importé — ${count} champ${count > 1 ? 's' : ''} extrait${count > 1 ? 's' : ''} automatiquement.`);
+        toast.success('Profil importé et analysé automatiquement.');
       } else {
         toast.error('Fichier vide ou invalide.');
       }

@@ -600,62 +600,105 @@ export const QUESTIONNAIRE_GROUPS = [
   },
 ];
 
-// ─── Extraction automatique depuis le profil ───────────────────────────────────
+// ─── Extraction automatique depuis parsedProfile ──────────────────────────────
 
-export function extractProfileData(profile) {
-  if (!profile) return {};
-  const text = profile.toLowerCase();
+/**
+ * Détecte les conditions de checklist depuis state.parsedProfile.
+ * Accepte aussi un string (profile text brut) en fallback pour compatibilité.
+ */
+export function extractProfileData(parsedProfileOrText) {
+  if (!parsedProfileOrText) return {};
+
+  // Fallback string (ancien code) — regex sur le texte brut
+  if (typeof parsedProfileOrText === 'string') {
+    const profile = parsedProfileOrText;
+    const detected = {};
+    if (/pacsé|pacs|marié|couple|conjoint/i.test(profile))     detected.marie_pacse = true;
+    if (/enfant|parts.*[2-9]|\d+ enfant/i.test(profile))        detected.enfants_charge = true;
+    if (/cryptomonnaie|crypto|binance|kraken|coinbase|3916 bis/i.test(profile)) {
+      detected.cessions_crypto = true;
+      detected.compte_crypto = true;
+    }
+    if (/revolut|n26|wise|bunq|compte.*étranger|étranger.*compte/i.test(profile)) detected.compte_bancaire_etranger = true;
+    if (/interactive broker|trading212|degiro|saxo/i.test(profile)) detected.courtier_etranger = true;
+    if (/lmnp|airbnb|meublé|bic.*location/i.test(profile))     detected.loyers_meubles = true;
+    if (/loyer|foncier|4be|sci\b|indivision/i.test(profile))   detected.loyers_nus = true;
+    if (/fermage|terres agricoles/i.test(profile))              detected.fermage = true;
+    if (/sci\b/i.test(profile))                                 detected.sci_ir = true;
+    if (/dividende|2dc|2bh|coupon/i.test(profile))             detected.dividendes = true;
+    if (/pea.*retrait|retrait.*pea/i.test(profile))            detected.pea_retraits = true;
+    if (/plus.value.*immo|vente.*bien|immo.*vendu/i.test(profile)) detected.vente_immo = true;
+    if (/per.*volontaire|perin|6ns|versement.*per/i.test(profile)) detected.per_volontaire = true;
+    if (/pero|article 83|6qs/i.test(profile))                  detected.pero = true;
+    if (/don.*association|7ud|7uf/i.test(profile))             detected.dons = true;
+    if (/emploi.*domicile|salarié.*maison|7db/i.test(profile)) detected.emploi_domicile = true;
+    if (/garde.*enfant|7ga|7gc/i.test(profile))                detected.garde_enfants = true;
+    if (/pel.*201[0-7]|ouvert.*201[0-7]/i.test(profile))      detected.pel_avant_2018 = true;
+    if (/pension.*versée|7dq|aliment/i.test(profile))          detected.pension_versee = true;
+    if (/syndicat|7ac/i.test(profile))                         detected.cotisations_syndicales = true;
+    if (/scolarisé|collège|lycée|supérieur|étudiant/i.test(profile)) detected.enfants_scolarises = true;
+    if (/travaux.*énergétique|maprimerenov|rénovation/i.test(profile)) detected.travaux_renovation = true;
+    if (/impatrié|non.résident|155b/i.test(profile))           detected.impatrie = true;
+    return detected;
+  }
+
+  // Chemin principal : parsedProfile object
+  const p = parsedProfileOrText;
   const detected = {};
 
-  // Situation
-  if (/pacsé|pacs|marié|couple|conjoint/i.test(profile))     detected.marie_pacse = true;
-  if (/enfant|parts.*[2-9]|\d+ enfant/i.test(profile))        detected.enfants_charge = true;
-  if (/cryptomonnaie|crypto|binance|kraken|coinbase|3916 bis/i.test(profile)) {
-    detected.cessions_crypto = true;
-    detected.compte_crypto = true;
-  }
-  if (/revolut|n26|wise|bunq|compte.*étranger|étranger.*compte/i.test(profile)) detected.compte_bancaire_etranger = true;
-  if (/interactive broker|trading212|degiro|saxo/i.test(profile)) detected.courtier_etranger = true;
-  if (/lmnp|airbnb|meublé|bic.*location/i.test(profile))     detected.loyers_meubles = true;
-  if (/loyer|foncier|4be|sci\b|indivision/i.test(profile))   detected.loyers_nus = true;
-  if (/fermage|terres agricoles/i.test(profile))              detected.fermage = true;
-  if (/sci\b/i.test(profile))                                 detected.sci_ir = true;
-  if (/dividende|2dc|2bh|coupon/i.test(profile))             detected.dividendes = true;
-  if (/pea.*retrait|retrait.*pea/i.test(profile))            detected.pea_retraits = true;
-  if (/plus.value.*immo|vente.*bien|immo.*vendu/i.test(profile)) detected.vente_immo = true;
-  if (/per.*volontaire|perin|6ns|versement.*per/i.test(profile)) detected.per_volontaire = true;
-  if (/pero|article 83|6qs/i.test(profile))                  detected.pero = true;
-  if (/don.*association|7ud|7uf/i.test(profile))             detected.dons = true;
-  if (/emploi.*domicile|salarié.*maison|7db/i.test(profile)) detected.emploi_domicile = true;
-  if (/garde.*enfant|7ga|7gc/i.test(profile))                detected.garde_enfants = true;
-  if (/pel.*201[0-7]|ouvert.*201[0-7]/i.test(profile))      detected.pel_avant_2018 = true;
-  if (/pension.*versée|7dq|aliment/i.test(profile))          detected.pension_versee = true;
-  if (/syndicat|7ac/i.test(profile))                         detected.cotisations_syndicales = true;
-  if (/scolarisé|collège|lycée|supérieur|étudiant/i.test(profile)) detected.enfants_scolarises = true;
-  if (/travaux.*énergétique|maprimerenov|rénovation/i.test(profile)) detected.travaux_renovation = true;
-  if (/impatrié|non.résident|155b/i.test(profile))           detected.impatrie = true;
+  if (p.mode === 'couple')      detected.marie_pacse = true;
+  if (p.hasCrypto)              { detected.cessions_crypto = true; detected.compte_crypto = true; }
+  if (p.hasCompteEtranger)      detected.compte_bancaire_etranger = true;
+  if (p.hasIndivision)          detected.loyers_nus = true;
+  if (p.revensFonciers > 0)     detected.loyers_nus = true;
+  if (p.revenusLoc > 0)         detected.loyers_meubles = true;
+  if (p.dividendes > 0)         detected.dividendes = true;
+  if (p.peroD1 > 0)             detected.pero = true;
+  if (p.percoD1 > 0 || p.plafondPerD1 > 0) detected.per_volontaire = true;
+  if (p.hasPelAncien)           detected.pel_avant_2018 = true;
+  if (p.hasChangementEmployeur) detected.changement_employeur = true;
+  if (p.hasMultipleEmployeurs)  detected.plusieurs_employeurs = true;
 
   return detected;
 }
 
 // ─── Extraction de valeurs chiffrées pour les items ───────────────────────────
 
-export function extractValues(profile) {
-  if (!profile) return {};
-  const vals = {};
+/**
+ * Retourne un dict case → valeur affichable, depuis state.parsedProfile.
+ * Accepte aussi un string en fallback.
+ */
+export function extractValues(parsedProfileOrText) {
+  if (!parsedProfileOrText) return {};
 
-  const m = (rx) => { const r = profile.match(rx); return r ? r[1].replace(/\s/g, '') : null; };
+  if (typeof parsedProfileOrText === 'string') {
+    const profile = parsedProfileOrText;
+    const vals = {};
+    const m = (rx) => { const r = profile.match(rx); return r ? r[1].replace(/\s/g, '') : null; };
+    vals['1AJ'] = m(/net imposable.*?(\d[\d\s]{2,})\s*€/i);
+    vals['1BJ'] = m(/d2.*?net imposable.*?(\d[\d\s]{2,})\s*€/i);
+    vals['8HV'] = m(/pas prélevé.*?(\d[\d\s]{2,})\s*€/i);
+    vals['8IV'] = m(/d2.*?pas.*?(\d[\d\s]{2,})\s*€/i);
+    vals['PER_PLAFOND'] = m(/plafond.*?disponible.*?(\d[\d\s]{2,})\s*€/i);
+    vals['TMI'] = m(/tmi.*?(\d+)\s*%/i);
+    vals['4BE'] = m(/4be.*?(\d[\d\s]{2,})/i) || m(/loyers.*?bruts?.*?(\d[\d\s]{2,})\s*€/i);
+    vals['3AN'] = m(/crypto.*?(\d[\d\s]{2,})\s*€/i);
+    return vals;
+  }
 
-  vals['1AJ'] = m(/net imposable.*?(\d[\d\s]{2,})\s*€/i) || m(/case 1aj.*?(\d[\d\s]+)/i);
-  vals['1BJ'] = m(/d2.*?net imposable.*?(\d[\d\s]{2,})\s*€/i);
-  vals['8HV'] = m(/pas prélevé.*?(\d[\d\s]{2,})\s*€/i) || m(/8hv.*?(\d[\d\s]+)/i);
-  vals['8IV'] = m(/d2.*?pas.*?(\d[\d\s]{2,})\s*€/i);
-  vals['PER_PLAFOND'] = m(/plafond.*?disponible.*?(\d[\d\s]{2,})\s*€/i);
-  vals['TMI'] = m(/tmi.*?(\d+)\s*%/i);
-  vals['4BE'] = m(/4be.*?(\d[\d\s]{2,})/i) || m(/loyers.*?bruts?.*?(\d[\d\s]{2,})\s*€/i);
-  vals['3AN'] = m(/crypto.*?(\d[\d\s]{2,})\s*€/i) || m(/3an.*?(\d[\d\s]+)/i);
+  const p = parsedProfileOrText;
+  const fmtN = (v) => v > 0 ? String(Math.round(v)) : null;
 
-  return vals;
+  return {
+    '1AJ':        fmtN(p.salaireNetImposableD1),
+    '1BJ':        fmtN(p.salaireNetImposableD2),
+    '8HV':        fmtN(p.pasD1),
+    '8IV':        fmtN(p.pasD2),
+    'PER_PLAFOND': fmtN(p.plafondPerD1 || p.plafondPerTotal),
+    'TMI':        p.tmi > 0 ? String(p.tmi) : null,
+    '4BE':        fmtN(p.revensFonciers),
+    '3AN':        fmtN(p.cryptoTotal),
+  };
 }
 
 // ─── Génération de la checklist filtrée ───────────────────────────────────────

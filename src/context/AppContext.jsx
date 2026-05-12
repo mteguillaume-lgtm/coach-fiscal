@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
+import { parseProfile } from '../lib/profileParser';
 
 const STORAGE_KEY = 'coachFiscal.state';
 const API_KEY_STORAGE = 'coachFiscal.apiKey';
@@ -12,6 +13,7 @@ const initialState = {
   anonymizedFiles: [],   // Blob URLs (session only, pas persistés)
   extractedDocs: [],     // données extraites par IA
   profile: '',           // profil fiscal généré (texte brut)
+  parsedProfile: {},     // résultat de parseProfile(profile) — toujours synchronisé
   chatHistory: [],       // [{ role: "user"|"assistant", content: "" }]
 };
 
@@ -32,7 +34,9 @@ function reducer(state, action) {
     case 'SET_EXTRACTED_DOCS':
       return { ...state, extractedDocs: action.payload };
     case 'SET_PROFILE':
-      return { ...state, profile: action.payload };
+      return { ...state, profile: action.payload, parsedProfile: parseProfile(action.payload) };
+    case 'SET_PARSED_PROFILE':
+      return { ...state, parsedProfile: action.payload };
     case 'SET_CHAT_HISTORY':
       return { ...state, chatHistory: action.payload };
     case 'APPEND_CHAT':
@@ -63,8 +67,11 @@ export function AppProvider({ children }) {
         const parsed = JSON.parse(saved);
         // Blob URLs ne survivent pas entre sessions
         // eslint-disable-next-line no-unused-vars
-        const { anonymizedFiles, extractedDocs, ...rest } = parsed;
+        const { anonymizedFiles, extractedDocs, parsedProfile: _pp2, ...rest } = parsed;
         dispatch({ type: 'HYDRATE', payload: rest });
+        if (rest.profile) {
+          dispatch({ type: 'SET_PARSED_PROFILE', payload: parseProfile(rest.profile) });
+        }
       }
     } catch {
       // Ignore silencieusement (JSON invalide, quota, mode privé)
@@ -76,7 +83,7 @@ export function AppProvider({ children }) {
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       // eslint-disable-next-line no-unused-vars
-      const { anonymizedFiles, extractedDocs, ...persistable } = state;
+      const { anonymizedFiles, extractedDocs, parsedProfile: _pp, ...persistable } = state;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
       } catch {

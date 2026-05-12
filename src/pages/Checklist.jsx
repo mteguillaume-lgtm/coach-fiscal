@@ -422,14 +422,14 @@ export default function Checklist() {
   const { state }  = useApp();
   const navigate   = useNavigate();
 
-  // Pré-remplissage depuis le profil
+  // Pré-remplissage depuis parsedProfile (source de vérité)
   const profileDetected = useMemo(
-    () => extractProfileData(state.profile),
-    [state.profile]
+    () => extractProfileData(state.parsedProfile ?? state.profile),
+    [state.parsedProfile, state.profile]
   );
   const extractedValues = useMemo(
-    () => extractValues(state.profile),
-    [state.profile]
+    () => extractValues(state.parsedProfile ?? state.profile),
+    [state.parsedProfile, state.profile]
   );
   const initialAnswers = useMemo(
     () => new Set(Object.keys(profileDetected).filter(k => profileDetected[k])),

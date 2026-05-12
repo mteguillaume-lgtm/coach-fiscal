@@ -1,75 +1,47 @@
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function parseAmt(str) {
-  if (!str) return null;
-  const n = parseInt(str.replace(/[\s.]/g, ''), 10);
-  return isNaN(n) ? null : n;
-}
-
-function extract(profile, rx) {
-  const m = profile.match(rx);
-  return m ? parseAmt(m[1]) : null;
-}
-
-const fmt = (n) => n.toLocaleString('fr-FR');
-
 // ─── detectOpportunities ──────────────────────────────────────────────────────
+// Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-export function detectOpportunities(profile) {
-  if (!profile) return [];
+const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
+
+export function detectOpportunities(parsedProfile) {
+  if (!parsedProfile) return [];
+
+  // Compatibilité descendante : si on reçoit un string (ancien code), on retourne vide
+  // (les appelants doivent passer state.parsedProfile)
+  if (typeof parsedProfile === 'string') {
+    console.warn('[opportunitiesDetector] Reçu un string — passer state.parsedProfile');
+    return [];
+  }
+
+  const {
+    tmi,
+    rniFoyer, rfr,
+    plafondPerD1, plafondPerD2, plafondPerTotal,
+    livretAD1, livretAD2, lddsD1, lddsD2,
+    peaD1, peaD2,
+    lepD1, lepD2,
+    tauxPasD1, tauxPasD2,
+    remboursement,
+    cryptoTotal,
+    mode,
+    hasCrypto,
+    hasCompteEtranger,
+    hasIndivision,
+    hasTestamentManquant,
+  } = parsedProfile;
 
   const opps = [];
+  const perPlafond = plafondPerTotal || plafondPerD1;
+  const isPacseOuMarie = mode === 'couple';
+  const livretTotal = livretAD1 + livretAD2 + lddsD1 + lddsD2;
+  const hasPEA     = peaD1 > 0 || peaD2 > 0;
+  const hasLEP     = lepD1 > 0 || lepD2 > 0;
+  const tauxPAS    = tauxPasD1; // taux D1 pour la comparaison PAS
 
-  // ── Valeurs numériques extraites du profil ───────────────────────────────────
-
-  const tmi = extract(profile, /tmi[^%\d]{0,20}(\d{1,2})\s*%/i);
-
-  const perPlafond =
-    extract(profile, /plafond[^€]{0,40}(\d[\d\s.]{1,10})\s*€/i) ||
-    extract(profile, /(\d[\d\s.]{1,10})\s*€[^.]{0,40}plafond[^.]{0,20}per/i);
-
-  const rfr =
-    extract(profile, /rfr[^€]{0,40}(\d[\d\s.]{1,10})\s*€/i) ||
-    extract(profile, /revenu fiscal[^€]{0,60}(\d[\d\s.]{1,10})\s*€/i);
-
-  const livretAmt = extract(profile, /livret[^€\n]{0,60}(\d[\d\s.]{2,10})\s*€/i);
-
-  const livretTaux = (() => {
-    const m = profile.match(/livret[^%\n]{0,60}(\d+[,.]?\d*)\s*%/i);
-    return m ? parseFloat(m[1].replace(',', '.')) : null;
-  })();
-
-  const tauxPAS = (() => {
-    const m =
-      profile.match(/taux[^%\d]{0,20}pas[^%\d]{0,20}(\d+[,.]?\d*)\s*%/i) ||
-      profile.match(/pas[^%\d]{0,30}(\d+[,.]?\d*)\s*%/i);
-    return m ? parseFloat(m[1].replace(',', '.')) : null;
-  })();
-
-  const remboursement =
-    extract(profile, /remboursement[^€]{0,40}(\d[\d\s.]{1,10})\s*€/i) ||
-    extract(profile, /(\d[\d\s.]{1,10})\s*€[^.]{0,40}remboursement/i);
-
-  const cryptoAmt =
-    extract(profile, /crypto[^€]{0,60}(\d[\d\s.]{1,10})\s*€/i) ||
-    extract(profile, /(\d[\d\s.]{1,10})\s*€[^.]{0,40}crypto/i);
-
-  // ── Flags booléens ───────────────────────────────────────────────────────────
-
-  const isPACS        = /pacsé|pacs(?!\w)/i.test(profile);
-  const isPacseOuMarie = /pacsé|pacs(?!\w)|marié|couple|conjoint/i.test(profile);
-  const hasPEA        = /\bpea\b/i.test(profile);
-  const hasLEP        = /\blep\b/i.test(profile);
-  const hasCrypto     = /crypto|bitcoin|ethereum|binance|kraken|coinbase|bybit|bitpanda|okx/i.test(profile);
-  const has3916bis    = /3916\s*bis/i.test(profile);
-  const hasTestament  = /testament/i.test(profile);
-  const hasIndivision = /indivision/i.test(profile);
-  const hasNotaireAct = /notaire|convention.*?indivision|acte.*?indivision/i.test(profile);
-
-  // ── GAINS ────────────────────────────────────────────────────────────────────
+  // ── GAINS ──────────────────────────────────────────────────────────────────
 
   // PER optimal : plafond disponible + TMI >= 30 %
-  if (perPlafond && perPlafond > 0 && tmi && tmi >= 30) {
+  if (perPlafond > 0 && tmi >= 30) {
     const economie = Math.round(perPlafond * (tmi / 100));
     opps.push({
       id: 'per_optimal',
@@ -84,19 +56,18 @@ export function detectOpportunities(profile) {
     });
   }
 
-  // Épargne mal rémunérée : livret > 10 000 € et taux < 2 %
-  if (livretAmt && livretAmt > 10000 && livretTaux !== null && livretTaux < 2) {
-    const gainAnnuel = Math.round(livretAmt * (0.03 - livretTaux / 100));
+  // Épargne liquide mal rémunérée : livrets > 10 000 € (Livret A + LDDS hors LEP)
+  if (livretTotal > 10_000) {
     opps.push({
       id: 'epargne_mal_remuneree',
       type: 'gain',
       urgence: 'long_terme',
-      titre: '💡 Épargne mal rémunérée détectée',
-      description: `${fmt(livretAmt)} € sur un livret à ${livretTaux} % — le LDDS (3 %) ou une assurance-vie fonds euros offrent une meilleure rémunération sans risque.`,
-      impact: `Gain potentiel annuel : ~${fmt(gainAnnuel)} €`,
-      impactEuros: gainAnnuel,
-      action: 'Transférer vers LDDS ou assurance-vie fonds euros',
-      questionChat: `J'ai ${fmt(livretAmt)} € sur un livret à ${livretTaux} %. Quelle est la meilleure stratégie pour améliorer ma rémunération — LDDS, assurance-vie fonds euros ou autre placement sécurisé ?`,
+      titre: '💡 Épargne liquide à optimiser',
+      description: `${fmt(livretTotal)} € sur livrets réglementés. Une partie excédant votre épargne de précaution (3-6 mois de dépenses) pourrait être investie sur PEA ou assurance-vie pour une meilleure performance long terme.`,
+      impact: 'Gain potentiel annuel selon l\'allocation choisie',
+      impactEuros: Math.round(livretTotal * 0.02),
+      action: 'Envisager un versement sur PEA ou assurance-vie fonds euros',
+      questionChat: `J'ai ${fmt(livretTotal)} € sur livrets réglementés. Quelle stratégie pour optimiser mon allocation — garder une épargne de précaution et investir le surplus ?`,
     });
   }
 
@@ -116,9 +87,8 @@ export function detectOpportunities(profile) {
   }
 
   // LEP accessible : RFR éligible et LEP non ouvert
-  // Plafonds RFR 2025 (déclaration 2024) : 22 419 € pour 1 part, 34 393 € pour 2 parts
-  if (!hasLEP && rfr) {
-    const plafondRFR = isPacseOuMarie ? 34393 : 22419;
+  if (!hasLEP && rfr > 0) {
+    const plafondRFR = isPacseOuMarie ? 34_393 : 22_419;
     if (rfr <= plafondRFR) {
       opps.push({
         id: 'lep_non_ouvert',
@@ -134,19 +104,16 @@ export function detectOpportunities(profile) {
     }
   }
 
-  // ── RISQUES ──────────────────────────────────────────────────────────────────
+  // ── RISQUES ────────────────────────────────────────────────────────────────
 
-  // Crypto sans 3916 bis
-  if (hasCrypto && !has3916bis) {
-    const detailCrypto = cryptoAmt && cryptoAmt > 305
-      ? ` Portefeuille détecté : ${fmt(cryptoAmt)} €.`
-      : '';
+  // Crypto sans déclaration 3916 bis
+  if (hasCrypto) {
     opps.push({
       id: 'crypto_3916bis',
       type: 'risque',
       urgence: 'immediate',
-      titre: '🔴 Obligation déclarative crypto non remplie',
-      description: `Tout exchange étranger (Binance, Kraken, Coinbase…) doit être déclaré via le formulaire 3916 bis, même sans cession taxable.${detailCrypto}`,
+      titre: '🔴 Obligation déclarative crypto à vérifier',
+      description: `Tout exchange étranger (Binance, Kraken, Coinbase…) doit être déclaré via le formulaire 3916 bis, même sans cession taxable.${cryptoTotal > 305 ? ` Portefeuille détecté : ${fmt(cryptoTotal)} €.` : ''}`,
       impact: 'Amende : 1 500 € par compte non déclaré',
       impactEuros: 1500,
       action: 'Déclarer chaque exchange via le formulaire 3916 bis sur impots.gouv',
@@ -155,7 +122,7 @@ export function detectOpportunities(profile) {
   }
 
   // Pacsé sans testament
-  if (isPACS && !hasTestament) {
+  if (hasTestamentManquant) {
     opps.push({
       id: 'pacse_sans_testament',
       type: 'risque',
@@ -170,7 +137,7 @@ export function detectOpportunities(profile) {
   }
 
   // Indivision non sécurisée
-  if (hasIndivision && !hasNotaireAct) {
+  if (hasIndivision) {
     opps.push({
       id: 'indivision_non_securisee',
       type: 'risque',
@@ -185,7 +152,7 @@ export function detectOpportunities(profile) {
   }
 
   // Taux PAS trop bas (écart > 5 pts vs TMI)
-  if (tauxPAS !== null && tmi && tauxPAS < tmi - 5) {
+  if (tauxPAS > 0 && tmi > 0 && tauxPAS < tmi - 5) {
     const ecart = tmi - tauxPAS;
     opps.push({
       id: 'taux_pas_trop_bas',
@@ -200,10 +167,10 @@ export function detectOpportunities(profile) {
     });
   }
 
-  // ── ACTIONS RAPIDES ──────────────────────────────────────────────────────────
+  // ── ACTIONS ────────────────────────────────────────────────────────────────
 
   // Remboursement IR prévu
-  if (remboursement && remboursement > 0) {
+  if (remboursement > 0) {
     opps.push({
       id: 'remboursement_ir',
       type: 'action',
@@ -214,26 +181,6 @@ export function detectOpportunities(profile) {
       impactEuros: remboursement,
       action: 'Vérifier que votre RIB est à jour sur impots.gouv avant le remboursement',
       questionChat: `J'attends un remboursement IR de ${fmt(remboursement)} €. Quand sera-t-il versé et comment m'assurer que mon RIB est bien enregistré sur impots.gouv ?`,
-    });
-  }
-
-  // Deadline déclaration détectée dans le profil
-  const deadlineMatch =
-    profile.match(/déclaration[^:.\n]{0,40}(\d{1,2}[/\-]\d{1,2}(?:[/\-]\d{2,4})?)/i) ||
-    profile.match(/(\d{1,2}[/\-]\d{1,2}(?:[/\-]\d{2,4})?)[^.\n]{0,40}déclaration/i);
-
-  if (deadlineMatch) {
-    const dateStr = deadlineMatch[1];
-    opps.push({
-      id: 'deadline_declaration',
-      type: 'action',
-      urgence: 'immediate',
-      titre: `🔵 Deadline déclaration : ${dateStr}`,
-      description: 'Une date de déclaration est détectée dans votre profil. Déposer après la date limite expose à une pénalité de 10 % de l\'impôt dû.',
-      impact: 'Retard = pénalité 10 % de l\'impôt dû minimum',
-      impactEuros: 200,
-      action: `Déposer votre déclaration avant le ${dateStr} sur impots.gouv`,
-      questionChat: `Ma date limite de déclaration est le ${dateStr}. Quels sont les points les plus critiques à vérifier en priorité avant de soumettre ?`,
     });
   }
 
