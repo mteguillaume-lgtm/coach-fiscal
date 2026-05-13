@@ -612,11 +612,48 @@ function SimPER({ data }) {
 
 // ─── Simulateur Enveloppes ────────────────────────────────────────────────────
 
+/**
+ * Détermine quel déclarant utiliser pour la simulation PER vs enveloppes.
+ * Règle : plus gros salaire brut = prioritaire (= TMI la plus haute = économie max).
+ * Tie-break : TMI individuelle (RNI / 1 part).
+ * Cas limite : si plafond du prioritaire = 0 (PERO/PERCO sature), bascule sur l'autre avec avertissement.
+ */
+function getPerEnvInfo(data) {
+  const { isCouple, perCalcD1, perCalcD2 } = data;
+  const brutD1 = data.salairesBrutD1 || 0;
+  const brutD2 = data.salairesBrutD2 || 0;
+
+  if (!isCouple || !perCalcD1 || !perCalcD2) {
+    return { declarant: null, plafond: Math.max(perCalcD1?.plafondNet || data.plafond || 10_000, 1_000), fallback: false, fallbackReason: null };
+  }
+
+  let primary;
+  if (brutD1 > brutD2)      primary = 'D1';
+  else if (brutD2 > brutD1) primary = 'D2';
+  else primary = getTMI(perCalcD1.rni, 1) >= getTMI(perCalcD2.rni, 1) ? 'D1' : 'D2';
+
+  const primaryCalc   = primary === 'D1' ? perCalcD1 : perCalcD2;
+  const secondary     = primary === 'D1' ? 'D2' : 'D1';
+  const secondaryCalc = primary === 'D1' ? perCalcD2 : perCalcD1;
+
+  if (primaryCalc.plafondNet === 0) {
+    return {
+      declarant: secondary,
+      plafond: Math.max(secondaryCalc.plafondNet, 1_000),
+      fallback: true,
+      fallbackReason: `Le plafond de ${primary} est entièrement consommé par les cotisations obligatoires. Simulation effectuée avec le plafond de ${secondary} — l'économie fiscale sera calculée sur la TMI de ${secondary}.`,
+    };
+  }
+  return { declarant: primary, plafond: Math.max(primaryCalc.plafondNet, 1_000), fallback: false, fallbackReason: null };
+}
+
 function SimEnveloppes({ data }) {
   const navigate = useNavigate();
   const tmiProfile = data.tmi || 30; // TMI entrée depuis le profil
 
-  const [capital,   setCapital]   = useState(10_000);
+  const perEnvInfo = useMemo(() => getPerEnvInfo(data), [data]);
+
+  const [capital,   setCapital]   = useState(() => getPerEnvInfo(data).plafond);
   const [duration,  setDuration]  = useState(20);
   const [rate,      setRate]      = useState(0.05);
   const [tmiE,      setTmiE]      = useState(tmiProfile);  // TMI à l'entrée (prérempli)
@@ -714,6 +751,14 @@ function SimEnveloppes({ data }) {
       <div className="flex flex-col gap-4">
         <SimSlider label="Capital à investir" value={capital} min={1_000} max={100_000} step={1_000}
           onChange={setCapital} format={v => `${fmt(v)} €`} />
+        {/* Info déclarant PER — visible en mode couple uniquement */}
+        {perEnvInfo.declarant && (
+          <div className={`rounded-lg border px-3 py-2 text-[11px] leading-snug ${perEnvInfo.fallback ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
+            {perEnvInfo.fallback
+              ? perEnvInfo.fallbackReason
+              : `Plafond ${perEnvInfo.declarant} utilisé (salaire le plus élevé) : ${fmt(perEnvInfo.plafond)} € — pré-rempli ci-dessus.`}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <ToggleGroup label="Durée de placement" options={DURATIONS} value={duration}
             onChange={setDuration} format={v => `${v} ans`} />
@@ -1079,9 +1124,11 @@ export default function Simulator() {
     return {
       rni: pp.rniFoyer || 65_000, tmi,
       parts,
-      plafond:   hasData ? selectedCalc.plafondNet : MIN_PLAFOND,
-      isDefault: !hasData,
-      isCouple,  perCalcD1, perCalcD2, selectedCalc,
+      plafond:      hasData ? selectedCalc.plafondNet : MIN_PLAFOND,
+      isDefault:    !hasData,
+      isCouple,     perCalcD1, perCalcD2, selectedCalc,
+      salairesBrutD1: pp.salairesBrutImposableD1 || 0,
+      salairesBrutD2: pp.salairesBrutImposableD2 || 0,
     };
   }, [mode, manualTMI, manualParts, perCalc, state.parsedProfile, perDeclarant]);
 
