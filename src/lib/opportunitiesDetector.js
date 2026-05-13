@@ -62,7 +62,17 @@ export function detectOpportunities(parsedProfile) {
 
   // PER optimal : plafond disponible + TMI >= 30 %
   if (perPlafond > 0 && tmi >= 30) {
-    const economie = Math.round(perPlafond * (tmi / 100));
+    // Simulation barème réel avant/après versement PER complet.
+    // Bien plus précis que perPlafond × TMI : le quotient familial et la progressivité
+    // font que la déduction traverse souvent plusieurs tranches.
+    const nbParts   = parts || (isCouple ? 2 : 1);
+    const irAvant   = irNet > 0 ? irNet : calcIR(rniFoyer || 0, nbParts, isCouple);
+    const rniApres  = Math.max(0, (rniFoyer || 0) - perPlafond);
+    const irApres   = calcIR(rniApres, nbParts, isCouple);
+    const economie  = Math.max(0, irAvant - irApres);
+    const effortNet = perPlafond - economie;
+    const rendement = perPlafond > 0 ? Math.round((economie / perPlafond) * 100) : 0;
+
     const perD1 = plafondPerD1 || 0;
     const perD2 = plafondPerD2 || 0;
     opps.push({
@@ -71,16 +81,16 @@ export function detectOpportunities(parsedProfile) {
       urgence: 'avant_decembre',
       titre: '💡 Versement PER optimal détecté',
       description: isCouple
-        ? `Plafonds PER mutualisables — D1 : ${fmt(perD1)} €, D2 : ${fmt(perD2)} € (total ${fmt(perPlafond)} €). À votre TMI de ${tmi} %, ces versements sont directement déductibles du revenu imposable de chaque déclarant.`
-        : `Plafond PER disponible de ${fmt(perPlafond)} € inutilisé. À votre TMI de ${tmi} %, ce versement est directement déductible de votre revenu imposable.`,
-      impact: `Économie estimée : ${fmt(economie)} €`,
+        ? `Plafonds PER — D1 : ${fmt(perD1)} €, D2 : ${fmt(perD2)} € (total ${fmt(perPlafond)} €). Simulation barème réel : économie IR de ${fmt(economie)} € — effort net ${fmt(effortNet)} € seulement.`
+        : `Plafond PER disponible de ${fmt(perPlafond)} €. Simulation barème réel : économie IR de ${fmt(economie)} € — effort net ${fmt(effortNet)} € seulement.`,
+      impact: `Économie IR (barème réel, quotient ${nbParts} parts) : ${fmt(economie)} €`,
       impactEuros: economie,
       action: isCouple
         ? `Verser sur vos PER individuels : jusqu'à ${fmt(perD1)} € pour D1 et ${fmt(perD2)} € pour D2 avant le 31/12`
         : `Verser ${fmt(perPlafond)} € sur votre PER avant le 31/12`,
       questionChat: isCouple
-        ? `Mon foyer est marié/pacsé, TMI ${tmi} %. Plafond PER D1 : ${fmt(perD1)} €, D2 : ${fmt(perD2)} € (total mutualisable : ${fmt(perPlafond)} €). Comment optimiser nos versements PER individuels avant le 31/12 ? Économie estimée : ${fmt(economie)} €. Quels PER individuels recommander pour chacun ?`
-        : `J'ai un plafond PER disponible de ${fmt(perPlafond)} € et une TMI de ${tmi} %. Quel PER individuel choisir et comment optimiser ce versement avant le 31/12 pour maximiser mon économie d'impôt (économie estimée : ${fmt(economie)} €) ?`,
+        ? `Mon foyer est marié/pacsé. RNI foyer : ${fmt(rniFoyer)} €, ${nbParts} parts fiscales, TMI ${tmi} %. Plafonds PER individuels : D1 ${fmt(perD1)} €, D2 ${fmt(perD2)} € (total ${fmt(perPlafond)} €). Simulation barème réel (quotient familial appliqué) : verser la totalité réduit l'IR de ${fmt(economie)} € (effort net réel ${fmt(effortNet)} €, rendement immédiat ${rendement} %). Comment répartir nos versements entre D1 et D2 pour maximiser l'économie fiscale compte tenu de nos tranches respectives ? Quels PER individuels recommander et comment souscrire ?`
+        : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${tmi} %. Plafond PER disponible : ${fmt(perPlafond)} €. Simulation barème réel : verser la totalité réduit l'IR de ${fmt(economie)} € (effort net réel ${fmt(effortNet)} €, rendement immédiat ${rendement} %). Quel PER individuel choisir et comment optimiser ce versement avant le 31/12 ?`,
     });
   }
 
