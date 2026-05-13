@@ -181,7 +181,11 @@ export function calcPlafondPer(netImpSalaire, peroEmployeur = 0) {
  * @param {number}  plafondD2   - plafond PER net D2
  * @param {boolean} isCouple    - pour le calcul décote dans calcIR
  */
-export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple) {
+/**
+ * @param {number} rniD1  - RNI individuel D1 (post-abattement). 0 = inconnu → fallback plafond.
+ * @param {number} rniD2  - RNI individuel D2 (post-abattement). 0 = inconnu → fallback plafond.
+ */
+export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, rniD1 = 0, rniD2 = 0) {
   const STOP_RATE = 0.11;
   const pd1 = plafondD1 || 0;
   const pd2 = plafondD2 || 0;
@@ -225,10 +229,11 @@ export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, 
   const economieOptimum = Math.max(0, calcIR(rniFoyer, parts, isCouple) - calcIR(Math.max(0, rniFoyer - optimumTotal), parts, isCouple));
   const capaciteResiduelle = plafondTotal - optimumTotal;
 
-  // Toujours remplir en premier le déclarant qui a le plus grand plafond
-  // (plafond = 10% du revenu → plus grand plafond = plus imposé = prioritaire)
+  // Prioritaire = déclarant qui paie le plus d'impôts = plus haut RNI individuel.
+  // Fallback sur plafond brut si RNI non disponibles (les deux = 0).
+  const d1IsPrio = (rniD1 > 0 || rniD2 > 0) ? (rniD1 >= rniD2) : (pd1 >= pd2);
   let optimumD1, optimumD2, prioritaire;
-  if (pd1 >= pd2) {
+  if (d1IsPrio) {
     optimumD1 = Math.min(pd1, optimumTotal);
     optimumD2 = Math.min(pd2, Math.max(0, optimumTotal - optimumD1));
     prioritaire = 'D1';
@@ -243,6 +248,6 @@ export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, 
     effortNet: optimumTotal - economieOptimum,
     rendementMoyen: optimumTotal > 0 ? Math.round((economieOptimum / optimumTotal) * 100) : 0,
     capaciteResiduelle, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart,
-    prioritaire, // 'D1' ou 'D2' — le déclarant le plus imposé (plafond le plus élevé)
+    prioritaire,
   };
 }

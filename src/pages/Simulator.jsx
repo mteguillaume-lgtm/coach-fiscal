@@ -239,12 +239,12 @@ function SimPER({ data }) {
   // Initialiser sur l'optimum fiscal (effacement de la tranche supérieure)
   const [versementD1, setVersementD1] = useState(() => {
     if (!plafondD1) return 0;
-    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple);
+    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, profData.perCalcD1?.rni || 0, profData.perCalcD2?.rni || 0);
     return Math.round((opt.optimumD1 || 0) / 50) * 50;
   });
   const [versementD2, setVersementD2] = useState(() => {
     if (!showTwoSliders || !plafondD2) return 0;
-    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple);
+    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, profData.perCalcD1?.rni || 0, profData.perCalcD2?.rni || 0);
     return Math.round((opt.optimumD2 || 0) / 50) * 50;
   });
 
@@ -305,11 +305,14 @@ function SimPER({ data }) {
     return [...pts.entries()].sort((a, b) => a[0] - b[0]).map(([v, e]) => ({ versement: v, economie: e }));
   }, [rniFoyer, parts, isCouple, plafondTotal, fractionInTopBracket, totalVerse]);
 
-  // Auto-optimize: fill top bracket first, prioritize larger plafond
+  // Auto-optimize: fill top bracket first, prioritize highest-earning declarant (RNI proxy)
   const handleAutoOptimize = () => {
     if (fractionInTopBracket <= 0) return;
     if (showTwoSliders) {
-      if (plafondD1 >= plafondD2) {
+      const rni1 = profData.perCalcD1?.rni || 0;
+      const rni2 = profData.perCalcD2?.rni || 0;
+      const d1IsPrio = rni1 >= rni2;
+      if (d1IsPrio) {
         const d1 = Math.min(plafondD1, fractionInTopBracket);
         const d2 = Math.min(plafondD2, Math.max(0, fractionInTopBracket - d1));
         setVersementD1(Math.round(d1 / 50) * 50);
@@ -614,23 +617,27 @@ function SimPER({ data }) {
 
 /**
  * Détermine quel déclarant utiliser pour la simulation PER vs enveloppes.
- * Règle : plus gros salaire brut = prioritaire (= TMI la plus haute = économie max).
- * Tie-break : TMI individuelle (RNI / 1 part).
+ * Règle : plus haut RNI individuel = plus gros salaire = TMI la plus haute = économie PER max.
+ * Fallback brut si disponible, puis RNI, puis tie → D1.
  * Cas limite : si plafond du prioritaire = 0 (PERO/PERCO sature), bascule sur l'autre avec avertissement.
  */
 function getPerEnvInfo(data) {
   const { isCouple, perCalcD1, perCalcD2 } = data;
-  const brutD1 = data.salairesBrutD1 || 0;
-  const brutD2 = data.salairesBrutD2 || 0;
 
   if (!isCouple || !perCalcD1 || !perCalcD2) {
     return { declarant: null, plafond: Math.max(perCalcD1?.plafondNet || data.plafond || 10_000, 1_000), fallback: false, fallbackReason: null };
   }
 
+  const brutD1 = data.salairesBrutD1 || 0;
+  const brutD2 = data.salairesBrutD2 || 0;
+  const rni1   = perCalcD1.rni || 0;
+  const rni2   = perCalcD2.rni || 0;
+
   let primary;
-  if (brutD1 > brutD2)      primary = 'D1';
-  else if (brutD2 > brutD1) primary = 'D2';
-  else primary = getTMI(perCalcD1.rni, 1) >= getTMI(perCalcD2.rni, 1) ? 'D1' : 'D2';
+  if      (brutD1 > 0 || brutD2 > 0) primary = brutD1 >= brutD2 ? 'D1' : 'D2';
+  else if (rni1 > rni2)               primary = 'D1';
+  else if (rni2 > rni1)               primary = 'D2';
+  else                                primary = 'D1';
 
   const primaryCalc   = primary === 'D1' ? perCalcD1 : perCalcD2;
   const secondary     = primary === 'D1' ? 'D2' : 'D1';

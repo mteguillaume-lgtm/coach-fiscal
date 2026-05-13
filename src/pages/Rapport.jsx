@@ -746,8 +746,8 @@ function PerZonesBlock({ p, d, perSim }) {
   const plafondD2 = p.plafondPerD2 || 0;
 
   const opt = useMemo(
-    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple),
-    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple]
+    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1 || 0, p.rniD2 || 0),
+    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1, p.rniD2]
   );
 
   const simD1 = perSim?.versementD1 || 0;
@@ -913,6 +913,8 @@ function PerScenariosTable({ p, d }) {
   const irAvant = d.irNetFoyer;
   const parts = p.parts || (isCouple ? 2 : 1);
 
+  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0);
+
   const calcScen = (versement) => {
     if (versement === 0) return { versement: 0, irApres: irAvant, economie: 0, effort: 0, rendement: 0 };
     const rniApres = Math.max(0, d.rniFoyer - versement);
@@ -925,20 +927,26 @@ function PerScenariosTable({ p, d }) {
 
   let scenarios;
   if (isCouple && (plafD1 > 0 || plafD2 > 0)) {
+    const prio  = perOpt.prioritaire || 'D1';
+    const sec   = prio === 'D1' ? 'D2' : 'D1';
+    const prioOpt  = prio === 'D1' ? perOpt.optimumD1 : perOpt.optimumD2;
+    const secOpt   = prio === 'D1' ? perOpt.optimumD2 : perOpt.optimumD1;
+    const prioPlaf = prio === 'D1' ? plafD1 : plafD2;
+    const secPlaf  = prio === 'D1' ? plafD2 : plafD1;
     scenarios = [
-      { label: 'A — Statu quo',  desc: 'Aucun versement',          ...calcScen(0) },
-      { label: 'B — D1 seul',    desc: `Plafond D1 (${e0(plafD1)})`,  ...calcScen(plafD1) },
-      { label: 'C — D2 seul',    desc: `Plafond D2 (${e0(plafD2)})`,  ...calcScen(plafD2) },
-      { label: 'D — D1 + D2',   desc: `Total (${e0(plafD1 + plafD2)})`, ...calcScen(plafD1 + plafD2) },
+      { label: 'A — Statu quo',            desc: 'Aucun versement',                                    ...calcScen(0) },
+      { label: `B — Optimum ${prio}`,      desc: `${prio} seul · ${e0(prioOpt)} (effacement tranche max)`,  ...calcScen(prioOpt) },
+      { label: `C — Optimum ${prio}+${sec}`, desc: `Total optimal · ${e0(perOpt.optimumTotal)}`,        ...calcScen(perOpt.optimumTotal) },
+      { label: 'D — Plafond max',          desc: `${prio} ${e0(prioPlaf)} + ${sec} ${e0(secPlaf)}`,     ...calcScen(plafD1 + plafD2) },
     ];
   } else if (!isCouple && plafD1 > 0) {
-    const t1 = Math.round((plafD1 / 3) / 100) * 100;
-    const t2 = Math.round((plafD1 * 2 / 3) / 100) * 100;
+    const optV = perOpt.optimumTotal || 0;
+    const t75  = Math.round((plafD1 * 0.75) / 100) * 100;
     scenarios = [
-      { label: 'A — Statu quo',  desc: 'Aucun versement',      ...calcScen(0) },
-      { label: 'B — Partiel 33%', desc: `${e0(t1)} versés`,    ...calcScen(t1) },
-      { label: 'C — Partiel 66%', desc: `${e0(t2)} versés`,    ...calcScen(t2) },
-      { label: 'D — Plafond',    desc: `${e0(plafD1)} versés`, ...calcScen(plafD1) },
+      { label: 'A — Statu quo',       desc: 'Aucun versement',                             ...calcScen(0) },
+      { label: 'B — Optimum fiscal',  desc: `Effacement tranches > 11% · ${e0(optV)}`,     ...calcScen(optV) },
+      { label: 'C — Partiel 75%',     desc: `${e0(t75)} versés`,                           ...calcScen(t75) },
+      { label: 'D — Plafond max',     desc: `${e0(plafD1)} versés`,                        ...calcScen(plafD1) },
     ];
   } else return null;
 
@@ -998,24 +1006,40 @@ function PerCalendarBlock({ p, d }) {
   const isCouple = d.isCouple;
   const plafD1 = p.plafondPerD1 || 0;
   const plafD2 = p.plafondPerD2 || 0;
-  const total = plafD1 + plafD2;
-  if (total === 0) return null;
+  const parts  = p.parts || (isCouple ? 2 : 1);
 
-  const showD2 = isCouple && plafD2 > 0;
-  const showD1 = plafD1 > 0;
+  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0);
+  const prio   = perOpt.prioritaire || 'D1';
+  const sec    = prio === 'D1' ? 'D2' : 'D1';
+  const amtPrio  = prio === 'D1' ? perOpt.optimumD1 : perOpt.optimumD2;
+  const amtSec   = prio === 'D1' ? perOpt.optimumD2 : perOpt.optimumD1;
+  const amtTotal = perOpt.optimumTotal;
+
+  if (amtTotal === 0) return null;
+
+  const showSec = isCouple && amtSec > 0;
 
   return (
     <div className="mx-4 mb-3 rounded-xl border border-teal-200 bg-teal-50/30 overflow-hidden">
-      <div className="px-4 py-2 border-b border-teal-200 bg-teal-100/50">
-        <p className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">Calendrier d'exécution — versements PER avant 31/12</p>
+      <div className="px-4 py-2 border-b border-teal-200 bg-teal-100/50 flex items-center justify-between flex-wrap gap-1">
+        <p className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">Calendrier d'exécution — versements PER optimum avant 31/12</p>
+        {isCouple && (
+          <span className="text-[10px] text-teal-700 italic">
+            {prio} prioritaire (salaire le plus élevé) · économie IR réelle {e0(perOpt.economieOptimum)}
+          </span>
+        )}
       </div>
       <table className="w-full text-xs">
         <thead>
           <tr>
             <th className="px-4 py-2 text-left text-[10px] font-semibold text-teal-700 uppercase tracking-wide">Rythme</th>
-            {showD1 && <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">{isCouple ? 'D1' : 'Montant'}</th>}
-            {showD2 && <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">D2</th>}
-            {isCouple && (showD1 || showD2) && <th className="px-4 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">Total</th>}
+            <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">
+              {isCouple ? `${prio} ★` : 'Montant'}
+            </th>
+            {showSec && (
+              <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">{sec}</th>
+            )}
+            {isCouple && <th className="px-4 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">Total</th>}
           </tr>
         </thead>
         <tbody>
@@ -1025,19 +1049,23 @@ function PerCalendarBlock({ p, d }) {
           ].map(({ label, div, suffix }) => (
             <tr key={label} className="border-t border-teal-100">
               <td className="px-4 py-2 text-teal-800 font-medium">{label}</td>
-              {showD1 && <td className="px-3 py-2 text-right tabular-nums text-teal-800">{e0(plafD1 / div)}{suffix}</td>}
-              {showD2 && <td className="px-3 py-2 text-right tabular-nums text-teal-800">{e0(plafD2 / div)}{suffix}</td>}
-              {isCouple && (showD1 || showD2) && <td className="px-4 py-2 text-right tabular-nums font-semibold text-teal-800">{e0(total / div)}{suffix}</td>}
+              <td className="px-3 py-2 text-right tabular-nums text-teal-800 whitespace-nowrap">{e0(amtPrio / div)}{suffix}</td>
+              {showSec && <td className="px-3 py-2 text-right tabular-nums text-teal-800 whitespace-nowrap">{e0(amtSec / div)}{suffix}</td>}
+              {isCouple && <td className="px-4 py-2 text-right tabular-nums font-semibold text-teal-800 whitespace-nowrap">{e0(amtTotal / div)}{suffix}</td>}
             </tr>
           ))}
           <tr className="border-t border-teal-200 bg-teal-100/40">
             <td className="px-4 py-2.5 text-teal-900 font-bold">Versement unique (décembre)</td>
-            {showD1 && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900">{e0(plafD1)}</td>}
-            {showD2 && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900">{e0(plafD2)}</td>}
-            {isCouple && (showD1 || showD2) && <td className="px-4 py-2.5 text-right tabular-nums font-bold text-teal-900">{e0(total)}</td>}
+            <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900 whitespace-nowrap">{e0(amtPrio)}</td>
+            {showSec && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900 whitespace-nowrap">{e0(amtSec)}</td>}
+            {isCouple && <td className="px-4 py-2.5 text-right tabular-nums font-bold text-teal-900 whitespace-nowrap">{e0(amtTotal)}</td>}
           </tr>
         </tbody>
       </table>
+      <p className="px-4 py-2 text-[10px] text-teal-700 italic border-t border-teal-100">
+        Montants basés sur l'optimum fiscal (effacement des tranches {perOpt.tmiDepart}&nbsp;% et supérieures).
+        {isCouple ? ` Plafond max disponible : ${prio} ${e0(plafD1 > 0 ? (prio === 'D1' ? plafD1 : plafD2) : 0)} · ${sec} ${e0(prio === 'D1' ? plafD2 : plafD1)}.` : ` Plafond max disponible : ${e0(plafD1)}.`}
+      </p>
     </div>
   );
 }
@@ -1439,7 +1467,7 @@ function FeuilleRouteModule({ p, d }) {
   const epargneLiquide = p.epargneLiquide || 0;
 
   const fParts = p.parts || (isCouple ? 2 : 1);
-  const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple);
+  const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0);
 
   const priorities = [];
 
@@ -1689,8 +1717,8 @@ export default function Rapport() {
   // Cascade PER — optimum fiscal (source de vérité pour tout le rapport)
   const parts = p.parts || (isCouple ? 2 : 1);
   const perOpt = useMemo(
-    () => computePerOptimumCascade(d.rniFoyer, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple),
-    [d.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple]
+    () => computePerOptimumCascade(d.rniFoyer, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0),
+    [d.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple, p.rniD1, p.rniD2]
   );
 
   return (
