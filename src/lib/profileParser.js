@@ -40,7 +40,7 @@ function oui(src, rx) {
   return isNaN(v) ? 0 : v;
 }
 
-import { getTMI, abattement10 } from './taxCalculator';
+import { getTMI, abattement10, abattement10Auto } from './taxCalculator';
 
 // ─── Section extractor ────────────────────────────────────────────────────────
 
@@ -79,9 +79,34 @@ export function parseProfile(text) {
     ? section(text, '== ÉPARGNE — DÉCLARANT 2 ==')
     : '';
 
+  const secCapacite = section(text, "== CAPACITÉ D'ÉPARGNE ==");
+  const secImmo     = section(text, '== IMMOBILIER ==');
+
   // ── SITUATION ───────────────────────────────────────────────────────────────
   const parts       = f(text, /Parts fiscales\s*:\s*([\d,\.]+)/);
   const departement = s(text, /Département\s*:\s*(\w{2,3})/);
+
+  // ── PROFIL & RETRAITE ────────────────────────────────────────────────────────
+  const secProfil = section(text, '== PROFIL & RETRAITE ==');
+  // Solo : "Âge : 35 ans" ; Couple : "Âge D1 : 35 ans"
+  const ageD1       = n(secProfil, /Âge D1\s*:\s*(\d+)/i)      || n(secProfil, /^Âge\s*:\s*(\d+)/im);
+  const retraiteD1  = n(secProfil, /Âge retraite D1\s*:\s*(\d+)/i) || n(secProfil, /Âge retraite estimé\s*:\s*(\d+)/i);
+  const horizonD1   = n(secProfil, /Horizon retraite D1\s*:\s*(\d+)/i) || n(secProfil, /Horizon retraite\s*:\s*(\d+)/i)
+                   || (ageD1 > 0 && retraiteD1 > ageD1 ? retraiteD1 - ageD1 : 0);
+  const tmiRetraiteD1Raw = s(secProfil, /TMI retraite D1\s*:\s*(\d+)/i) || s(secProfil, /TMI retraite estimée\s*:\s*(\d+)/i);
+  const tmiRetraiteD1    = tmiRetraiteD1Raw !== '' ? parseInt(tmiRetraiteD1Raw, 10) : null;
+  const typeRevenuD1     = s(secProfil, /Type de revenu D1\s*:\s*(.+)/i) || s(secProfil, /Type de revenu\s*:\s*(.+)/i) || 'Salarié(e)';
+  const pensionNetImpD1  = n(secProfil, /Pension nette imposable 1AS D1[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                        || n(secProfil, /Pension nette imposable 1AS[^:\n]*:\s*([\d\s,]+)\s*€/i);
+
+  const ageD2       = n(secProfil, /Âge D2\s*:\s*(\d+)/i);
+  const retraiteD2  = n(secProfil, /Âge retraite D2\s*:\s*(\d+)/i);
+  const horizonD2   = n(secProfil, /Horizon retraite D2\s*:\s*(\d+)/i)
+                   || (ageD2 > 0 && retraiteD2 > ageD2 ? retraiteD2 - ageD2 : 0);
+  const tmiRetraiteD2Raw = s(secProfil, /TMI retraite D2\s*:\s*(\d+)/i);
+  const tmiRetraiteD2    = tmiRetraiteD2Raw !== '' ? parseInt(tmiRetraiteD2Raw, 10) : null;
+  const typeRevenuD2     = s(secProfil, /Type de revenu D2\s*:\s*(.+)/i) || 'Salarié(e)';
+  const pensionNetImpD2  = n(secProfil, /Pension nette imposable 1AS D2[^:\n]*:\s*([\d\s,]+)\s*€/i);
 
   // ── REVENUS D1 ──────────────────────────────────────────────────────────────
   // IMPORTANT: regex [^:]* au lieu de \s* pour gérer "(1AJ — case déclaration)"
@@ -101,12 +126,12 @@ export function parseProfile(text) {
 
   // ── RNI (post-abattement 10%) ─────────────────────────────────────────────
   // Cherche "RNI D1 après abattement..." ou "RNI D1 (après abat. salaires) :"
-  // Sinon calcul par abattement10
+  // Sinon calcul type-aware (salaire/pension/mixte) — art. 158-5-a CGI
   const rniD1 = n(text, /RNI D1[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || abattement10(salaireNetImposableD1);
+             || abattement10Auto(salaireNetImposableD1, typeRevenuD1, pensionNetImpD1);
 
   const rniD2 = n(text, /RNI D2[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || abattement10(salaireNetImposableD2);
+             || abattement10Auto(salaireNetImposableD2, typeRevenuD2, pensionNetImpD2);
 
   // ── REVENUS FOYER ────────────────────────────────────────────────────────────
   // "Revenus fonciers bruts :" (nouveau générateur) ou "Revenus fonciers :" (ancien/V5)
@@ -157,8 +182,13 @@ export function parseProfile(text) {
                     || n(text, /PLAFOND DISPONIBLE\s*:\s*([\d\s,]+)\s*€/i);
   const plafondPerD2 = n(text, /PLAFOND DISPONIBLE D2[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /Plafond disponible.*?D2[^:\n]*:\s*([\d\s,]+)\s*€/i);
-  const plafondsPrecedents = n(text, /Plafonds antérieurs[^:\n]*:\s*([\d\s,]+)\s*€/i);
-  const plafondPerTotal    = plafondPerD1 + plafondPerD2 || plafondPerD1;
+  const plafondsPrecedents  = n(text, /Plafonds antérieurs[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const plafondPerTotal     = plafondPerD1 + plafondPerD2 || plafondPerD1;
+  const perReportableN1     = n(text, /Plafond reportable N-1[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const perReportableN2     = n(text, /Plafond reportable N-2[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const perReportableN3     = n(text, /Plafond reportable N-3[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const perReportableTotal  = n(text, /Plafond reportable total[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                           || (perReportableN1 + perReportableN2 + perReportableN3);
 
   // ── ÉPARGNE D1 ──────────────────────────────────────────────────────────────
   const livretAD1    = oui(secEpD1, /Livret A\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
@@ -166,10 +196,19 @@ export function parseProfile(text) {
   const lepD1        = oui(secEpD1, /LEP\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
   const livretPlusD1 = oui(secEpD1, /Livret\+[^:\n]*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
   const pelD1        = oui(secEpD1, /PEL\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
+  const pelDateD1    = s(secEpD1,   /PEL date ouverture[^:\n]*:\s*(\S+)/i);
   const peaD1        = oui(secEpD1, /PEA\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
+  const peaDateD1    = s(secEpD1,   /PEA date ouverture[^:\n]*:\s*(\S+)/i);
+  const peaVerseD1   = n(secEpD1,   /PEA total versé[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const avD1         = oui(secEpD1, /Assurance-vie\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
-  const cryptoD1     = oui(secEpD1, /Crypto[^:\n]*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
-  const percoD1      = n(secEpD1,   /PER versements 2025\s*:\s*([\d\s,]+)\s*€/);
+  const avDateD1     = s(secEpD1,   /AV date souscription[^:\n]*:\s*(\S+)/i);
+  const avVerseD1    = n(secEpD1,   /AV versements nets cumulés[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const cryptoD1          = oui(secEpD1, /Crypto[^:\n]*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
+  const percoD1           = n(secEpD1,   /PER versements 2025\s*:\s*([\d\s,]+)\s*€/);
+  const cryptoPlateformeD1 = s(secEpD1, /Crypto plateforme\s*:\s*(.+)/i);
+  const cryptoCessionsD1  = s(secEpD1,  /Crypto cessions 2025\s*:\s*(.+)/i);
+  const cryptoMontantCedeD1 = n(secEpD1, /Crypto montant cédé[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const cryptoPvD1        = n(secEpD1,   /Crypto plus-value nette[^:\n]*:\s*([\d\s,]+)\s*€/i);
 
   // ── ÉPARGNE D2 ──────────────────────────────────────────────────────────────
   const livretAD2    = oui(secEpD2, /Livret A\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
@@ -177,10 +216,32 @@ export function parseProfile(text) {
   const lepD2        = oui(secEpD2, /LEP\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
   const livretPlusD2 = oui(secEpD2, /Livret\+[^:\n]*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
   const pelD2        = oui(secEpD2, /PEL\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
+  const pelDateD2    = s(secEpD2,   /PEL date ouverture[^:\n]*:\s*(\S+)/i);
   const peaD2        = oui(secEpD2, /PEA\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
+  const peaDateD2    = s(secEpD2,   /PEA date ouverture[^:\n]*:\s*(\S+)/i);
+  const peaVerseD2   = n(secEpD2,   /PEA total versé[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const avD2         = oui(secEpD2, /Assurance-vie\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
-  const cryptoD2     = oui(secEpD2, /Crypto[^:\n]*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
-  const percoD2      = n(secEpD2,   /PER versements 2025\s*:\s*([\d\s,]+)\s*€/);
+  const avDateD2     = s(secEpD2,   /AV date souscription[^:\n]*:\s*(\S+)/i);
+  const avVerseD2    = n(secEpD2,   /AV versements nets cumulés[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const cryptoD2          = oui(secEpD2, /Crypto[^:\n]*:\s*OUI\s*~\s*([\d\s,]+)\s*€/);
+  const percoD2           = n(secEpD2,   /PER versements 2025\s*:\s*([\d\s,]+)\s*€/);
+  const cryptoPlateformeD2 = s(secEpD2, /Crypto plateforme\s*:\s*(.+)/i);
+  const cryptoCessionsD2  = s(secEpD2,  /Crypto cessions 2025\s*:\s*(.+)/i);
+  const cryptoMontantCedeD2 = n(secEpD2, /Crypto montant cédé[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const cryptoPvD2        = n(secEpD2,   /Crypto plus-value nette[^:\n]*:\s*([\d\s,]+)\s*€/i);
+
+  // ── CAPACITÉ D'ÉPARGNE ────────────────────────────────────────────────────────
+  const chargesFixes       = n(secCapacite, /Charges fixes mensuelles[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const creditRp           = n(secCapacite, /dont crédit RP[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const autresCredits      = n(secCapacite, /dont autres crédits[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const objectifPatrimonial = s(secCapacite, /Objectif patrimonial\s*:\s*(.+)/i);
+
+  // ── IMMOBILIER ENRICHI ────────────────────────────────────────────────────────
+  const rpValeur        = n(secImmo, /RP — valeur estimée[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const creditCrd       = n(secImmo, /Capital restant dû[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const creditTaux      = f(secImmo, /Taux crédit\s*:\s*([\d,\.]+)/i);
+  const creditMensualite = n(secImmo, /Mensualité crédit[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const taxeFonciere    = n(secImmo, /Taxe foncière[^:\n]*:\s*([\d\s,]+)\s*€/i);
 
   // ── PATRIMOINE CALCULÉ ───────────────────────────────────────────────────────
   const epargneLiquide   = livretAD1 + lddsD1 + lepD1 + livretPlusD1
@@ -216,14 +277,25 @@ export function parseProfile(text) {
     tmi, irNet, totalDu, pasTotal, solde, remboursement, gainPacs,
     dividendes, revensFonciers, revenusLoc, revenusCrypto,
 
-    livretAD1, lddsD1, lepD1, livretPlusD1, pelD1, peaD1, avD1, cryptoD1, percoD1,
-    livretAD2, lddsD2, lepD2, livretPlusD2, pelD2, peaD2, avD2, cryptoD2, percoD2,
+    ageD1, retraiteD1, horizonD1, tmiRetraiteD1, typeRevenuD1, pensionNetImpD1,
+    ageD2, retraiteD2, horizonD2, tmiRetraiteD2, typeRevenuD2, pensionNetImpD2,
+
+    livretAD1, lddsD1, lepD1, livretPlusD1,
+    pelD1, pelDateD1, peaD1, peaDateD1, peaVerseD1, avD1, avDateD1, avVerseD1,
+    cryptoD1, percoD1, cryptoPlateformeD1, cryptoCessionsD1, cryptoMontantCedeD1, cryptoPvD1,
+    livretAD2, lddsD2, lepD2, livretPlusD2,
+    pelD2, pelDateD2, peaD2, peaDateD2, peaVerseD2, avD2, avDateD2, avVerseD2,
+    cryptoD2, percoD2, cryptoPlateformeD2, cryptoCessionsD2, cryptoMontantCedeD2, cryptoPvD2,
+
+    chargesFixes, creditRp, autresCredits, objectifPatrimonial,
+    rpValeur, creditCrd, creditTaux, creditMensualite, taxeFonciere,
 
     epargneLiquide, epargneLongTerme, cryptoTotal, immoTotal,
     patrimoineTotal: epargneLiquide + epargneLongTerme + cryptoTotal,
 
     regimeFoncier,
     plafondPerD1, plafondPerD2, plafondPerTotal, plafondsPrecedents,
+    perReportableN1, perReportableN2, perReportableN3, perReportableTotal,
 
     hasCrypto, hasCompteEtranger, hasIndivision, hasTestamentManquant,
     hasPelAncien, hasChangementEmployeur, hasMultipleEmployeurs,
@@ -239,11 +311,22 @@ export function emptyProfile() {
     rniD1: 0, rniD2: 0, rniFoyer: 0, rfr: 0, foncierNet: 0,
     tmi: 0, irNet: 0, totalDu: 0, pasTotal: 0, solde: 0, remboursement: 0, gainPacs: 0,
     dividendes: 0, revensFonciers: 0, revenusLoc: 0, revenusCrypto: 0,
-    livretAD1: 0, lddsD1: 0, lepD1: 0, livretPlusD1: 0, pelD1: 0, peaD1: 0, avD1: 0, cryptoD1: 0, percoD1: 0,
-    livretAD2: 0, lddsD2: 0, lepD2: 0, livretPlusD2: 0, pelD2: 0, peaD2: 0, avD2: 0, cryptoD2: 0, percoD2: 0,
+    ageD1: 0, retraiteD1: 0, horizonD1: 0, tmiRetraiteD1: null,
+    typeRevenuD1: 'Salarié(e)', pensionNetImpD1: 0,
+    ageD2: 0, retraiteD2: 0, horizonD2: 0, tmiRetraiteD2: null,
+    typeRevenuD2: 'Salarié(e)', pensionNetImpD2: 0,
+    livretAD1: 0, lddsD1: 0, lepD1: 0, livretPlusD1: 0,
+    pelD1: 0, pelDateD1: '', peaD1: 0, peaDateD1: '', peaVerseD1: 0, avD1: 0, avDateD1: '', avVerseD1: 0,
+    cryptoD1: 0, percoD1: 0, cryptoPlateformeD1: '', cryptoCessionsD1: '', cryptoMontantCedeD1: 0, cryptoPvD1: 0,
+    livretAD2: 0, lddsD2: 0, lepD2: 0, livretPlusD2: 0,
+    pelD2: 0, pelDateD2: '', peaD2: 0, peaDateD2: '', peaVerseD2: 0, avD2: 0, avDateD2: '', avVerseD2: 0,
+    cryptoD2: 0, percoD2: 0, cryptoPlateformeD2: '', cryptoCessionsD2: '', cryptoMontantCedeD2: 0, cryptoPvD2: 0,
+    chargesFixes: 0, creditRp: 0, autresCredits: 0, objectifPatrimonial: '',
+    rpValeur: 0, creditCrd: 0, creditTaux: 0, creditMensualite: 0, taxeFonciere: 0,
     epargneLiquide: 0, epargneLongTerme: 0, cryptoTotal: 0, immoTotal: 0, patrimoineTotal: 0,
     regimeFoncier: null,
     plafondPerD1: 0, plafondPerD2: 0, plafondPerTotal: 0, plafondsPrecedents: 0,
+    perReportableN1: 0, perReportableN2: 0, perReportableN3: 0, perReportableTotal: 0,
     hasCrypto: false, hasCompteEtranger: false, hasIndivision: false,
     hasTestamentManquant: false, hasPelAncien: false,
     hasChangementEmployeur: false, hasMultipleEmployeurs: false,

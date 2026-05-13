@@ -9,7 +9,7 @@ import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, 
 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
-import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, calcIR, TRANCHES, computePerOptimumCascade } from '../lib/taxCalculator';
+import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcIR, TRANCHES, computePerOptimumCascade, calcCEHR } from '../lib/taxCalculator';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
 const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
@@ -50,7 +50,13 @@ const fmt = n => Math.round(n).toLocaleString('fr-FR');
  *
  * @param {boolean} isCouple — détermine l'abattement AV (9 200 € vs 4 600 €)
  */
-function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = false) {
+/**
+ * @param {number} avVerse — versements nets cumulés AV (seuil 150 000 € art. 125-0 A CGI).
+ *   ≤ 150k€ : IR 7,5 % sur gains > abattement
+ *   > 150k€ : fraction ≤ 150k€ à 7,5 %, fraction > 150k€ à 12,8 % (PFU)
+ *   L'abattement annuel s'impute en priorité sur la tranche 7,5 %.
+ */
+function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = false, avVerse = 0) {
   const rate    = id === 'livretA' ? 0.03 : r;
   const Brut    = P * Math.pow(1 + rate, t);
   const G       = Brut - P;                 // plus-value brute
@@ -67,10 +73,22 @@ function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = fals
       return t >= 5 ? Brut - G * 0.172 : Brut - G * 0.30;
 
     case 'av8': {
-      // PS 17,2 % sur tous les gains + IR 7,5 % sur gains > abattement
-      const abatt = isCouple ? 9_200 : 4_600;
+      // PS 17,2 % toujours dus sur tous les gains (art. 125-0 A CGI)
+      const abatt   = isCouple ? 9_200 : 4_600;
       const psTotal = G * 0.172;
-      const irTotal = Math.max(0, G - abatt) * 0.075;
+      let irTotal;
+      if (avVerse <= 0 || avVerse <= 150_000) {
+        // Tout à 7,5 % IR (versements ≤ 150 000 €)
+        irTotal = Math.max(0, G - abatt) * 0.075;
+      } else {
+        // Fractionnement : ratio de la part ≤ 150 000 € dans l'encours total
+        const ratio150 = Math.min(1, 150_000 / avVerse);
+        const G150     = G * ratio150;           // gains sur la fraction ≤ 150k
+        const GAbove   = G * (1 - ratio150);     // gains sur la fraction > 150k
+        // Abattement s'impute en priorité sur la tranche 7,5 %
+        const G150imp  = Math.max(0, G150 - abatt);
+        irTotal = G150imp * 0.075 + GAbove * 0.128;
+      }
       return Brut - psTotal - irTotal;
     }
 
@@ -95,25 +113,25 @@ function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = fals
 }
 
 /** Détail fiscal d'une enveloppe : brut, impôts, net, gain net. */
-function envDetail(id, P, r, t, tmiE, tmiS, reinvest, isCouple) {
+function envDetail(id, P, r, t, tmiE, tmiS, reinvest, isCouple, avVerse = 0) {
   const rate = id === 'livretA' ? 0.03 : r;
   const Brut = P * Math.pow(1 + rate, t);
   const G    = Brut - P;
-  const net  = envNet(id, P, r, t, tmiE, tmiS, reinvest, isCouple);
+  const net  = envNet(id, P, r, t, tmiE, tmiS, reinvest, isCouple, avVerse);
   let tax    = Brut - net;
   let bonus  = 0;
   if (id === 'per' && reinvest) {
-    const netBase = envNet('per', P, r, t, tmiE, tmiS, false, isCouple);
+    const netBase = envNet('per', P, r, t, tmiE, tmiS, false, isCouple, avVerse);
     bonus = net - netBase;
-    tax   = Brut - netBase;  // impôts sur la partie PER seule (hors bonus)
+    tax   = Brut - netBase;
   }
   return { brut: Math.round(Brut), tax: Math.round(tax), net: Math.round(net), gain: Math.round(net - P), bonus: Math.round(bonus) };
 }
 
 /** Année à partir de laquelle PER >= PEA, ou null si PEA toujours gagnant sur l'horizon. */
-function perCrossover(P, r, tmiE, tmiS, reinvest, isCouple, maxY = 50) {
+function perCrossover(P, r, tmiE, tmiS, reinvest, isCouple, maxY = 50, avVerse = 0) {
   for (let y = 1; y <= maxY; y++) {
-    if (envNet('per', P, r, y, tmiE, tmiS, reinvest, isCouple) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest, isCouple)) return y;
+    if (envNet('per', P, r, y, tmiE, tmiS, reinvest, isCouple, avVerse) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest, isCouple, avVerse)) return y;
   }
   return null;
 }
@@ -282,19 +300,26 @@ function SimPER({ data }) {
   // Two sliders only available in profile mode (perCalcD1/D2 present)
   const showTwoSliders = isCouple && profData.perCalcD1 != null && profData.perCalcD2 != null;
 
-  const plafondD1    = showTwoSliders ? (profData.perCalcD1?.plafondNet || 0) : (profData.plafond || 0);
-  const plafondD2    = showTwoSliders ? (profData.perCalcD2?.plafondNet || 0) : 0;
+  // Utilise plafondWithReports (N + reports FIFO) comme borne max des curseurs
+  const plafondD1    = showTwoSliders ? (profData.perCalcD1?.plafondWithReports || profData.perCalcD1?.plafondNet || 0) : (profData.plafond || 0);
+  const plafondD2    = showTwoSliders ? (profData.perCalcD2?.plafondWithReports || profData.perCalcD2?.plafondNet || 0) : 0;
   const plafondTotal = plafondD1 + plafondD2;
+
+  // stopRate = TMI retraite estimée (la plus basse du foyer) / 100
+  // N'optimiser que les tranches > stopRate (gain PER = TMI_entrée − TMI_sortie)
+  const tmiRetD1    = profData.tmiRetraiteD1 ?? 11;
+  const tmiRetD2    = profData.tmiRetraiteD2 ?? tmiRetD1;
+  const stopRate    = Math.min(tmiRetD1, tmiRetD2) / 100; // foyer : on prend la plus favorable
 
   // Initialiser sur l'optimum fiscal (effacement de la tranche supérieure)
   const [versementD1, setVersementD1] = useState(() => {
     if (!plafondD1) return 0;
-    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, profData.perCalcD1?.rni || 0, profData.perCalcD2?.rni || 0);
+    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, profData.perCalcD1?.rni || 0, profData.perCalcD2?.rni || 0, stopRate);
     return Math.round((opt.optimumD1 || 0) / 50) * 50;
   });
   const [versementD2, setVersementD2] = useState(() => {
     if (!showTwoSliders || !plafondD2) return 0;
-    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, profData.perCalcD1?.rni || 0, profData.perCalcD2?.rni || 0);
+    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, profData.perCalcD1?.rni || 0, profData.perCalcD2?.rni || 0, stopRate);
     return Math.round((opt.optimumD2 || 0) / 50) * 50;
   });
 
@@ -401,7 +426,9 @@ function SimPER({ data }) {
           { label: 'TMI foyer',                                          value: `${profData.tmi} %`    },
           { label: showTwoSliders ? 'Plafond foyer' : 'Plafond PER',   value: `${fmt(plafondTotal)} €` },
         ]}
-        sub={null}
+        sub={profData.cehr > 0
+          ? `⚠️ CEHR (art. 223 sexies CGI) : ${fmt(profData.cehr)} € — calculée sur RFR ${fmt(profData.rfr)} €`
+          : null}
       />
 
       {/* ── Curseurs D1 + D2 (ou curseur unique) ── */}
@@ -714,16 +741,19 @@ function SimEnveloppes({ data }) {
   const [duration,  setDuration]  = useState(20);
   const [rate,      setRate]      = useState(0.05);
   const [tmiE,      setTmiE]      = useState(tmiProfile);  // TMI à l'entrée (prérempli)
-  const [tmiS,      setTmiS]      = useState(11);           // TMI à la sortie/retraite
+  const [tmiS,      setTmiS]      = useState(data.tmiRetraiteD1 ?? 11); // TMI à la sortie/retraite
   const [reinvest,  setReinvest]  = useState(true);         // réinvestir l'économie IR en PEA
 
   const isCouple = data.isCouple ?? false;
   const tmiDiff  = tmiE - tmiS;
+  // AV versements nets cumulés — seuil 150 000 € (art. 125-0 A CGI)
+  // Simulation au niveau foyer : somme D1 + D2
+  const avVerse  = (data.avVerseD1 || 0) + (data.avVerseD2 || 0);
 
   // Calcul détaillé par enveloppe (brut, impôts, net, gain, bonus PER)
   const tableRows = useMemo(
-    () => ENVELOPES.map(env => ({ ...env, ...envDetail(env.id, capital, rate, duration, tmiE, tmiS, reinvest, isCouple) })),
-    [capital, rate, duration, tmiE, tmiS, reinvest, isCouple]
+    () => ENVELOPES.map(env => ({ ...env, ...envDetail(env.id, capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse) })),
+    [capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse]
   );
 
   const bestId = useMemo(
@@ -733,8 +763,8 @@ function SimEnveloppes({ data }) {
 
   // Point de croisement PER / PEA
   const crossoverYear = useMemo(
-    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, isCouple, 60),
-    [capital, rate, tmiE, tmiS, reinvest, isCouple]
+    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, isCouple, 60, avVerse),
+    [capital, rate, tmiE, tmiS, reinvest, isCouple, avVerse]
   );
 
   const chartData = useMemo(() => {
@@ -745,11 +775,11 @@ function SimEnveloppes({ data }) {
     return [...pts.values()].sort((a, b) => a - b).map(y => {
       const pt = { année: y };
       for (const env of ENVELOPES) {
-        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest, isCouple));
+        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest, isCouple, avVerse));
       }
       return pt;
     });
-  }, [capital, rate, duration, tmiE, tmiS, reinvest, isCouple, crossoverYear]);
+  }, [capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse, crossoverYear]);
 
   const formatY = v => {
     if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -1167,32 +1197,61 @@ export default function Simulator() {
     // Plafond PER D1 — rniD1 est déjà post-abattement 10%
     const rniD1         = pp.rniD1 || 0;
     const peroD1        = pp.peroD1 || 0;
-    const brut10D1      = Math.round(rniD1 * 0.1);
+    const brut10D1      = Math.min(Math.round(rniD1 * 0.1), MAX_PLAFOND_PER);
     const plafondBrutD1 = Math.max(brut10D1, MIN_PLAFOND);
     const plafondNetD1  = Math.max(0, plafondBrutD1 - peroD1);
-    const perCalcD1 = { rni: rniD1, pero: peroD1, brut10: brut10D1, plafondBrut: plafondBrutD1, plafondNet: plafondNetD1 };
+
+    // Report PER FIFO (art. 163 quatervicies I CGI) — ordre : N en premier, puis N-3, N-2, N-1
+    const reportTotal   = (pp.perReportableTotal || 0);
+    // Distribution du report entre D1 et D2 au prorata des RNI
+    // (form collecte un seul ensemble de reports au niveau foyer)
+    const rniTot        = Math.max(1, rniD1 + (pp.rniD2 || 0));
+    const reportD1      = isCouple ? Math.round(reportTotal * (rniD1 / rniTot)) : reportTotal;
+    const reportD2raw   = reportTotal - reportD1;
+
+    const plafondWithReportsD1 = plafondNetD1 + reportD1;
+    const perCalcD1 = {
+      rni: rniD1, pero: peroD1, brut10: brut10D1, plafondBrut: plafondBrutD1, plafondNet: plafondNetD1,
+      reportN1: pp.perReportableN1 || 0, reportN2: pp.perReportableN2 || 0, reportN3: pp.perReportableN3 || 0,
+      reportTotal: reportD1, plafondWithReports: plafondWithReportsD1,
+    };
 
     // Plafond PER D2 (couple uniquement)
     const rniD2         = pp.rniD2 || 0;
     const peroD2        = pp.peroD2 || 0;
-    const brut10D2      = Math.round(rniD2 * 0.1);
+    const brut10D2      = Math.min(Math.round(rniD2 * 0.1), MAX_PLAFOND_PER);
     const plafondBrutD2 = Math.max(brut10D2, MIN_PLAFOND);
     const plafondNetD2  = Math.max(0, plafondBrutD2 - peroD2);
-    const perCalcD2 = isCouple ? { rni: rniD2, pero: peroD2, brut10: brut10D2, plafondBrut: plafondBrutD2, plafondNet: plafondNetD2 } : null;
+    const plafondWithReportsD2 = plafondNetD2 + reportD2raw;
+    const perCalcD2 = isCouple ? {
+      rni: rniD2, pero: peroD2, brut10: brut10D2, plafondBrut: plafondBrutD2, plafondNet: plafondNetD2,
+      reportN1: 0, reportN2: 0, reportN3: 0,
+      reportTotal: reportD2raw, plafondWithReports: plafondWithReportsD2,
+    } : null;
 
     const selectedCalc = (isCouple && perDeclarant === 'd2') ? perCalcD2 : perCalcD1;
 
     const baseFoyer = baseIRFoyer(pp);
     const tmi       = hasData ? getTMI(baseFoyer, parts) : 30;
 
+    const rfr   = pp.rfr || pp.rniFoyer || 0;
+    const cehr  = calcCEHR(rfr, isCouple);
+
     return {
       rni: pp.rniFoyer || 65_000, tmi,
       parts,
-      plafond:      hasData ? selectedCalc.plafondNet : MIN_PLAFOND,
+      // plafond = current year net + reports FIFO pour le curseur principal
+      plafond:      hasData ? (selectedCalc.plafondWithReports || selectedCalc.plafondNet) : MIN_PLAFOND,
       isDefault:    !hasData,
       isCouple,     perCalcD1, perCalcD2, selectedCalc,
-      salairesBrutD1: pp.salairesBrutImposableD1 || 0,
-      salairesBrutD2: pp.salairesBrutImposableD2 || 0,
+      salairesBrutD1:  pp.salairesBrutImposableD1 || 0,
+      salairesBrutD2:  pp.salairesBrutImposableD2 || 0,
+      tmiRetraiteD1:   pp.tmiRetraiteD1 ?? null,
+      tmiRetraiteD2:   pp.tmiRetraiteD2 ?? null,
+      horizonD1:       pp.horizonD1 || 0,
+      avVerseD1:       pp.avVerseD1 || 0,
+      avVerseD2:       pp.avVerseD2 || 0,
+      rfr,   cehr,
     };
   }, [mode, manualTMI, manualParts, perCalc, state.parsedProfile, perDeclarant]);
 
@@ -1368,8 +1427,24 @@ export default function Simulator() {
                 <span className="text-amber-600">− PERO employeur</span>
                 <span className="font-mono font-semibold text-amber-600 text-right">− {fmt(profileData.selectedCalc.pero)} €</span>
               </>}
-              <span className="font-bold text-teal-700 border-t border-blue-200 pt-1">→ Plafond disponible net</span>
+              <span className="font-bold text-teal-700 border-t border-blue-200 pt-1">→ Plafond disponible net (année N)</span>
               <span className="font-mono font-bold text-teal-700 border-t border-blue-200 pt-1 text-right">{fmt(profileData.selectedCalc.plafondNet)} €</span>
+              {profileData.selectedCalc.reportN3 > 0 && <>
+                <span className="text-teal-600">+ Report N-3 (art. 163 quatervicies I CGI)</span>
+                <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(profileData.selectedCalc.reportN3)} €</span>
+              </>}
+              {profileData.selectedCalc.reportN2 > 0 && <>
+                <span className="text-teal-600">+ Report N-2</span>
+                <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(profileData.selectedCalc.reportN2)} €</span>
+              </>}
+              {profileData.selectedCalc.reportN1 > 0 && <>
+                <span className="text-teal-600">+ Report N-1</span>
+                <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(profileData.selectedCalc.reportN1)} €</span>
+              </>}
+              {(profileData.selectedCalc.reportTotal || 0) > 0 && <>
+                <span className="font-bold text-teal-800 border-t border-blue-200 pt-1">= Total mobilisable (N + reports)</span>
+                <span className="font-mono font-bold text-teal-800 border-t border-blue-200 pt-1 text-right">{fmt(profileData.selectedCalc.plafondWithReports)} €</span>
+              </>}
             </div>
           </div>
 
@@ -1380,17 +1455,23 @@ export default function Simulator() {
                 Plafond PER du foyer consolidé
               </p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
-                <span>Plafond disponible D1</span>
+                <span>Plafond net D1</span>
                 <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.perCalcD1.plafondNet)} €</span>
-                <span>Plafond disponible D2</span>
+                <span>Plafond net D2</span>
                 <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.perCalcD2.plafondNet)} €</span>
-                <span className="font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5">→ Plafond mutualisable foyer</span>
+                {((profileData.perCalcD1.reportTotal || 0) + (profileData.perCalcD2.reportTotal || 0)) > 0 && <>
+                  <span className="text-teal-600">+ Reports FIFO foyer (N-3/N-2/N-1)</span>
+                  <span className="font-mono font-semibold text-teal-600 text-right">
+                    + {fmt((profileData.perCalcD1.reportTotal || 0) + (profileData.perCalcD2.reportTotal || 0))} €
+                  </span>
+                </>}
+                <span className="font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5">→ Total mobilisable foyer</span>
                 <span className="font-mono font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5 text-right">
-                  {fmt(profileData.perCalcD1.plafondNet + profileData.perCalcD2.plafondNet)} €
+                  {fmt(profileData.perCalcD1.plafondWithReports + profileData.perCalcD2.plafondWithReports)} €
                 </span>
               </div>
               <p className="text-[9px] text-teal-500 mt-2 leading-snug">
-                art. 163 quatervicies II CGI — chaque déclarant utilise son propre plafond individuel
+                art. 163 quatervicies I-II CGI — plafond individuel + reports des 3 exercices précédents
               </p>
             </div>
           )}

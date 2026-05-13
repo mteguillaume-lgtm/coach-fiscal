@@ -10,8 +10,73 @@ import { useApp }                   from '../context/AppContext';
 import { analyzeDoc, mapExtracted } from '../lib/extractor';
 import { parseProfile }             from '../lib/profileParser';
 import { buildProfile }             from '../lib/profileGenerator';
+import { abattement10 }             from '../lib/taxCalculator';
 import Button                       from '../components/Button';
 import Card                         from '../components/Card';
+
+// ─── Compute helpers (module-level — called by FieldRow at render time) ────────
+
+function _parseMMAAAA(value) {
+  if (!value || !value.includes('/')) return null;
+  const [m, y] = value.split('/');
+  const year = parseInt(y, 10); const month = parseInt(m, 10);
+  if (isNaN(year) || isNaN(month) || year < 1970 || year > 2100) return null;
+  const d = new Date(year, month - 1, 1);
+  return d > new Date() ? null : d;
+}
+
+function computePeaDate(data, value) {
+  const d = _parseMMAAAA(value);
+  if (!d) return null;
+  const ageYears = (Date.now() - d) / 31_557_600_000;
+  const age  = Math.floor(ageYears);
+  const ok   = ageYears >= 5;
+  const verse = parseFloat(data.pea_verse || 0);
+  const espace = Math.max(0, 150_000 - verse);
+  const line1 = ok
+    ? `✅ Antériorité ${age} ans — exonération IR acquise (PS 17,2 % toujours dus)`
+    : `⚠️ Antériorité ${age} ans — encore ${Math.ceil((5 - ageYears) * 12)} mois avant exonération IR`;
+  return verse > 0 ? `${line1}\nEspace versement restant : ${espace.toLocaleString('fr-FR')} €` : line1;
+}
+
+function computePelDate(_data, value) {
+  const d = _parseMMAAAA(value);
+  if (!d) return null;
+  const year  = d.getFullYear();
+  const month = d.getMonth() + 1; // getMonth() est 0-indexé
+  // Changement de régime au 1er mars 2011 (BOI-RPPM-RCM-20-10-20-60)
+  const avantMars2011 = year < 2011 || (year === 2011 && month < 3);
+  if (avantMars2011) return '✅ Ouvert avant mars 2011 — exonération IR (PS 17,2 % toujours dus)';
+  if (year <= 2017) {
+    const exoEnd = year + 12;
+    return new Date().getFullYear() < exoEnd
+      ? `✅ Exonéré IR jusqu'en ${exoEnd} (PS 17,2 % toujours dus)`
+      : `⚠️ Exonération IR échue en ${exoEnd} — PFU 30 % applicable`;
+  }
+  // 2018 et au-delà (le changement s'applique dès le 1er janvier 2018)
+  return '⚠️ Ouvert à partir de 2018 — PFU 30 % dès la 1re année';
+}
+
+function computeAvDate(_data, value) {
+  const d = _parseMMAAAA(value);
+  if (!d) return null;
+  const ageYears = (Date.now() - d) / 31_557_600_000;
+  const age = Math.floor(ageYears);
+  return ageYears >= 8
+    ? `✅ Antériorité ${age} ans — abattement fiscal acquis`
+    : `⚠️ Antériorité ${age} ans — encore ${Math.ceil((8 - ageYears) * 12)} mois avant l'abattement 8 ans`;
+}
+
+function computeCryptoPv(data, _value) {
+  // Seuil 305 € = montant brut des cessions (pas la PV) — art. 150 VH bis CGI
+  // Au-delà : 2086 obligatoire ET imposition sur toute la PV (pas seulement l'excédent)
+  const cede = parseFloat(data.crypto_montant_cede || 0);
+  if (cede > 305) return '⚠️ Cessions > 305 € — formulaire 2086 obligatoire (PV imposée en totalité)';
+  if (cede > 0) return '✅ Cessions ≤ 305 € — exonération totale si pas d\'autres cessions 2025';
+  return null;
+}
+
+const TMI_RET_HINT = 'Estimez votre tranche d\'imposition à la retraite. 11% par défaut (pension < ~29 000 €/an). Crucial pour comparer PER vs PEA.';
 
 // ─── Section data (module-level — stable references) ──────────────────────────
 
@@ -33,15 +98,41 @@ const REV_FIELDS = [
 ];
 
 const EP_INDIV_FIELDS = [
-  { key: 'livret_a',     label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
-  { key: 'ldd',          label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
-  { key: 'lep',          label: 'LEP — solde (€)',               type: 'number', ph: '0' },
-  { key: 'livret_plus',  label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
-  { key: 'pel',          label: 'PEL — solde (€)',               type: 'number', ph: '0' },
-  { key: 'pea',          label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
-  { key: 'per',          label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
-  { key: 'av',           label: 'Assurance-vie (€)',             type: 'number', ph: '0' },
-  { key: 'crypto_wallet',label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
+  { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
+  { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
+  { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0' },
+  { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
+  { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0' },
+  { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate },
+  { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
+  { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate },
+  { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0' },
+  { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
+  { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
+  { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate },
+  { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
+    dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Tous contrats AV de ce déclarant. Seuil 150 000 € (art. 125-0 A CGI).' },
+  { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
+  { key: 'crypto_plateforme',  label: 'Crypto — plateforme',           type: 'select',
+    opts: ['Binance', 'Coinbase', 'Kraken', 'Ledger (hardware)', 'Plateforme française', 'Autre'],
+    dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'crypto_cessions',    label: 'Cessions crypto 2025 ?',        type: 'select', opts: ['Non', 'Oui'],
+    dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'crypto_montant_cede',label: 'Crypto — montant cédé (€)',     type: 'number', ph: '0',
+    dependsOn: { key: 'crypto_cessions', value: 'Oui' } },
+  { key: 'crypto_pv',          label: 'Crypto — plus-value estimée (€)', type: 'number', ph: '0',
+    dependsOn: { key: 'crypto_cessions', value: 'Oui' }, compute: computeCryptoPv },
+];
+
+const PROFIL_INDIV_FIELDS = [
+  { key: 'age',            label: 'Âge (ans)',                 type: 'number', ph: '35' },
+  { key: 'retraite',       label: 'Âge retraite estimé',       type: 'number', ph: '63' },
+  { key: 'tmi_retraite',   label: 'TMI retraite (%)',           type: 'select', opts: ['', '0', '11', '30', '41', '45'], hint: TMI_RET_HINT },
+  { key: 'type_revenu',    label: 'Type de revenu principal',  type: 'select', opts: ['Salarié(e)', 'Retraité(e)', 'Mixte'], hint: 'Salarié(e) = case 1AJ (abat. 10% min 509 €/max 14 555 €). Retraité(e) = case 1AS (abat. 10% min 450 €/max 4 446 €). Mixte = les deux.' },
+  { key: 'pension_net_imp',label: 'Pension nette imposable 1AS (€)', type: 'number', ph: '18 000',
+    dependsOn: { key: 'type_revenu', value: 'Mixte' },
+    hint: 'Montant 1AS uniquement. Le champ "Net imposable" ci-dessus = salaire 1AJ uniquement.' },
 ];
 
 const SECTION_REV_SOLO = {
@@ -56,17 +147,45 @@ const SECTION_REV_SOLO = {
   ],
 };
 
+const SECTION_PROFIL_SOLO = {
+  id: 'profil', Icon: User, label: 'Profil & Retraite', fields: [
+    { key: 'age_d1',              label: 'Âge (ans)',                  type: 'number', ph: '35' },
+    { key: 'retraite_d1',         label: 'Âge retraite estimé',        type: 'number', ph: '63' },
+    { key: 'tmi_retraite_d1',     label: 'TMI retraite (%)',            type: 'select', opts: ['', '0', '11', '30', '41', '45'], hint: TMI_RET_HINT },
+    { key: 'type_revenu_d1',      label: 'Type de revenu principal',   type: 'select', opts: ['Salarié(e)', 'Retraité(e)', 'Mixte'], hint: 'Salarié(e) = 1AJ (abat. min 509 €/max 14 555 €). Retraité(e) = 1AS (abat. min 450 €/max 4 446 €). Mixte = les deux.' },
+    { key: 'pension_net_imp_d1',  label: 'Pension nette imposable 1AS (€)', type: 'number', ph: '18 000',
+      dependsOn: { key: 'type_revenu_d1', value: 'Mixte' },
+      hint: 'Montant 1AS uniquement. "Net imposable" ci-dessus = part salaire 1AJ.' },
+  ],
+};
+
 const SECTION_EP_SOLO = {
   id: 'ep', Icon: Building2, label: 'Épargne & Placements', fields: [
-    { key: 'livret_a',     label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
-    { key: 'ldd',          label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
-    { key: 'lep',          label: 'LEP — solde (€)',               type: 'number', ph: '0' },
-    { key: 'livret_plus',  label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
-    { key: 'pel',          label: 'PEL — solde (€)',               type: 'number', ph: '0' },
-    { key: 'pea',          label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
-    { key: 'av',           label: 'Assurance-vie (€)',             type: 'number', ph: '0' },
-    { key: 'per',          label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
-    { key: 'crypto_wallet',label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
+    { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
+    { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
+    { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0' },
+    { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
+    { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0' },
+    { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate },
+    { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
+    { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate },
+    { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0' },
+    { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
+    { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate },
+    { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
+      dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
+      hint: 'Tous vos contrats AV confondus. Seuil fiscal : 150 000 € (art. 125-0 A CGI). En dessous = taux 7,5 % IR post-8 ans. Au-delà = PFU 12,8 % sur la fraction excédentaire.' },
+    { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
+    { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
+    { key: 'crypto_plateforme',  label: 'Crypto — plateforme',           type: 'select',
+      opts: ['Binance', 'Coinbase', 'Kraken', 'Ledger (hardware)', 'Plateforme française', 'Autre'],
+      dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
+    { key: 'crypto_cessions',    label: 'Cessions crypto 2025 ?',        type: 'select', opts: ['Non', 'Oui'],
+      dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
+    { key: 'crypto_montant_cede',label: 'Crypto — montant cédé (€)',     type: 'number', ph: '0',
+      dependsOn: { key: 'crypto_cessions', value: 'Oui' } },
+    { key: 'crypto_pv',          label: 'Crypto — plus-value estimée (€)', type: 'number', ph: '0',
+      dependsOn: { key: 'crypto_cessions', value: 'Oui' }, compute: computeCryptoPv },
   ],
 };
 
@@ -80,6 +199,9 @@ const SECTION_DED_SOLO = {
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0' },
     { key: 'frais_r',  label: 'Frais réels (€)',                        type: 'number', ph: 'vide = forfait 10%' },
+    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
+    { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0' },
+    { key: 'per_n3',   label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0' },
   ],
 };
 
@@ -101,22 +223,50 @@ const SECTION_DED = {
     { key: 'pero_d2',  label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0' },
+    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
+    { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0' },
+    { key: 'per_n3',   label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0' },
   ],
 };
 
 const SECTION_IMMO = {
   id: 'immo', Icon: Home, label: 'Immobilier', fields: [
-    { key: 'proprio', label: 'Propriétaire RP ?',         type: 'select', opts: ['Non', 'Oui'] },
-    { key: 'locatif', label: 'Bien locatif ?',            type: 'select', opts: ['Non', 'Oui — micro', 'Oui — réel'] },
-    { key: 'rev_loc', label: 'Revenus locatifs 2025 (€)', type: 'number', ph: '0' },
+    { key: 'proprio',           label: 'Propriétaire RP ?',              type: 'select', opts: ['Non', 'Oui'] },
+    { key: 'rp_valeur',         label: 'RP — valeur estimée (€)',         type: 'number', ph: '280 000',
+      dependsOn: { key: 'proprio', value: 'Oui' } },
+    { key: 'credit_en_cours',   label: 'Crédit immobilier en cours ?',    type: 'select', opts: ['Non', 'Oui'],
+      dependsOn: { key: 'proprio', value: 'Oui' } },
+    { key: 'credit_crd',        label: 'Capital restant dû (€)',          type: 'number', ph: '150 000',
+      dependsOn: { key: 'credit_en_cours', value: 'Oui' } },
+    { key: 'credit_taux',       label: 'Taux crédit (%)',                 type: 'number', ph: '1.5',
+      dependsOn: { key: 'credit_en_cours', value: 'Oui' } },
+    { key: 'credit_mensualite', label: 'Mensualité crédit (€)',           type: 'number', ph: '900',
+      dependsOn: { key: 'credit_en_cours', value: 'Oui' } },
+    { key: 'credit_duree',      label: 'Durée restante (ans)',            type: 'number', ph: '15',
+      dependsOn: { key: 'credit_en_cours', value: 'Oui' } },
+    { key: 'taxe_fonciere',     label: 'Taxe foncière annuelle (€)',      type: 'number', ph: '0',
+      dependsOn: { key: 'proprio', value: 'Oui' } },
+    { key: 'locatif',           label: 'Bien locatif ?',                  type: 'select', opts: ['Non', 'Oui — micro', 'Oui — réel'] },
+    { key: 'rev_loc',           label: 'Revenus locatifs 2025 (€)',       type: 'number', ph: '0' },
   ],
 };
 
-const SOLO_SECTIONS = [SECTION_SIT, SECTION_REV_SOLO, SECTION_EP_SOLO, SECTION_DED_SOLO, SECTION_IMMO];
+// Champs capacité d'épargne (pour comptage progression)
+const CAPACITE_KEYS = ['charges_fixes', 'credit_rp', 'autres_credits', 'objectif_patrimonial'];
+
+const SOLO_SECTIONS = [SECTION_SIT, SECTION_PROFIL_SOLO, SECTION_REV_SOLO, SECTION_EP_SOLO, SECTION_DED_SOLO, SECTION_IMMO];
 
 // ─── Sub-components (outside main component — prevents focus loss on re-render) ──
 
-function FieldRow({ f, value, onChange, autoFKeys }) {
+function _fieldVisible(f, formData) {
+  if (!f.dependsOn) return true;
+  const depVal = formData?.[f.dependsOn.key];
+  return f.dependsOn.check ? f.dependsOn.check(depVal) : depVal === f.dependsOn.value;
+}
+
+function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
+  if (!_fieldVisible(f, formData)) return null;
+
   const isAuto = !!(autoFKeys && autoFKeys[f.key]);
   const base = [
     'w-full rounded-xl border px-3 py-2.5 text-sm bg-white',
@@ -124,6 +274,8 @@ function FieldRow({ f, value, onChange, autoFKeys }) {
     'font-sans placeholder:text-gray-300',
     isAuto ? 'border-teal-300 focus:ring-teal-300/50' : 'border-gray-200 focus:ring-teal-300/50',
   ].join(' ');
+
+  const computedInfo = f.compute ? f.compute(formData, value) : null;
 
   return (
     <div>
@@ -156,15 +308,26 @@ function FieldRow({ f, value, onChange, autoFKeys }) {
       {f.hint && (
         <p className="mt-1.5 text-xs text-amber-600 leading-snug">{f.hint}</p>
       )}
+      {computedInfo && (
+        <p className={[
+          'mt-1.5 text-xs leading-snug whitespace-pre-line',
+          computedInfo.startsWith('✅') ? 'text-teal-600' :
+          computedInfo.startsWith('⚠️') ? 'text-amber-600' :
+          'text-blue-500',
+        ].join(' ')}>
+          {computedInfo}
+        </p>
+      )}
     </div>
   );
 }
 
 function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAcc }) {
   const { Icon } = section;
-  const filled = section.fields.filter(f => data[f.key] && data[f.key] !== '').length;
-  const pct    = Math.round(filled / section.fields.length * 100);
-  const open   = activeAcc === section.id;
+  const visible = section.fields.filter(f => _fieldVisible(f, data));
+  const filled  = visible.filter(f => data[f.key] && data[f.key] !== '').length;
+  const pct     = visible.length > 0 ? Math.round(filled / visible.length * 100) : 0;
+  const open    = activeAcc === section.id;
 
   return (
     <div className={[
@@ -186,7 +349,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
           <span className="font-semibold text-sm text-gray-800">{section.label}</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="text-xs font-mono text-gray-400">{filled}/{section.fields.length}</span>
+          <span className="text-xs font-mono text-gray-400">{filled}/{visible.length}</span>
           <div className="w-8 h-1 bg-gray-100 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-300 ${pct === 100 ? 'bg-teal-500' : 'bg-purple-400'}`}
@@ -201,7 +364,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
         <div className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
           <div className="grid grid-cols-2 gap-3">
             {section.fields.map(f => (
-              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} />
+              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
           </div>
         </div>
@@ -309,9 +472,10 @@ function UploadZone({ target, uploading, docs, onFiles, onRemove }) {
 }
 
 function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAcc, setActiveAcc, uploading, docs, onFiles, onRemove }) {
-  const allFields = [...REV_FIELDS, ...EP_INDIV_FIELDS];
-  const filled = allFields.filter(f => data[f.key] && data[f.key] !== '').length;
-  const pct    = Math.round(filled / allFields.length * 100);
+  const allFields = [...REV_FIELDS, ...EP_INDIV_FIELDS, ...PROFIL_INDIV_FIELDS];
+  const visible   = allFields.filter(f => _fieldVisible(f, data));
+  const filled    = visible.filter(f => data[f.key] && data[f.key] !== '').length;
+  const pct       = visible.length > 0 ? Math.round(filled / visible.length * 100) : 0;
   const id     = `d${num}`;
   const open   = activeAcc === id;
   const isD1   = num === 1;
@@ -346,7 +510,7 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
               ? (isD1 ? 'text-teal-500' : 'text-purple-500')
               : 'text-gray-400'
           }`}>
-            {filled}/{allFields.length}
+            {filled}/{visible.length}
           </span>
           <div className="w-8 h-1 bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -376,17 +540,105 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
           </p>
           <div className="grid grid-cols-2 gap-3 mb-4">
             {REV_FIELDS.map(f => (
-              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} />
+              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
           </div>
           <p className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest mb-2">
             Épargne individuelle
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             {EP_INDIV_FIELDS.map(f => (
-              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} />
+              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
           </div>
+          <p className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest mb-2">
+            Profil &amp; Retraite
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {PROFIL_INDIV_FIELDS.map(f => (
+              <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CapaciteSection ──────────────────────────────────────────────────────────
+
+function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeAcc, setActiveAcc }) {
+  const id = 'capacite';
+  const open = activeAcc === id;
+
+  const netD1 = parseFloat(isCouple ? (d1Data?.net_imp || 0) : (formData.net_imp || 0));
+  const netD2 = parseFloat(isCouple ? (d2Data?.net_imp || 0) : 0);
+  const rniMensuel = Math.round((abattement10(netD1) + abattement10(netD2)) / 12);
+
+  const charges = parseFloat(formData.charges_fixes || 0);
+  const capacite = Math.max(0, rniMensuel - charges);
+  const taux = rniMensuel > 0 ? Math.round(capacite / rniMensuel * 100) : 0;
+
+  const color = taux < 10 ? 'red' : taux < 25 ? 'orange' : taux < 50 ? 'green' : 'blue';
+  const msg = taux < 10 ? 'Capacité d\'investissement faible'
+    : taux < 25 ? 'Capacité modérée'
+    : taux < 50 ? 'Bonne capacité d\'épargne'
+    : 'Capacité élevée — stratégie FIRE envisageable';
+
+  const colorMap = {
+    red:    { bg: 'bg-red-50',    border: 'border-red-100',    label: 'text-red-400',    val: 'text-red-700',    msg: 'text-red-500'    },
+    orange: { bg: 'bg-amber-50',  border: 'border-amber-100',  label: 'text-amber-500',  val: 'text-amber-700',  msg: 'text-amber-500'  },
+    green:  { bg: 'bg-teal-50',   border: 'border-teal-100',   label: 'text-teal-500',   val: 'text-teal-700',   msg: 'text-teal-500'   },
+    blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   label: 'text-blue-400',   val: 'text-blue-700',   msg: 'text-blue-500'   },
+  };
+  const c = colorMap[color];
+
+  const filled = CAPACITE_KEYS.filter(k => formData[k] && formData[k] !== '').length;
+  const pct    = Math.round(filled / CAPACITE_KEYS.length * 100);
+
+  return (
+    <div className={['rounded-2xl border mb-2 transition-all duration-200 overflow-hidden', open ? 'border-teal-200 shadow-sm' : 'border-gray-100 bg-white'].join(' ')}>
+      <button type="button" onClick={() => setActiveAcc(open ? null : id)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+        <div className="flex items-center gap-3">
+          <div className={['w-7 h-7 rounded-lg flex items-center justify-center transition-colors', open ? 'bg-teal-gradient text-white' : 'bg-gray-100 text-gray-400'].join(' ')}>
+            <TrendingUp size={14} aria-hidden="true" />
+          </div>
+          <span className="font-semibold text-sm text-gray-800">Capacité d&apos;épargne</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs font-mono text-gray-400">{filled}/{CAPACITE_KEYS.length}</span>
+          <div className="w-8 h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-300 ${pct === 100 ? 'bg-teal-500' : 'bg-purple-400'}`} style={{ width: `${pct}%` }} />
+          </div>
+          <ChevronDown size={15} className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
+          {rniMensuel > 0 && (
+            <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5 mb-3">
+              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenus nets mensuels estimés</p>
+              <p className="text-sm font-bold text-blue-800 font-mono">{rniMensuel.toLocaleString('fr-FR')} €/mois</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">Calculé depuis le RNI (après abattement 10 % salaires)</p>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <FieldRow f={{ key: 'charges_fixes', label: 'Charges fixes mensuelles (€)', type: 'number', ph: '2 500' }} value={formData.charges_fixes} onChange={onChange} autoFKeys={{}} />
+            <FieldRow f={{ key: 'credit_rp', label: 'dont crédit RP / loyer (€)', type: 'number', ph: '900' }} value={formData.credit_rp} onChange={onChange} autoFKeys={{}} />
+            <FieldRow f={{ key: 'autres_credits', label: 'dont autres crédits (€)', type: 'number', ph: '0' }} value={formData.autres_credits} onChange={onChange} autoFKeys={{}} />
+            <FieldRow f={{ key: 'objectif_patrimonial', label: 'Objectif patrimonial', type: 'select', opts: ['', 'Optimisation fiscale annuelle', 'Constitution patrimoine long terme', 'Préparation retraite', 'Indépendance financière (FIRE)', 'Transmission'] }} value={formData.objectif_patrimonial} onChange={onChange} autoFKeys={{}} />
+          </div>
+          {rniMensuel > 0 && charges > 0 && (
+            <div className={`rounded-xl border px-3 py-2.5 ${c.bg} ${c.border}`}>
+              <div className="flex justify-between items-baseline mb-1">
+                <p className={`text-[10px] font-bold uppercase tracking-widest ${c.label}`}>Capacité d&apos;épargne</p>
+                <span className={`text-xs font-bold font-mono ${c.val}`}>{taux} %</span>
+              </div>
+              <p className={`text-lg font-bold font-mono ${c.val}`}>{capacite.toLocaleString('fr-FR')} €/mois</p>
+              <p className={`text-xs mt-0.5 ${c.msg}`}>{msg}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -461,21 +713,25 @@ export default function Collect() {
     setUploading(false);
   }, [getApiKey]);
 
-  // Progress
+  // Progress (visible fields only, including capacité keys)
   const { filled: totalF, total: totalAll, pct } = (() => {
+    const capF = CAPACITE_KEYS.filter(k => formData[k] && formData[k] !== '').length;
     if (!isCouple) {
-      const total  = SOLO_SECTIONS.reduce((a, s) => a + s.fields.length, 0);
-      const filled = SOLO_SECTIONS.reduce((a, s) => a + s.fields.filter(f => formData[f.key] && formData[f.key] !== '').length, 0);
+      const visF   = SOLO_SECTIONS.flatMap(s => s.fields.filter(f => _fieldVisible(f, formData)));
+      const filled = visF.filter(f => formData[f.key] && formData[f.key] !== '').length + capF;
+      const total  = visF.length + CAPACITE_KEYS.length;
       return { filled, total, pct: Math.round(filled / total * 100) };
     }
-    const foyer   = [SECTION_SIT, SECTION_REV_FOYER, SECTION_DED, SECTION_IMMO];
-    const foyerT  = foyer.reduce((a, s) => a + s.fields.length, 0);
-    const foyerF  = foyer.reduce((a, s) => a + s.fields.filter(f => formData[f.key] && formData[f.key] !== '').length, 0);
-    const dFields = [...REV_FIELDS, ...EP_INDIV_FIELDS];
-    const d1F = dFields.filter(f => d1Data[f.key] && d1Data[f.key] !== '').length;
-    const d2F = dFields.filter(f => d2Data[f.key] && d2Data[f.key] !== '').length;
-    const total  = foyerT + dFields.length * 2;
-    const filled = foyerF + d1F + d2F;
+    const foyer  = [SECTION_SIT, SECTION_REV_FOYER, SECTION_DED, SECTION_IMMO];
+    const visFoy = foyer.flatMap(s => s.fields.filter(f => _fieldVisible(f, formData)));
+    const foyerF = visFoy.filter(f => formData[f.key] && formData[f.key] !== '').length;
+    const dFields = [...REV_FIELDS, ...EP_INDIV_FIELDS, ...PROFIL_INDIV_FIELDS];
+    const visD1 = dFields.filter(f => _fieldVisible(f, d1Data));
+    const visD2 = dFields.filter(f => _fieldVisible(f, d2Data));
+    const d1F = visD1.filter(f => d1Data[f.key] && d1Data[f.key] !== '').length;
+    const d2F = visD2.filter(f => d2Data[f.key] && d2Data[f.key] !== '').length;
+    const total  = visFoy.length + visD1.length + visD2.length + CAPACITE_KEYS.length;
+    const filled = foyerF + d1F + d2F + capF;
     return { filled, total, pct: Math.round(filled / total * 100) };
   })();
 
@@ -537,55 +793,79 @@ export default function Collect() {
           crypto:     str(pp.revenusCrypto),
           pero_d1:    str(pp.peroD1),
           pero_d2:    str(pp.peroD2),
-          // Solo : revenus et épargne dans formData
+          per_n1:     str(pp.perReportableN1),
+          per_n2:     str(pp.perReportableN2),
+          per_n3:     str(pp.perReportableN3),
+          // Solo : revenus, épargne et profil dans formData
           ...(pp.mode === 'solo' ? {
-            brut:         str(pp.salairesBrutImposableD1),
-            net_imp:      str(pp.salaireNetImposableD1),
-            taux_pas:     str(pp.tauxPasD1),
-            pas_tot:      str(pp.pasD1),
-            livret_a:     str(pp.livretAD1),
-            ldd:          str(pp.lddsD1),
-            lep:          str(pp.lepD1),
-            livret_plus:  str(pp.livretPlusD1),
-            pel:          str(pp.pelD1),
-            pea:          str(pp.peaD1),
-            per:          str(pp.percoD1),
-            av:           str(pp.avD1),
-            crypto_wallet:str(pp.cryptoD1),
+            brut:             str(pp.salairesBrutImposableD1),
+            net_imp:          str(pp.salaireNetImposableD1),
+            taux_pas:         str(pp.tauxPasD1),
+            pas_tot:          str(pp.pasD1),
+            livret_a:         str(pp.livretAD1),
+            ldd:              str(pp.lddsD1),
+            lep:              str(pp.lepD1),
+            livret_plus:      str(pp.livretPlusD1),
+            pel:              str(pp.pelD1),
+            pel_date:         pp.pelDateD1 || '',
+            pea:              str(pp.peaD1),
+            pea_date:         pp.peaDateD1 || '',
+            pea_verse:        str(pp.peaVerseD1),
+            per:              str(pp.percoD1),
+            av:               str(pp.avD1),
+            av_date:          pp.avDateD1 || '',
+            crypto_wallet:    str(pp.cryptoD1),
+            age_d1:           str(pp.ageD1),
+            retraite_d1:      str(pp.retraiteD1),
+            tmi_retraite_d1:  pp.tmiRetraiteD1 != null ? String(pp.tmiRetraiteD1) : '',
           } : {}),
         };
 
         // Couple : revenus/épargne dans d1Data / d2Data séparés
         const newD1 = pp.mode === 'couple' ? {
-          brut:         str(pp.salairesBrutImposableD1),
-          net_imp:      str(pp.salaireNetImposableD1),
-          taux_pas:     str(pp.tauxPasD1),
-          pas_tot:      str(pp.pasD1),
-          livret_a:     str(pp.livretAD1),
-          ldd:          str(pp.lddsD1),
-          lep:          str(pp.lepD1),
-          livret_plus:  str(pp.livretPlusD1),
-          pel:          str(pp.pelD1),
-          pea:          str(pp.peaD1),
-          per:          str(pp.percoD1),
-          av:           str(pp.avD1),
-          crypto_wallet:str(pp.cryptoD1),
+          brut:            str(pp.salairesBrutImposableD1),
+          net_imp:         str(pp.salaireNetImposableD1),
+          taux_pas:        str(pp.tauxPasD1),
+          pas_tot:         str(pp.pasD1),
+          livret_a:        str(pp.livretAD1),
+          ldd:             str(pp.lddsD1),
+          lep:             str(pp.lepD1),
+          livret_plus:     str(pp.livretPlusD1),
+          pel:             str(pp.pelD1),
+          pel_date:        pp.pelDateD1 || '',
+          pea:             str(pp.peaD1),
+          pea_date:        pp.peaDateD1 || '',
+          pea_verse:       str(pp.peaVerseD1),
+          per:             str(pp.percoD1),
+          av:              str(pp.avD1),
+          av_date:         pp.avDateD1 || '',
+          crypto_wallet:   str(pp.cryptoD1),
+          age:             str(pp.ageD1),
+          retraite:        str(pp.retraiteD1),
+          tmi_retraite:    pp.tmiRetraiteD1 != null ? String(pp.tmiRetraiteD1) : '',
         } : null;
 
         const newD2 = pp.mode === 'couple' ? {
-          brut:         str(pp.salairesBrutImposableD2),
-          net_imp:      str(pp.salaireNetImposableD2),
-          taux_pas:     str(pp.tauxPasD2),
-          pas_tot:      str(pp.pasD2),
-          livret_a:     str(pp.livretAD2),
-          ldd:          str(pp.lddsD2),
-          lep:          str(pp.lepD2),
-          livret_plus:  str(pp.livretPlusD2),
-          pel:          str(pp.pelD2),
-          pea:          str(pp.peaD2),
-          per:          str(pp.percoD2),
-          av:           str(pp.avD2),
-          crypto_wallet:str(pp.cryptoD2),
+          brut:            str(pp.salairesBrutImposableD2),
+          net_imp:         str(pp.salaireNetImposableD2),
+          taux_pas:        str(pp.tauxPasD2),
+          pas_tot:         str(pp.pasD2),
+          livret_a:        str(pp.livretAD2),
+          ldd:             str(pp.lddsD2),
+          lep:             str(pp.lepD2),
+          livret_plus:     str(pp.livretPlusD2),
+          pel:             str(pp.pelD2),
+          pel_date:        pp.pelDateD2 || '',
+          pea:             str(pp.peaD2),
+          pea_date:        pp.peaDateD2 || '',
+          pea_verse:       str(pp.peaVerseD2),
+          per:             str(pp.percoD2),
+          av:              str(pp.avD2),
+          av_date:         pp.avDateD2 || '',
+          crypto_wallet:   str(pp.cryptoD2),
+          age:             str(pp.ageD2),
+          retraite:        str(pp.retraiteD2),
+          tmi_retraite:    pp.tmiRetraiteD2 != null ? String(pp.tmiRetraiteD2) : '',
         } : null;
 
         dispatch({ type: 'SET_MODE',      payload: pp.mode });
@@ -730,10 +1010,12 @@ export default function Collect() {
 
         {!isCouple ? (
           <>
-            <AccSection section={SECTION_REV_SOLO} data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <AccSection section={SECTION_EP_SOLO}  data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <AccSection section={SECTION_DED_SOLO} data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <AccSection section={SECTION_IMMO}     data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
+            <AccSection section={SECTION_PROFIL_SOLO} data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
+            <AccSection section={SECTION_REV_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
+            <CapaciteSection formData={formData} onChange={handleChange} isCouple={false} {...accProps} />
+            <AccSection section={SECTION_EP_SOLO}     data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
+            <AccSection section={SECTION_DED_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
+            <AccSection section={SECTION_IMMO}        data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
           </>
         ) : (
           <>
@@ -753,6 +1035,7 @@ export default function Collect() {
             />
             <AccSection section={SECTION_REV_FOYER} data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} />
             <AccSection section={SECTION_DED}        data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} />
+            <CapaciteSection formData={formData} onChange={handleChange} d1Data={d1Data} d2Data={d2Data} isCouple={true} {...accProps} />
             <AccSection section={SECTION_IMMO}       data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} />
           </>
         )}

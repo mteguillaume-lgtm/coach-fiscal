@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
 import Button from '../components/Button';
-import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade } from '../lib/taxCalculator';
+import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade, calcCEHR } from '../lib/taxCalculator';
 
 // ─── Float parser ─────────────────────────────────────────────────────────────
 
@@ -576,7 +576,7 @@ function TmiProseBlock({ d }) {
 
 // ─── Table 3 : IR foyer et solde ─────────────────────────────────────────────
 
-function SoldeTable({ d }) {
+function SoldeTable({ d, cehr = 0 }) {
   const { irBrutFoyer, dec, irNetFoyer, psFoncier, totalDu, pasTotal, pasD1, pasD2, solde, isCouple } = d;
   const isRemb = solde >= 0;
 
@@ -601,6 +601,15 @@ function SoldeTable({ d }) {
             <Td bold>= IR net foyer</Td>
             <Td right bold>{e2(irNetFoyer)}</Td>
           </tr>}
+          {cehr > 0 && (
+            <tr className="bg-orange-50/40">
+              <Td className="text-orange-700">
+                + CEHR art. 223 sexies CGI
+                <span className="ml-1 text-[10px] text-orange-500">(non retenue à la source — à régler)</span>
+              </Td>
+              <Td right className="text-orange-700 font-bold">+ {e2(cehr)}</Td>
+            </tr>
+          )}
           {psFoncier > 0 && <>
             <tr>
               <Td className="pl-8">+ Prélèvements sociaux 17,2 % sur foncier net</Td>
@@ -608,9 +617,15 @@ function SoldeTable({ d }) {
             </tr>
             <tr className="bg-gray-50/50">
               <Td bold>= Total dû foyer</Td>
-              <Td right bold>{e2(totalDu)}</Td>
+              <Td right bold>{e2(totalDu + cehr)}</Td>
             </tr>
           </>}
+          {psFoncier <= 0 && cehr > 0 && (
+            <tr className="bg-gray-50/50">
+              <Td bold>= Total dû foyer</Td>
+              <Td right bold>{e2(totalDu + cehr)}</Td>
+            </tr>
+          )}
           <tr>
             <Td className="pl-8">
               − PAS prélevé 2025
@@ -744,10 +759,11 @@ function PerZonesBlock({ p, d, perSim }) {
   const parts = p.parts || (isCouple ? 2 : 1);
   const plafondD1 = p.plafondPerD1 || 0;
   const plafondD2 = p.plafondPerD2 || 0;
+  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
 
   const opt = useMemo(
-    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1 || 0, p.rniD2 || 0),
-    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1, p.rniD2]
+    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate),
+    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1, p.rniD2, stopRate]
   );
 
   const simD1 = perSim?.versementD1 || 0;
@@ -912,8 +928,9 @@ function PerScenariosTable({ p, d }) {
   const plafD2 = p.plafondPerD2 || 0;
   const irAvant = d.irNetFoyer;
   const parts = p.parts || (isCouple ? 2 : 1);
+  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
 
-  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0);
+  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
 
   const calcScen = (versement) => {
     if (versement === 0) return { versement: 0, irApres: irAvant, economie: 0, effort: 0, rendement: 0 };
@@ -1007,8 +1024,9 @@ function PerCalendarBlock({ p, d }) {
   const plafD1 = p.plafondPerD1 || 0;
   const plafD2 = p.plafondPerD2 || 0;
   const parts  = p.parts || (isCouple ? 2 : 1);
+  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
 
-  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0);
+  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
   const prio   = perOpt.prioritaire || 'D1';
   const sec    = prio === 'D1' ? 'D2' : 'D1';
   const amtPrio  = prio === 'D1' ? perOpt.optimumD1 : perOpt.optimumD2;
@@ -1467,7 +1485,8 @@ function FeuilleRouteModule({ p, d }) {
   const epargneLiquide = p.epargneLiquide || 0;
 
   const fParts = p.parts || (isCouple ? 2 : 1);
-  const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0);
+  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
+  const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
 
   const priorities = [];
 
@@ -1716,10 +1735,15 @@ export default function Rapport() {
 
   // Cascade PER — optimum fiscal (source de vérité pour tout le rapport)
   const parts = p.parts || (isCouple ? 2 : 1);
+  // stopRate = TMI retraite estimée (plus favorable du foyer) — n'optimiser que les tranches au-dessus
+  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
   const perOpt = useMemo(
-    () => computePerOptimumCascade(d.rniFoyer, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0),
-    [d.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple, p.rniD1, p.rniD2]
+    () => computePerOptimumCascade(d.rniFoyer, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate),
+    [d.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple, p.rniD1, p.rniD2, stopRate]
   );
+
+  // CEHR — Contribution Exceptionnelle Hauts Revenus (art. 223 sexies CGI)
+  const cehr = calcCEHR(p.rfr || d.rniFoyer, isCouple);
 
   return (
     <>
@@ -1886,7 +1910,7 @@ export default function Rapport() {
             <RniTable d={d} />
             {d.steps.length > 0 && <BaremeTable d={d} />}
             {d.tmi > 0 && <TmiProseBlock d={d} />}
-            <SoldeTable d={d} />
+            <SoldeTable d={d} cehr={cehr} />
             {isCouple && d.gainPacs > 0 && <GainPacsTable d={d} />}
             {isCouple && d.gainPacs > 0 && <AccordCoupleProseBlock d={d} />}
           </>

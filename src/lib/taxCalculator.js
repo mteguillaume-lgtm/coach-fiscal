@@ -53,6 +53,10 @@ const DECOTE = baremeRaw.decote;
 
 const ABT = baremeRaw.abattement_salaires_10pct;
 
+// Abattement 10% pensions/retraites (cases 1AS/1BS) — art. 158-5-a CGI
+// Paramètres distincts : min 450 €, max 4 446 € (vs min 509 / max 14 555 € pour salaires)
+export const ABT_PENSION = baremeRaw.abattement_pensions_10pct ?? { taux: 0.10, minimum: 450, maximum: 4446 };
+
 // ─── Exports pour affichage (Rapport.jsx) ────────────────────────────────────
 
 export { TRANCHES, DECOTE, ABT };
@@ -70,6 +74,59 @@ export function abattement10(salaire) {
   if (!salaire || salaire <= 0) return 0;
   const a = salaire * ABT.taux;
   return Math.round(salaire - Math.min(Math.max(a, ABT.minimum), ABT.maximum));
+}
+
+/**
+ * Abattement 10% sur pension/retraite (cases 1AS/1BS).
+ * Min 450 €, max 4 446 € par foyer — art. 158-5-a CGI.
+ * @returns {number} RNI après abattement pension
+ */
+export function abattement10Pension(pension) {
+  if (!pension || pension <= 0) return 0;
+  const a = pension * ABT_PENSION.taux;
+  return Math.round(pension - Math.min(Math.max(a, ABT_PENSION.minimum), ABT_PENSION.maximum));
+}
+
+/**
+ * Abattement 10% automatique selon le type de revenu.
+ * @param {number}  montant
+ * @param {'salaire'|'pension'|'mixte'} type
+ * @param {number}  [pensionPart=0]  part pension si type='mixte' (reste = salaire)
+ * @returns {number} RNI après abattement
+ */
+export function abattement10Auto(montant, type = 'salaire', pensionPart = 0) {
+  if (!montant || montant <= 0) return 0;
+  if (type === 'pension') return abattement10Pension(montant);
+  if (type === 'mixte' && pensionPart > 0) {
+    const salairePart = Math.max(0, montant - pensionPart);
+    return abattement10(salairePart) + abattement10Pension(pensionPart);
+  }
+  return abattement10(montant);
+}
+
+// ─── CEHR — Contribution Exceptionnelle Hauts Revenus ────────────────────────
+
+/**
+ * Calcule la CEHR (art. 223 sexies CGI).
+ * Base = RFR (pas le RNI). S'ajoute à l'IR net.
+ *
+ * Célibataire : 3 % sur [250k–500k€], 4 % au-delà de 500k€
+ * Couple      : 3 % sur [500k–1M€],   4 % au-delà de 1M€
+ *
+ * @param {number}  rfr       - Revenu Fiscal de Référence
+ * @param {boolean} isCouple
+ * @returns {number} CEHR en €
+ */
+export function calcCEHR(rfr, isCouple = false) {
+  if (!rfr || rfr <= 0) return 0;
+  if (!isCouple) {
+    const t1 = Math.max(0, Math.min(rfr, 500_000) - 250_000) * 0.03;
+    const t2 = Math.max(0, rfr - 500_000) * 0.04;
+    return Math.round(t1 + t2);
+  }
+  const t1 = Math.max(0, Math.min(rfr, 1_000_000) - 500_000) * 0.03;
+  const t2 = Math.max(0, rfr - 1_000_000) * 0.04;
+  return Math.round(t1 + t2);
 }
 
 // ─── IR brut (barème progressif) ─────────────────────────────────────────────
@@ -185,8 +242,13 @@ export function calcPlafondPer(netImpSalaire, peroEmployeur = 0) {
  * @param {number} rniD1  - RNI individuel D1 (post-abattement). 0 = inconnu → fallback plafond.
  * @param {number} rniD2  - RNI individuel D2 (post-abattement). 0 = inconnu → fallback plafond.
  */
-export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, rniD1 = 0, rniD2 = 0) {
-  const STOP_RATE = 0.11;
+/**
+ * @param {number} stopRate  - Taux de sortie PER (TMI retraite / 100). Défaut 0.11.
+ *   N'optimiser que les tranches > stopRate (sinon PER = report neutre ou perdant).
+ *   Skill fiscaliste : "TMI sortie < TMI entrée = gain ; TMI sortie ≥ TMI entrée = neutre/perte".
+ */
+export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple, rniD1 = 0, rniD2 = 0, stopRate = 0.11) {
+  const STOP_RATE = Math.max(0, Math.min(stopRate, 0.44)); // borné entre 0 et 44%
   const pd1 = plafondD1 || 0;
   const pd2 = plafondD2 || 0;
   const plafondTotal = pd1 + pd2;
