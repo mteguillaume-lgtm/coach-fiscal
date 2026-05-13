@@ -660,7 +660,7 @@ function SimEnveloppes({ data }) {
 
   const perEnvInfo = useMemo(() => getPerEnvInfo(data), [data]);
 
-  const [capital,   setCapital]   = useState(() => getPerEnvInfo(data).plafond);
+  const [capital,   setCapital]   = useState(10_000);
   const [duration,  setDuration]  = useState(20);
   const [rate,      setRate]      = useState(0.05);
   const [tmiE,      setTmiE]      = useState(tmiProfile);  // TMI à l'entrée (prérempli)
@@ -763,7 +763,7 @@ function SimEnveloppes({ data }) {
           <div className={`rounded-lg border px-3 py-2 text-[11px] leading-snug ${perEnvInfo.fallback ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
             {perEnvInfo.fallback
               ? perEnvInfo.fallbackReason
-              : `Plafond ${perEnvInfo.declarant} utilisé (salaire le plus élevé) : ${fmt(perEnvInfo.plafond)} € — pré-rempli ci-dessus.`}
+              : `PER simulé sur le plafond de ${perEnvInfo.declarant} (salaire le plus élevé) : ${fmt(perEnvInfo.plafond)} €. Réglez le capital à cette valeur pour comparer à votre plafond réel.`}
           </div>
         )}
         <div className="grid grid-cols-2 gap-4">
