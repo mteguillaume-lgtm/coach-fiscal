@@ -63,7 +63,7 @@ export function detectOpportunities(parsedProfile) {
   // PER optimal : cascade descendante par tranche — s'arrête à 11%
   if (perPlafond > 0) {
     const nbParts = parts || (isCouple ? 2 : 1);
-    const opt = computePerOptimumCascade(rniFoyer || 0, nbParts, plafondPerD1 || 0, plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0);
+    const opt = computePerOptimumCascade(rniFoyer || 0, nbParts, plafondPerD1 || 0, plafondPerD2 || 0, isCouple, parsedProfile.rniD1 || 0, parsedProfile.rniD2 || 0);
 
     if (opt.optimumTotal > 0 && opt.tmiDepart > 11) {
       const zoneLabel = opt.zones.map(z => `${fmt(z.versement)} € × ${z.taux} % = ${fmt(z.economie)} €`).join(' + ');

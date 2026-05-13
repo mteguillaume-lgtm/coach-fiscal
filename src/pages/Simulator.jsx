@@ -35,35 +35,85 @@ const fmt = n => Math.round(n).toLocaleString('fr-FR');
  * @param {number}  tmiS      - TMI à la sortie/retraite (%) — PER uniquement
  * @param {boolean} reinvest  - réinvestir l'économie fiscale PER en PEA
  */
-function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true) {
-  const rate = id === 'livretA' ? 0.03 : r;
-  const Brut = P * Math.pow(1 + rate, t);
-  const G    = Brut - P;
-  const Te   = tmiE / 100;
-  const Ts   = (tmiS ?? tmiE) / 100;
+/**
+ * Calcul du capital net pour chaque enveloppe.
+ *
+ * Règles fiscales France 2025 :
+ *  Livret A  — exonéré d'IR et de PS (taux garanti 3 %)
+ *  PEA       — PS 17,2 % sur gains après 5 ans ; flat tax 30 % avant 5 ans
+ *  AV >8 ans — PS 17,2 % sur tous les gains + IR 7,5 % sur gains > abattement
+ *              (4 600 € solo / 9 200 € couple, abattement annuel)
+ *  PER       — IR au TMI_sortie sur la totalité du capital retiré (car versements déduits)
+ *              + PS 17,2 % sur les plus-values seulement
+ *              + bonus si économie IR d'entrée réinvestie en PEA
+ *  CTO       — PFU 30 % (12,8 % IR + 17,2 % PS) sur les gains
+ *
+ * @param {boolean} isCouple — détermine l'abattement AV (9 200 € vs 4 600 €)
+ */
+function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = false) {
+  const rate    = id === 'livretA' ? 0.03 : r;
+  const Brut    = P * Math.pow(1 + rate, t);
+  const G       = Brut - P;                 // plus-value brute
+  const Te      = tmiE / 100;
+  const Ts      = (tmiS ?? tmiE) / 100;
 
   switch (id) {
-    case 'livretA': return Brut;
-    // PEA : flat tax 30% avant 5 ans, PS 17,2% seulement après
-    case 'pea':     return t >= 5 ? Brut - G * 0.172 : Brut - G * 0.30;
-    case 'av8':     return Brut - G * 0.172 - Math.max(0, G - 4600) * 0.075;
+    case 'livretA':
+      return Brut;                           // 0 % — exonéré total
+
+    case 'pea':
+      // < 5 ans : flat tax 30 % sur gains
+      // ≥ 5 ans : PS 17,2 % sur gains seulement (IR exonéré)
+      return t >= 5 ? Brut - G * 0.172 : Brut - G * 0.30;
+
+    case 'av8': {
+      // PS 17,2 % sur tous les gains + IR 7,5 % sur gains > abattement
+      const abatt = isCouple ? 9_200 : 4_600;
+      const psTotal = G * 0.172;
+      const irTotal = Math.max(0, G - abatt) * 0.075;
+      return Brut - psTotal - irTotal;
+    }
+
     case 'per': {
-      // Capital net PER à la sortie (IR sur Brut au TMI_s + PS sur gains)
+      // Toute la somme retirée = revenu imposable (versements déduits à l'entrée)
+      // IR = Brut × TMI_s ; PS = gains × 17,2 %
       const netBase = Brut * (1 - Ts) - G * 0.172;
       if (!reinvest) return netBase;
-      // Bonus : économie IR immédiate (P × TMI_e) réinvestie en PEA pendant t ans
+      // Bonus : économie fiscale d'entrée (P × TMI_e) placée en PEA pendant t ans
+      // Rendement net PEA = (1+r)^t × (1 − 0,172) + 0,172  (PS sur les gains PEA)
       const bonus = P * Te * (Math.pow(1 + r, t) * (1 - 0.172) + 0.172);
       return netBase + bonus;
     }
-    case 'cto':     return Brut - G * 0.30;
-    default:        return Brut;
+
+    case 'cto':
+      // PFU 30 % = 12,8 % IR + 17,2 % PS sur les gains
+      return Brut - G * 0.30;
+
+    default:
+      return Brut;
   }
 }
 
+/** Détail fiscal d'une enveloppe : brut, impôts, net, gain net. */
+function envDetail(id, P, r, t, tmiE, tmiS, reinvest, isCouple) {
+  const rate = id === 'livretA' ? 0.03 : r;
+  const Brut = P * Math.pow(1 + rate, t);
+  const G    = Brut - P;
+  const net  = envNet(id, P, r, t, tmiE, tmiS, reinvest, isCouple);
+  let tax    = Brut - net;
+  let bonus  = 0;
+  if (id === 'per' && reinvest) {
+    const netBase = envNet('per', P, r, t, tmiE, tmiS, false, isCouple);
+    bonus = net - netBase;
+    tax   = Brut - netBase;  // impôts sur la partie PER seule (hors bonus)
+  }
+  return { brut: Math.round(Brut), tax: Math.round(tax), net: Math.round(net), gain: Math.round(net - P), bonus: Math.round(bonus) };
+}
+
 /** Année à partir de laquelle PER >= PEA, ou null si PEA toujours gagnant sur l'horizon. */
-function perCrossover(P, r, tmiE, tmiS, reinvest, maxY = 50) {
+function perCrossover(P, r, tmiE, tmiS, reinvest, isCouple, maxY = 50) {
   for (let y = 1; y <= maxY; y++) {
-    if (envNet('per', P, r, y, tmiE, tmiS, reinvest) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest)) return y;
+    if (envNet('per', P, r, y, tmiE, tmiS, reinvest, isCouple) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest, isCouple)) return y;
   }
   return null;
 }
@@ -667,19 +717,14 @@ function SimEnveloppes({ data }) {
   const [tmiS,      setTmiS]      = useState(11);           // TMI à la sortie/retraite
   const [reinvest,  setReinvest]  = useState(true);         // réinvestir l'économie IR en PEA
 
-  const tmiDiff = tmiE - tmiS;
+  const isCouple = data.isCouple ?? false;
+  const tmiDiff  = tmiE - tmiS;
 
-  // Calcul des valeurs nettes avec TMI sortie et toggle réinvestissement
-  const tableRows = useMemo(() => ENVELOPES.map(env => {
-    const net  = Math.round(envNet(env.id, capital, rate, duration, tmiE, tmiS, reinvest));
-    const gain = net - capital;
-    let perBonus = 0;
-    if (env.id === 'per' && reinvest) {
-      const netBase = Math.round(envNet('per', capital, rate, duration, tmiE, tmiS, false));
-      perBonus = net - netBase;
-    }
-    return { ...env, net, gain, perBonus };
-  }), [capital, rate, duration, tmiE, tmiS, reinvest]);
+  // Calcul détaillé par enveloppe (brut, impôts, net, gain, bonus PER)
+  const tableRows = useMemo(
+    () => ENVELOPES.map(env => ({ ...env, ...envDetail(env.id, capital, rate, duration, tmiE, tmiS, reinvest, isCouple) })),
+    [capital, rate, duration, tmiE, tmiS, reinvest, isCouple]
+  );
 
   const bestId = useMemo(
     () => tableRows.reduce((b, r) => r.net > b.net ? r : b, tableRows[0])?.id,
@@ -688,8 +733,8 @@ function SimEnveloppes({ data }) {
 
   // Point de croisement PER / PEA
   const crossoverYear = useMemo(
-    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, 60),
-    [capital, rate, tmiE, tmiS, reinvest]
+    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, isCouple, 60),
+    [capital, rate, tmiE, tmiS, reinvest, isCouple]
   );
 
   const chartData = useMemo(() => {
@@ -700,11 +745,11 @@ function SimEnveloppes({ data }) {
     return [...pts.values()].sort((a, b) => a - b).map(y => {
       const pt = { année: y };
       for (const env of ENVELOPES) {
-        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest));
+        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest, isCouple));
       }
       return pt;
     });
-  }, [capital, rate, duration, tmiE, tmiS, reinvest, crossoverYear]);
+  }, [capital, rate, duration, tmiE, tmiS, reinvest, isCouple, crossoverYear]);
 
   const formatY = v => {
     if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -816,36 +861,46 @@ function SimEnveloppes({ data }) {
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-            Comparatif après {duration} ans — TMI entrée {tmiE} % / sortie {tmiS} %
+            Comparatif après {duration} ans — {fmt(capital)} € à {(rate * 100).toFixed(0)} % — TMI entrée {tmiE} % / sortie {tmiS} %
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-4 py-2.5 text-gray-400 font-semibold">Enveloppe</th>
-                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold whitespace-nowrap">Capital net</th>
-                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold whitespace-nowrap">Dont boost fiscal</th>
-                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold whitespace-nowrap">Gain net</th>
+              <tr className="border-b border-gray-100 bg-gray-50/30">
+                <th className="text-left px-4 py-2 text-gray-400 font-semibold">Enveloppe</th>
+                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Brut avant impôt</th>
+                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Impôts / prél.</th>
+                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Capital net</th>
+                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Gain net</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {tableRows.map(row => (
                 <tr key={row.id} className={row.id === bestId ? 'bg-teal-50/60' : 'hover:bg-gray-50/40 transition-colors'}>
-                  <td className="px-4 py-3 font-semibold text-gray-800">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
-                      {row.name}
+                      <span className="font-semibold text-gray-800">{row.name}</span>
                       {row.id === bestId && (
                         <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full">Meilleur</span>
                       )}
                     </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 ml-4">{row.taxLabel}</div>
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono tabular-nums text-gray-500 whitespace-nowrap">
+                    {fmt(row.brut)} €
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                    {row.tax > 0
+                      ? <span className="text-red-500">−{fmt(row.tax)} €</span>
+                      : <span className="text-teal-600 font-semibold">0 €</span>}
+                    {row.id === 'per' && row.bonus > 0 && (
+                      <div className="text-[10px] text-violet-600 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right font-bold font-mono tabular-nums text-gray-800 whitespace-nowrap">
                     {fmt(row.net)} €
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono tabular-nums text-violet-600 whitespace-nowrap">
-                    {row.id === 'per' && row.perBonus > 0 ? `+ ${fmt(row.perBonus)} €` : '—'}
                   </td>
                   <td className={`px-3 py-3 text-right font-bold font-mono tabular-nums whitespace-nowrap ${row.gain >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
                     {row.gain >= 0 ? '+' : ''}{fmt(row.gain)} €
@@ -885,9 +940,11 @@ function SimEnveloppes({ data }) {
           </LineChart>
         </ResponsiveContainer>
         <p className="text-[10px] text-gray-400 text-center mt-2">
-          Livret A taux fixe 3 %. PER : déduction TMI {tmiE} % à l'entrée, imposition TMI {tmiS} % à la sortie + PS 17,2 % sur gains.
-          {reinvest ? ` Économie IR (${fmt(econoIR)} €) réinvestie en PEA.` : ''}
-          {' '}Sortie capital (rente exclue). PEA : PS 17,2 % après 5 ans.
+          Livret A taux garanti 3 %. PEA : PS 17,2 % sur gains (≥5 ans) · PFU 30 % avant.
+          AV&gt;8 ans : PS 17,2 % + IR 7,5 % sur gains &gt; {isCouple ? '9 200' : '4 600'} € (abattement {isCouple ? 'couple' : 'solo'}).
+          CTO : PFU 30 % sur gains.
+          PER : IR {tmiS} % sur la totalité + PS 17,2 % sur plus-values{reinvest ? ` + bonus ${fmt(econoIR)} € réinvesti en PEA` : ''}.
+          Simulation en capital (rente exclue).
         </p>
       </div>
 
