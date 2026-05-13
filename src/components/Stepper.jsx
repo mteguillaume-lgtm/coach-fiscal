@@ -2,10 +2,11 @@ import { useLocation, Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 
 const STEPS = [
-  { label: 'Anonymisation', short: 'Anon.', path: '/anonymize' },
-  { label: 'Collecte',      short: 'Coll.', path: '/collect'   },
-  { label: 'Profil',        short: 'Profil',path: '/profile'   },
-  { label: 'Conseil',       short: 'IA',    path: '/chat'      },
+  { label: 'Anonymisation', short: 'Anon.',   path: '/anonymize' },
+  { label: 'Collecte',      short: 'Coll.',   path: '/collect'   },
+  { label: 'Profil',        short: 'Profil',  path: '/profile'   },
+  { label: 'Rapport',       short: 'Rapport', path: '/rapport'   },
+  { label: 'Conseil IA',    short: 'IA',      path: '/chat'      },
 ];
 
 export default function Stepper() {

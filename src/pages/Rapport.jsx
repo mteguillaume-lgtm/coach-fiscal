@@ -219,12 +219,12 @@ function Th({ children, right, wide }) {
   );
 }
 
-function Td({ children, right, bold, muted, minus, plus, subtotal, className = '' }) {
+function Td({ children, right, bold, muted, minus, plus, subtotal, colSpan, className = '' }) {
   const color = minus ? 'text-red-600' : plus ? 'text-teal-600' : muted ? 'text-gray-400' : 'text-gray-700';
   return (
-    <td className={[
+    <td colSpan={colSpan} className={[
       'px-4 py-2.5 border-b border-gray-50 tabular-nums',
-      right ? 'text-right' : 'text-left',
+      right ? 'text-right whitespace-nowrap' : 'text-left',
       bold  ? 'font-semibold text-gray-900' : color,
       subtotal ? 'bg-gray-50/60' : '',
       className,
@@ -245,6 +245,128 @@ function TotalRow({ label, value, sub, color = 'teal', colSpan = 2 }) {
       <td className="px-4 py-3 font-bold text-sm">{label}{sub && <span className="text-xs font-normal opacity-60 ml-2">{sub}</span>}</td>
       <td colSpan={colSpan} className="px-4 py-3 font-bold text-sm text-right tabular-nums">{value}</td>
     </tr>
+  );
+}
+
+// ─── Table récap revenus ──────────────────────────────────────────────────────
+
+function RevenusTable({ d, p }) {
+  const cols = d.isCouple ? 3 : 2;
+  const fmtTaux = t => t > 0 ? `${t} %` : '—';
+
+  const Row = ({ label, v1, v2, sub = false, minus: isMinus = false }) => (
+    <tr className={sub ? 'bg-gray-50/50' : ''}>
+      <Td className={sub ? 'pl-8' : ''}>{label}</Td>
+      <Td right bold={sub} minus={isMinus}>{v1}</Td>
+      {d.isCouple && <Td right bold={sub} minus={isMinus}>{v2 ?? v1}</Td>}
+    </tr>
+  );
+
+  return (
+    <SectionBox title={d.isCouple ? 'Revenus 2025 — D1 & D2' : 'Revenus 2025'}>
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Élément</Th>
+            <Th right>{d.isCouple ? 'D1' : 'Montant'}</Th>
+            {d.isCouple && <Th right>D2</Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {(d.brutD1 > 0 || d.brutD2 > 0) && (
+            <Row label="Brut imposable" v1={e2(d.brutD1)} v2={e2(d.brutD2)} />
+          )}
+          <Row label="Net imposable (case 1AJ)" v1={e2(d.netD1)} v2={e2(d.netD2)} />
+          <Row label="− Abattement 10 % frais pro" v1={`− ${e2(d.abt10D1)}`} v2={`− ${e2(d.abt10D2)}`} sub isMinus />
+          <tr className="bg-gray-50/60">
+            <Td bold>Salaires retenus (RNI)</Td>
+            <Td right bold>{e2(d.retD1)}</Td>
+            {d.isCouple && <Td right bold>{e2(d.retD2)}</Td>}
+          </tr>
+          <Row label="PAS prélevé 2025" v1={e2(d.pasD1)} v2={e2(d.pasD2)} />
+          {(p.tauxPasD1 > 0 || p.tauxPasD2 > 0) && (
+            <Row label="Taux PAS effectif" v1={fmtTaux(p.tauxPasD1)} v2={fmtTaux(p.tauxPasD2)} />
+          )}
+          {(p.peroD1 > 0 || p.peroD2 > 0) && (
+            <Row label="PERO — déjà inclus dans 1AJ" v1={p.peroD1 > 0 ? e0(p.peroD1) : '—'} v2={p.peroD2 > 0 ? e0(p.peroD2) : '—'} />
+          )}
+          {d.foncierBrut > 0 && <>
+            <tr>
+              <td colSpan={cols} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+                Revenus fonciers
+              </td>
+            </tr>
+            <tr>
+              <Td>Foncier brut (case 4BE)</Td>
+              <Td right colSpan={d.isCouple ? 2 : 1}>{e2(d.foncierBrut)}</Td>
+            </tr>
+            {d.isMicro && (
+              <tr>
+                <Td className="pl-8">− Abattement 30 % micro-foncier</Td>
+                <Td right minus colSpan={d.isCouple ? 2 : 1}>− {e2(d.foncierAbt)}</Td>
+              </tr>
+            )}
+            <tr className="bg-gray-50/60">
+              <Td bold>Foncier net imposable</Td>
+              <Td right bold colSpan={d.isCouple ? 2 : 1}>{e2(d.foncierNet)}</Td>
+            </tr>
+          </>}
+        </tbody>
+      </Tbl>
+    </SectionBox>
+  );
+}
+
+// ─── Table récap épargne & placements ────────────────────────────────────────
+
+function EpargneTable({ p }) {
+  const isCouple = p.mode === 'couple';
+
+  const rows = [
+    { label: 'Livret A',                  d1: p.livretAD1,    d2: p.livretAD2    },
+    { label: 'LDDS',                       d1: p.lddsD1,       d2: p.lddsD2       },
+    { label: 'LEP',                        d1: p.lepD1,        d2: p.lepD2        },
+    { label: 'Livret+ / Livret bancaire',  d1: p.livretPlusD1, d2: p.livretPlusD2 },
+    { label: 'PEL',                        d1: p.pelD1,        d2: p.pelD2        },
+    { label: 'PEA',                        d1: p.peaD1,        d2: p.peaD2        },
+    { label: 'Assurance-vie',              d1: p.avD1,         d2: p.avD2         },
+    { label: 'PERCO / PER',               d1: p.percoD1,      d2: p.percoD2      },
+    { label: 'Crypto (wallet)',            d1: p.cryptoD1,     d2: p.cryptoD2     },
+  ].filter(r => (r.d1 || 0) + (r.d2 || 0) > 0);
+
+  if (rows.length === 0) return null;
+
+  const totalD1 = rows.reduce((s, r) => s + (r.d1 || 0), 0);
+  const totalD2 = rows.reduce((s, r) => s + (r.d2 || 0), 0);
+
+  return (
+    <SectionBox title="Épargne & placements">
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Enveloppe</Th>
+            <Th right>{isCouple ? 'D1' : 'Montant'}</Th>
+            {isCouple && <Th right>D2</Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <Td>{r.label}</Td>
+              <Td right>{r.d1 > 0 ? e0(r.d1) : '—'}</Td>
+              {isCouple && <Td right>{r.d2 > 0 ? e0(r.d2) : '—'}</Td>}
+            </tr>
+          ))}
+          <tr className="bg-gray-50 border-t-2 border-gray-200">
+            <td className="px-4 py-3 text-xs font-bold text-gray-900">Total patrimoine financier</td>
+            <td className="px-4 py-3 text-xs font-bold text-gray-900 text-right whitespace-nowrap tabular-nums">{e0(totalD1)}</td>
+            {isCouple && (
+              <td className="px-4 py-3 text-xs font-bold text-gray-900 text-right whitespace-nowrap tabular-nums">{e0(totalD2)}</td>
+            )}
+          </tr>
+        </tbody>
+      </Tbl>
+    </SectionBox>
   );
 }
 
@@ -573,6 +695,7 @@ export default function Rapport() {
   const { state } = useApp();
   const navigate  = useNavigate();
   const profile   = state.profile;
+  const p         = state.parsedProfile ?? {};
 
   const d = useMemo(() => computeData(profile), [profile]);
 
@@ -604,12 +727,12 @@ export default function Rapport() {
 
       {/* ── Header ── */}
       <div className="print:hidden">
-        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Rapport</span>
+        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 4 / 5</span>
         <h1 className="text-2xl font-bold text-gray-900 mt-1">Rapport fiscal — Déclaration 2025</h1>
         <p className="text-sm text-gray-500 mt-1">
           {d.hasAi
-            ? 'Profil enrichi IA — calculs détaillés + analyse complète.'
-            : 'Profil de base — enrichissez avec l\'IA pour l\'analyse complète.'}
+            ? 'Profil enrichi IA — synthèse du foyer, calculs détaillés, analyse complète.'
+            : 'Synthèse du foyer + calculs détaillés. Enrichissez avec l\'IA pour l\'analyse complète.'}
         </p>
       </div>
 
@@ -667,8 +790,20 @@ export default function Rapport() {
         </div>
       )}
 
+      {/* ── Récapitulatif du profil ── */}
+      {d.rniFoyer > 0 && <>
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
+          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Synthèse du foyer</h2>
+        </div>
+        <RevenusTable d={d} p={p} />
+        <EpargneTable p={p} />
+      </>}
+
       {/* ── Tableaux de calcul ── */}
       {d.rniFoyer > 0 && <>
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
+          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Calcul de l'impôt</h2>
+        </div>
         <RniTable d={d} />
         {d.steps.length > 0 && <BaremeTable d={d} />}
         <SoldeTable d={d} />
@@ -685,6 +820,22 @@ export default function Rapport() {
           {aiSections.map((s, i) => <AiSectionCard key={i} section={s} />)}
         </div>
       )}
+
+      {/* ── CTA Conseil IA ── */}
+      <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 print:hidden">
+        <div className="w-10 h-10 rounded-xl bg-teal-gradient flex items-center justify-center text-white shrink-0 shadow-sm">
+          <Sparkles size={18} />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-gray-800 text-sm">Étape suivante : le conseil expert</p>
+          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+            Posez vos questions à Claude avec votre profil fiscal complet en contexte.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => navigate('/chat')} className="shrink-0">
+          Démarrer le conseil → <Sparkles size={12} />
+        </Button>
+      </div>
 
       {/* ── Pied de page impression ── */}
       <div className="flex gap-3 flex-wrap pt-2 print:hidden">

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate }         from 'react-router-dom';
 import toast                   from 'react-hot-toast';
-import { Copy, Download, MessageCircle, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2, Loader2, LayoutDashboard, CheckCircle2 } from 'lucide-react';
+import { Copy, Download, ArrowLeft, Check, FileText, Sparkles, ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2, Loader2, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 
 import { useApp }                   from '../context/AppContext';
 import { parseProfile }             from '../lib/profileParser';
@@ -135,10 +135,10 @@ export default function Profile() {
 
       {/* Header */}
       <div>
-        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 3 / 4</span>
+        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 3 / 5</span>
         <h1 className="text-2xl font-bold text-gray-900 mt-1">Votre profil fiscal</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Synthèse structurée que Claude utilisera pour vous conseiller.
+          Synthèse structurée. Enrichissez-le avec l'IA, puis consultez le rapport complet.
         </p>
       </div>
 
@@ -239,8 +239,8 @@ export default function Profile() {
             </span>
           )}
         </Button>
-        <Button variant="primary" size="lg" className="flex-1 sm:flex-[2] !whitespace-nowrap !min-h-[44px]" onClick={() => navigate('/chat')}>
-          <Sparkles size={14} /> Démarrer le conseil →
+        <Button variant="primary" size="lg" className="flex-1 sm:flex-[2] !whitespace-nowrap !min-h-[44px]" onClick={() => navigate('/rapport')}>
+          <FileText size={14} /> Voir le rapport →
         </Button>
       </div>
 
@@ -252,17 +252,22 @@ export default function Profile() {
       {/* CTA principal */}
       <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="w-10 h-10 rounded-xl bg-teal-gradient flex items-center justify-center text-white shrink-0 shadow-sm">
-          <MessageCircle size={18} />
+          <FileText size={18} />
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-gray-800 text-sm">Prêt pour le conseil expert</p>
+          <p className="font-semibold text-gray-800 text-sm">Étape suivante : le rapport complet</p>
           <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-            Ce profil + les skills fiscaux actifs seront transmis à Claude à chaque question.
+            Tableaux de calcul étape par étape, analyse IA, objectifs prioritaires.
           </p>
         </div>
-        <Button size="sm" onClick={() => navigate('/chat')} className="shrink-0">
-          Lancer → <Sparkles size={12} />
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" onClick={() => navigate('/rapport')} className="shrink-0">
+            Rapport → <FileText size={12} />
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/chat')} className="shrink-0">
+            <Sparkles size={12} /> Chat IA
+          </Button>
+        </div>
       </div>
 
       <div className="flex justify-start">
