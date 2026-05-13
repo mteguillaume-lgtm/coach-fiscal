@@ -125,6 +125,14 @@ ${d.charges_fixes ? `Charges fixes mensuelles : ${Number(d.charges_fixes).toLoca
 ${d.credit_rp ? `dont crédit RP / loyer : ${Number(d.credit_rp).toLocaleString('fr-FR')} €/mois` : ''}
 ${d.autres_credits ? `dont autres crédits : ${Number(d.autres_credits).toLocaleString('fr-FR')} €/mois` : ''}
 ${d.objectif_patrimonial ? `Objectif patrimonial : ${d.objectif_patrimonial}` : ''}
+${(() => {
+  const net = parseFloat(d.net_imp || 0);
+  const men = Math.round(abattement10(net) / 12);
+  const charges = parseFloat(d.charges_fixes || 0);
+  if (!charges || !men) return '';
+  const cap = Math.max(0, men - charges);
+  return `Revenu net mensuel : ${men.toLocaleString('fr-FR')} €/mois\nCapacité d'épargne mensuelle : ${cap.toLocaleString('fr-FR')} €/mois (${men > 0 ? Math.round(cap / men * 100) : 0} % du revenu net)`;
+})()}
 
 == IMMOBILIER ==
 Propriétaire RP : ${d.proprio || 'Non renseigné'}
@@ -293,9 +301,30 @@ Pension alimentaire versée : ${fmt(d.pension)}
 Cotisations syndicales : ${d.syndicat && d.syndicat !== '0' ? Number(d.syndicat).toLocaleString('fr-FR') + ' € → crédit d\'impôt 66%' : 'Néant'}
 
 == CAPACITÉ D'ÉPARGNE ==
-${d.charges_fixes ? `Charges fixes mensuelles : ${Number(d.charges_fixes).toLocaleString('fr-FR')} €/mois` : 'Charges fixes : Non renseignées'}
+${d.charges_fixes ? `Charges communes mensuelles : ${Number(d.charges_fixes).toLocaleString('fr-FR')} €/mois` : 'Charges communes : Non renseignées'}
 ${d.credit_rp ? `dont crédit RP / loyer : ${Number(d.credit_rp).toLocaleString('fr-FR')} €/mois` : ''}
 ${d.autres_credits ? `dont autres crédits : ${Number(d.autres_credits).toLocaleString('fr-FR')} €/mois` : ''}
+${d.charges_perso_d1 ? `Charges personnelles D1 : ${Number(d.charges_perso_d1).toLocaleString('fr-FR')} €/mois` : ''}
+${d.charges_perso_d2 ? `Charges personnelles D2 : ${Number(d.charges_perso_d2).toLocaleString('fr-FR')} €/mois` : ''}
+${(() => {
+  const chargesComm = parseFloat(d.charges_fixes || 0);
+  const persoD1 = parseFloat(d.charges_perso_d1 || 0);
+  const persoD2 = parseFloat(d.charges_perso_d2 || 0);
+  const menD1 = Math.round(rniD1 / 12);
+  const menD2 = Math.round(rniD2 / 12);
+  if (!chargesComm || (!menD1 && !menD2)) return '';
+  const capD1 = Math.max(0, menD1 - chargesComm / 2 - persoD1);
+  const capD2 = Math.max(0, menD2 - chargesComm / 2 - persoD2);
+  const tauxD1 = menD1 > 0 ? Math.round(capD1 / menD1 * 100) : 0;
+  const tauxD2 = menD2 > 0 ? Math.round(capD2 / menD2 * 100) : 0;
+  const lines = [];
+  if (menD1 > 0) lines.push(`Revenu net mensuel D1 : ${menD1.toLocaleString('fr-FR')} €/mois`);
+  if (menD2 > 0) lines.push(`Revenu net mensuel D2 : ${menD2.toLocaleString('fr-FR')} €/mois`);
+  if (menD1 > 0) lines.push(`Capacité d'épargne D1 : ${capD1.toLocaleString('fr-FR')} €/mois (${tauxD1} % du revenu net D1)`);
+  if (menD2 > 0) lines.push(`Capacité d'épargne D2 : ${capD2.toLocaleString('fr-FR')} €/mois (${tauxD2} % du revenu net D2)`);
+  lines.push(`Capacité d'épargne foyer : ${(capD1 + capD2).toLocaleString('fr-FR')} €/mois`);
+  return lines.join('\n');
+})()}
 ${d.objectif_patrimonial ? `Objectif patrimonial : ${d.objectif_patrimonial}` : ''}
 
 == IMMOBILIER ==

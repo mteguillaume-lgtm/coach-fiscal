@@ -231,9 +231,14 @@ export function parseProfile(text) {
   const cryptoPvD2        = n(secEpD2,   /Crypto plus-value nette[^:\n]*:\s*([\d\s,]+)\s*€/i);
 
   // ── CAPACITÉ D'ÉPARGNE ────────────────────────────────────────────────────────
-  const chargesFixes       = n(secCapacite, /Charges fixes mensuelles[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const chargesFixes       = n(secCapacite, /Charges (?:fixes|communes) mensuelles[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const creditRp           = n(secCapacite, /dont crédit RP[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const autresCredits      = n(secCapacite, /dont autres crédits[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const chargesPersoD1     = n(secCapacite, /Charges personnelles D1[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const chargesPersoD2     = n(secCapacite, /Charges personnelles D2[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const capaciteEpargneD1  = n(secCapacite, /Capacité d'épargne D1[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const capaciteEpargneD2  = n(secCapacite, /Capacité d'épargne D2[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const capaciteEpargneFoyer = n(secCapacite, /Capacité d'épargne (?:foyer|mensuelle)[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const objectifPatrimonial = s(secCapacite, /Objectif patrimonial\s*:\s*(.+)/i);
 
   // ── IMMOBILIER ENRICHI ────────────────────────────────────────────────────────
@@ -287,7 +292,9 @@ export function parseProfile(text) {
     pelD2, pelDateD2, peaD2, peaDateD2, peaVerseD2, avD2, avDateD2, avVerseD2,
     cryptoD2, percoD2, cryptoPlateformeD2, cryptoCessionsD2, cryptoMontantCedeD2, cryptoPvD2,
 
-    chargesFixes, creditRp, autresCredits, objectifPatrimonial,
+    chargesFixes, creditRp, autresCredits, chargesPersoD1, chargesPersoD2,
+    capaciteEpargneD1, capaciteEpargneD2, capaciteEpargneFoyer,
+    objectifPatrimonial,
     rpValeur, creditCrd, creditTaux, creditMensualite, taxeFonciere,
 
     epargneLiquide, epargneLongTerme, cryptoTotal, immoTotal,
@@ -321,7 +328,10 @@ export function emptyProfile() {
     livretAD2: 0, lddsD2: 0, lepD2: 0, livretPlusD2: 0,
     pelD2: 0, pelDateD2: '', peaD2: 0, peaDateD2: '', peaVerseD2: 0, avD2: 0, avDateD2: '', avVerseD2: 0,
     cryptoD2: 0, percoD2: 0, cryptoPlateformeD2: '', cryptoCessionsD2: '', cryptoMontantCedeD2: 0, cryptoPvD2: 0,
-    chargesFixes: 0, creditRp: 0, autresCredits: 0, objectifPatrimonial: '',
+    chargesFixes: 0, creditRp: 0, autresCredits: 0,
+    chargesPersoD1: 0, chargesPersoD2: 0,
+    capaciteEpargneD1: 0, capaciteEpargneD2: 0, capaciteEpargneFoyer: 0,
+    objectifPatrimonial: '',
     rpValeur: 0, creditCrd: 0, creditTaux: 0, creditMensualite: 0, taxeFonciere: 0,
     epargneLiquide: 0, epargneLongTerme: 0, cryptoTotal: 0, immoTotal: 0, patrimoineTotal: 0,
     regimeFoncier: null,

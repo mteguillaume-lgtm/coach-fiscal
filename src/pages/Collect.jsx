@@ -252,7 +252,7 @@ const SECTION_IMMO = {
 };
 
 // Champs capacité d'épargne (pour comptage progression)
-const CAPACITE_KEYS = ['charges_fixes', 'credit_rp', 'autres_credits', 'objectif_patrimonial'];
+const CAPACITE_KEYS = ['charges_fixes', 'credit_rp', 'autres_credits', 'charges_perso_d1', 'charges_perso_d2', 'objectif_patrimonial'];
 
 const SOLO_SECTIONS = [SECTION_SIT, SECTION_PROFIL_SOLO, SECTION_REV_SOLO, SECTION_EP_SOLO, SECTION_DED_SOLO, SECTION_IMMO];
 
@@ -567,31 +567,49 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
 
 // ─── CapaciteSection ──────────────────────────────────────────────────────────
 
+function _capaciteColor(taux) {
+  if (taux < 10) return 'red';
+  if (taux < 25) return 'orange';
+  if (taux < 50) return 'green';
+  return 'blue';
+}
+function _capaciteMsg(taux) {
+  if (taux < 10) return 'Capacité d\'investissement faible';
+  if (taux < 25) return 'Capacité modérée';
+  if (taux < 50) return 'Bonne capacité d\'épargne';
+  return 'Capacité élevée — stratégie FIRE envisageable';
+}
+const _capaciteColorMap = {
+  red:    { bg: 'bg-red-50',    border: 'border-red-100',    label: 'text-red-400',    val: 'text-red-700',    msg: 'text-red-500'    },
+  orange: { bg: 'bg-amber-50',  border: 'border-amber-100',  label: 'text-amber-500',  val: 'text-amber-700',  msg: 'text-amber-500'  },
+  green:  { bg: 'bg-teal-50',   border: 'border-teal-100',   label: 'text-teal-500',   val: 'text-teal-700',   msg: 'text-teal-500'   },
+  blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   label: 'text-blue-400',   val: 'text-blue-700',   msg: 'text-blue-500'   },
+};
+
 function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeAcc, setActiveAcc }) {
   const id = 'capacite';
   const open = activeAcc === id;
 
   const netD1 = parseFloat(isCouple ? (d1Data?.net_imp || 0) : (formData.net_imp || 0));
   const netD2 = parseFloat(isCouple ? (d2Data?.net_imp || 0) : 0);
-  const rniMensuel = Math.round((abattement10(netD1) + abattement10(netD2)) / 12);
+  const rniMensuelD1 = Math.round(abattement10(netD1) / 12);
+  const rniMensuelD2 = Math.round(abattement10(netD2) / 12);
+  const rniMensuel   = rniMensuelD1 + rniMensuelD2;
 
-  const charges = parseFloat(formData.charges_fixes || 0);
-  const capacite = Math.max(0, rniMensuel - charges);
-  const taux = rniMensuel > 0 ? Math.round(capacite / rniMensuel * 100) : 0;
+  const chargesCommunes = parseFloat(formData.charges_fixes    || 0);
+  const chargesPersoD1  = parseFloat(formData.charges_perso_d1 || 0);
+  const chargesPersoD2  = parseFloat(formData.charges_perso_d2 || 0);
 
-  const color = taux < 10 ? 'red' : taux < 25 ? 'orange' : taux < 50 ? 'green' : 'blue';
-  const msg = taux < 10 ? 'Capacité d\'investissement faible'
-    : taux < 25 ? 'Capacité modérée'
-    : taux < 50 ? 'Bonne capacité d\'épargne'
-    : 'Capacité élevée — stratégie FIRE envisageable';
+  // Solo : charges_fixes = tout (comportement inchangé)
+  const capaciteSolo = Math.max(0, rniMensuel - chargesCommunes);
+  const tauxSolo = rniMensuel > 0 ? Math.round(capaciteSolo / rniMensuel * 100) : 0;
 
-  const colorMap = {
-    red:    { bg: 'bg-red-50',    border: 'border-red-100',    label: 'text-red-400',    val: 'text-red-700',    msg: 'text-red-500'    },
-    orange: { bg: 'bg-amber-50',  border: 'border-amber-100',  label: 'text-amber-500',  val: 'text-amber-700',  msg: 'text-amber-500'  },
-    green:  { bg: 'bg-teal-50',   border: 'border-teal-100',   label: 'text-teal-500',   val: 'text-teal-700',   msg: 'text-teal-500'   },
-    blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   label: 'text-blue-400',   val: 'text-blue-700',   msg: 'text-blue-500'   },
-  };
-  const c = colorMap[color];
+  // Couple : charges communes partagées 50/50 + charges perso séparées
+  const capaciteD1 = Math.max(0, rniMensuelD1 - chargesCommunes / 2 - chargesPersoD1);
+  const capaciteD2 = Math.max(0, rniMensuelD2 - chargesCommunes / 2 - chargesPersoD2);
+  const capaciteTotal = capaciteD1 + capaciteD2;
+  const tauxD1 = rniMensuelD1 > 0 ? Math.round(capaciteD1 / rniMensuelD1 * 100) : 0;
+  const tauxD2 = rniMensuelD2 > 0 ? Math.round(capaciteD2 / rniMensuelD2 * 100) : 0;
 
   const filled = CAPACITE_KEYS.filter(k => formData[k] && formData[k] !== '').length;
   const pct    = Math.round(filled / CAPACITE_KEYS.length * 100);
@@ -616,28 +634,115 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
 
       {open && (
         <div className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
-          {rniMensuel > 0 && (
-            <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5 mb-3">
-              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenus nets mensuels estimés</p>
-              <p className="text-sm font-bold text-blue-800 font-mono">{rniMensuel.toLocaleString('fr-FR')} €/mois</p>
-              <p className="text-[10px] text-blue-400 mt-0.5">Calculé depuis le RNI (après abattement 10 % salaires)</p>
+
+          {/* ── Mode couple : salaires D1/D2 côte à côte ── */}
+          {isCouple && (rniMensuelD1 > 0 || rniMensuelD2 > 0) && (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[{ label: 'D1', val: rniMensuelD1 }, { label: 'D2', val: rniMensuelD2 }].map(({ label, val }) => (
+                <div key={label} className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenu net mensuel {label}</p>
+                  <p className="text-sm font-bold text-blue-800 font-mono">{val.toLocaleString('fr-FR')} €/mois</p>
+                </div>
+              ))}
+              <p className="col-span-2 text-[10px] text-blue-400 -mt-1">Après abattement 10 % (salaires) — source : cases 1AJ / 1BJ</p>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <FieldRow f={{ key: 'charges_fixes', label: 'Charges fixes mensuelles (€)', type: 'number', ph: '2 500' }} value={formData.charges_fixes} onChange={onChange} autoFKeys={{}} />
-            <FieldRow f={{ key: 'credit_rp', label: 'dont crédit RP / loyer (€)', type: 'number', ph: '900' }} value={formData.credit_rp} onChange={onChange} autoFKeys={{}} />
-            <FieldRow f={{ key: 'autres_credits', label: 'dont autres crédits (€)', type: 'number', ph: '0' }} value={formData.autres_credits} onChange={onChange} autoFKeys={{}} />
-            <FieldRow f={{ key: 'objectif_patrimonial', label: 'Objectif patrimonial', type: 'select', opts: ['', 'Optimisation fiscale annuelle', 'Constitution patrimoine long terme', 'Préparation retraite', 'Indépendance financière (FIRE)', 'Transmission'] }} value={formData.objectif_patrimonial} onChange={onChange} autoFKeys={{}} />
-          </div>
-          {rniMensuel > 0 && charges > 0 && (
-            <div className={`rounded-xl border px-3 py-2.5 ${c.bg} ${c.border}`}>
-              <div className="flex justify-between items-baseline mb-1">
-                <p className={`text-[10px] font-bold uppercase tracking-widest ${c.label}`}>Capacité d&apos;épargne</p>
-                <span className={`text-xs font-bold font-mono ${c.val}`}>{taux} %</span>
-              </div>
-              <p className={`text-lg font-bold font-mono ${c.val}`}>{capacite.toLocaleString('fr-FR')} €/mois</p>
-              <p className={`text-xs mt-0.5 ${c.msg}`}>{msg}</p>
+
+          {/* ── Mode solo : revenu global ── */}
+          {!isCouple && rniMensuel > 0 && (
+            <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5 mb-3">
+              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenu net mensuel estimé</p>
+              <p className="text-sm font-bold text-blue-800 font-mono">{rniMensuel.toLocaleString('fr-FR')} €/mois</p>
+              <p className="text-[10px] text-blue-400 mt-0.5">Après abattement 10 % salaires</p>
             </div>
+          )}
+
+          {/* ── Charges communes ── */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <FieldRow
+              f={{ key: 'charges_fixes', label: isCouple ? 'Charges communes mensuelles (€)' : 'Charges fixes mensuelles (€)', type: 'number', ph: '2 500',
+                   hint: isCouple ? 'Loyer / crédit RP, courses, abonnements partagés — divisé 50/50 entre D1 et D2.' : undefined }}
+              value={formData.charges_fixes} onChange={onChange} autoFKeys={{}} />
+            <FieldRow
+              f={{ key: 'credit_rp', label: 'dont crédit RP / loyer (€)', type: 'number', ph: '900' }}
+              value={formData.credit_rp} onChange={onChange} autoFKeys={{}} />
+            <FieldRow
+              f={{ key: 'autres_credits', label: 'dont autres crédits (€)', type: 'number', ph: '0' }}
+              value={formData.autres_credits} onChange={onChange} autoFKeys={{}} />
+          </div>
+
+          {/* ── Charges personnelles D1 / D2 (couple uniquement) ── */}
+          {isCouple && (
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <FieldRow
+                f={{ key: 'charges_perso_d1', label: 'Charges perso D1 (€)', type: 'number', ph: '0',
+                     hint: 'Transport, sport, loisirs, abonnements perso — propres à D1 uniquement.' }}
+                value={formData.charges_perso_d1} onChange={onChange} autoFKeys={{}} />
+              <FieldRow
+                f={{ key: 'charges_perso_d2', label: 'Charges perso D2 (€)', type: 'number', ph: '0',
+                     hint: 'Transport, sport, loisirs, abonnements perso — propres à D2 uniquement.' }}
+                value={formData.charges_perso_d2} onChange={onChange} autoFKeys={{}} />
+            </div>
+          )}
+
+          <div className={isCouple ? '' : 'grid grid-cols-2 gap-3 mb-3'}>
+            {!isCouple && <div />}
+            <FieldRow
+              f={{ key: 'objectif_patrimonial', label: 'Objectif patrimonial', type: 'select',
+                   opts: ['', 'Optimisation fiscale annuelle', 'Constitution patrimoine long terme', 'Préparation retraite', 'Indépendance financière (FIRE)', 'Transmission'] }}
+              value={formData.objectif_patrimonial} onChange={onChange} autoFKeys={{}} />
+          </div>
+
+          {/* ── Résultats ── */}
+          {isCouple ? (
+            // Mode couple : capacité D1 / D2 côte à côte + total foyer
+            chargesCommunes > 0 && (rniMensuelD1 > 0 || rniMensuelD2 > 0) && (
+              <div className="flex flex-col gap-2 mt-1">
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ label: 'D1', capacite: capaciteD1, taux: tauxD1, rni: rniMensuelD1 },
+                    { label: 'D2', capacite: capaciteD2, taux: tauxD2, rni: rniMensuelD2 }].map(({ label, capacite, taux, rni }) => {
+                    const col = _capaciteColor(taux);
+                    const c = _capaciteColorMap[col];
+                    return (
+                      <div key={label} className={`rounded-xl border px-3 py-2.5 ${c.bg} ${c.border}`}>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <p className={`text-[10px] font-bold uppercase tracking-widest ${c.label}`}>Capacité {label}</p>
+                          <span className={`text-xs font-bold font-mono ${c.val}`}>{taux} %</span>
+                        </div>
+                        <p className={`text-base font-bold font-mono ${c.val}`}>{capacite.toLocaleString('fr-FR')} €/mois</p>
+                        <p className={`text-[10px] mt-0.5 ${c.msg}`}>{_capaciteMsg(taux)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {capaciteTotal > 0 && (
+                  <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
+                    <div className="flex justify-between items-baseline">
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">Total foyer</p>
+                      <span className="text-xs font-bold font-mono text-teal-600">
+                        {rniMensuel > 0 ? Math.round(capaciteTotal / rniMensuel * 100) : 0} %
+                      </span>
+                    </div>
+                    <p className="text-lg font-bold font-mono text-teal-700">{capaciteTotal.toLocaleString('fr-FR')} €/mois</p>
+                  </div>
+                )}
+              </div>
+            )
+          ) : (
+            // Mode solo : comportement inchangé
+            rniMensuel > 0 && chargesCommunes > 0 && (() => {
+              const c = _capaciteColorMap[_capaciteColor(tauxSolo)];
+              return (
+                <div className={`rounded-xl border px-3 py-2.5 ${c.bg} ${c.border}`}>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${c.label}`}>Capacité d&apos;épargne</p>
+                    <span className={`text-xs font-bold font-mono ${c.val}`}>{tauxSolo} %</span>
+                  </div>
+                  <p className={`text-lg font-bold font-mono ${c.val}`}>{capaciteSolo.toLocaleString('fr-FR')} €/mois</p>
+                  <p className={`text-xs mt-0.5 ${c.msg}`}>{_capaciteMsg(tauxSolo)}</p>
+                </div>
+              );
+            })()
           )}
         </div>
       )}
