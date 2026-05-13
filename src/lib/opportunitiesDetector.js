@@ -20,8 +20,9 @@ export function detectOpportunities(parsedProfile) {
     rniFoyer, rfr,
     plafondPerD1, plafondPerD2, plafondPerTotal,
     livretAD1, livretAD2, lddsD1, lddsD2,
-    peaD1, peaD2,
     lepD1, lepD2,
+    livretPlusD1, livretPlusD2,
+    peaD1, peaD2,
     tauxPasD1, tauxPasD2,
     remboursement,
     cryptoTotal,
@@ -34,12 +35,18 @@ export function detectOpportunities(parsedProfile) {
   } = parsedProfile;
 
   const opps = [];
-  const isCouple      = mode === 'couple';
-  const perPlafond    = plafondPerTotal || plafondPerD1;
+  const isCouple       = mode === 'couple';
+  const perPlafond     = plafondPerTotal || plafondPerD1;
   const isPacseOuMarie = isCouple;
-  const livretTotal   = livretAD1 + livretAD2 + lddsD1 + lddsD2;
-  const hasPEA        = peaD1 > 0 || peaD2 > 0;
-  const hasLEP        = lepD1 > 0 || lepD2 > 0;
+  const hasPEA         = peaD1 > 0 || peaD2 > 0;
+  const hasLEP         = lepD1 > 0 || lepD2 > 0;
+
+  // Épargne liquide = tout ce qui reste disponible sans blocage fiscal
+  // (Livret A, LDDS, LEP, Livret+/bancaire) — hors PEA, AV, PEL, PERCO
+  const livretTotal = livretAD1 + livretAD2
+                    + lddsD1   + lddsD2
+                    + lepD1    + lepD2
+                    + (livretPlusD1 || 0) + (livretPlusD2 || 0);
   const tauxPAS       = tauxPasD1;
 
   // Taux effectif réel (IR net / RNI) — toujours plus bas que le TMI
@@ -69,18 +76,27 @@ export function detectOpportunities(parsedProfile) {
     });
   }
 
-  // Épargne liquide mal rémunérée : livrets > 10 000 € (Livret A + LDDS hors LEP)
+  // Épargne liquide mal rémunérée : total > 10 000 €
+  // Inclut : Livret A, LDDS, LEP, Livret+ / Livret bancaire (tout ce qui est disponible)
+  // Exclut : PEA, AV, PEL, PERCO (bloqués ou à horizon long terme)
   if (livretTotal > 10_000) {
+    const detail = [
+      livretAD1 + livretAD2 > 0 ? `Livret A ${fmt(livretAD1 + livretAD2)} €` : null,
+      lddsD1 + lddsD2 > 0       ? `LDDS ${fmt(lddsD1 + lddsD2)} €`           : null,
+      lepD1 + lepD2 > 0         ? `LEP ${fmt(lepD1 + lepD2)} €`              : null,
+      (livretPlusD1 || 0) + (livretPlusD2 || 0) > 0
+        ? `Livret bancaire ${fmt((livretPlusD1 || 0) + (livretPlusD2 || 0))} €` : null,
+    ].filter(Boolean).join(' · ');
     opps.push({
       id: 'epargne_mal_remuneree',
       type: 'gain',
       urgence: 'long_terme',
       titre: '💡 Épargne liquide à optimiser',
-      description: `${fmt(livretTotal)} € sur livrets réglementés. Une partie excédant votre épargne de précaution (3-6 mois de dépenses) pourrait être investie sur PEA ou assurance-vie pour une meilleure performance long terme.`,
+      description: `${fmt(livretTotal)} € d'épargne disponible détectée${detail ? ` (${detail})` : ''}. La part excédant votre épargne de précaution (3-6 mois de charges) pourrait être investie sur PEA ou assurance-vie pour une meilleure performance.`,
       impact: 'Gain potentiel annuel selon l\'allocation choisie',
       impactEuros: Math.round(livretTotal * 0.02),
-      action: 'Envisager un versement sur PEA ou assurance-vie fonds euros',
-      questionChat: `J'ai ${fmt(livretTotal)} € sur livrets réglementés. Quelle stratégie pour optimiser mon allocation — garder une épargne de précaution et investir le surplus ?`,
+      action: 'Identifier le surplus au-delà de 3-6 mois de charges, puis alimenter PEA ou AV',
+      questionChat: `J'ai ${fmt(livretTotal)} € d'épargne liquide répartie ainsi : ${detail || 'sur plusieurs livrets'}. Quelle part garder en épargne de précaution et comment investir le surplus sur PEA ou assurance-vie ?`,
     });
   }
 
