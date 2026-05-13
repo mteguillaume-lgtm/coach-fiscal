@@ -9,7 +9,7 @@ import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, 
 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
-import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, calcIR, TRANCHES } from '../lib/taxCalculator';
+import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, calcIR, TRANCHES, computePerOptimumCascade } from '../lib/taxCalculator';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
 const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
@@ -207,12 +207,17 @@ function SimPER({ data }) {
   const plafondD2    = showTwoSliders ? (profData.perCalcD2?.plafondNet || 0) : 0;
   const plafondTotal = plafondD1 + plafondD2;
 
-  const [versementD1, setVersementD1] = useState(
-    () => plafondD1 > 0 ? Math.round(Math.min(plafondD1, 3000) / 100) * 100 : 0
-  );
-  const [versementD2, setVersementD2] = useState(
-    () => showTwoSliders && plafondD2 > 0 ? Math.round(Math.min(plafondD2, 2000) / 100) * 100 : 0
-  );
+  // Initialiser sur l'optimum fiscal (effacement de la tranche supérieure)
+  const [versementD1, setVersementD1] = useState(() => {
+    if (!plafondD1) return 0;
+    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple);
+    return Math.round((opt.optimumD1 || 0) / 50) * 50;
+  });
+  const [versementD2, setVersementD2] = useState(() => {
+    if (!showTwoSliders || !plafondD2) return 0;
+    const opt = computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple);
+    return Math.round((opt.optimumD2 || 0) / 50) * 50;
+  });
 
   const totalVerse = versementD1 + (showTwoSliders ? versementD2 : 0);
 
