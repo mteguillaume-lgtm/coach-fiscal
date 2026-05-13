@@ -771,9 +771,13 @@ function SimEnveloppes({ data }) {
     const step = duration <= 10 ? 1 : duration <= 20 ? 2 : 5;
     const pts = new Map();
     for (let y = 0; y <= duration; y += step) pts.set(y, y);
+    // Always include year 5 to show PEA regime change (30% → 17,2%)
+    if (duration >= 5) pts.set(5, 5);
     if (crossoverYear && crossoverYear <= duration) pts.set(crossoverYear, crossoverYear);
     return [...pts.values()].sort((a, b) => a - b).map(y => {
       const pt = { année: y };
+      // Référence intérêts composés bruts (avant impôts, au taux du curseur)
+      pt['Brut'] = Math.round(capital * Math.pow(1 + rate, y));
       for (const env of ENVELOPES) {
         pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest, isCouple, avVerse));
       }
@@ -951,7 +955,20 @@ function SimEnveloppes({ data }) {
 
       {/* Chart */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Évolution du capital net</p>
+        <div className="flex items-baseline justify-between mb-1">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Évolution du capital net</p>
+        </div>
+        {/* Brut reference callout */}
+        <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+          <span className="flex-shrink-0 w-6 border-t-2 border-dashed border-gray-400" />
+          <span className="text-[11px] text-gray-500">
+            Intérêts composés bruts (avant impôts) à {(rate * 100).toFixed(0)} % sur {duration} ans :{' '}
+            <span className="font-mono font-bold text-gray-700">
+              {fmt(capital * Math.pow(1 + rate, duration))} €
+            </span>
+            {' '}— les courbes colorées = net après fiscalité
+          </span>
+        </div>
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -963,6 +980,10 @@ function SimEnveloppes({ data }) {
               <ReferenceLine x={crossoverYear} stroke="#8b5cf6" strokeDasharray="4 2"
                 label={{ value: `PER=PEA (${crossoverYear}a)`, position: 'top', fontSize: 9, fill: '#7c3aed' }} />
             )}
+            {/* Ligne brute intérêts composés — référence visuelle (hors légende) */}
+            <Line key="brut" type="monotone" dataKey="Brut" stroke="#9ca3af"
+              strokeWidth={1.5} strokeDasharray="6 3" dot={false} activeDot={{ r: 3 }}
+              name="Brut (sans impôts)" legendType="none" />
             {ENVELOPES.map(env => (
               <Line key={env.id} type="monotone" dataKey={env.name} stroke={env.color}
                 strokeWidth={env.id === bestId ? 2.5 : 1.5} dot={false} activeDot={{ r: 4 }} />
@@ -970,11 +991,11 @@ function SimEnveloppes({ data }) {
           </LineChart>
         </ResponsiveContainer>
         <p className="text-[10px] text-gray-400 text-center mt-2">
-          Livret A taux garanti 3 %. PEA : PS 17,2 % sur gains (≥5 ans) · PFU 30 % avant.
+          Livret A taux garanti 3 % (non lié au curseur). PEA : PS 17,2 % sur gains (≥5 ans) · PFU 30 % avant.
           AV&gt;8 ans : PS 17,2 % + IR 7,5 % sur gains &gt; {isCouple ? '9 200' : '4 600'} € (abattement {isCouple ? 'couple' : 'solo'}).
           CTO : PFU 30 % sur gains.
           PER : IR {tmiS} % sur la totalité + PS 17,2 % sur plus-values{reinvest ? ` + bonus ${fmt(econoIR)} € réinvesti en PEA` : ''}.
-          Simulation en capital (rente exclue).
+          Simulation en capital unique (rente exclue).
         </p>
       </div>
 
