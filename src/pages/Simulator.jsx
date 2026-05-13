@@ -18,25 +18,54 @@ const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
 
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
 
-// Capital net après impôts pour chaque enveloppe
-function envNet(id, P, r, t, tmi) {
+/**
+ * Capital net après impôts pour chaque enveloppe.
+ *
+ * PEA  : avantage SORTIE — exonération IR sur gains après 5 ans (PS 17,2% seulement).
+ *         Avant 5 ans : flat tax 30%.
+ * PER  : avantage ENTRÉE — déduction = P × TMI_e, réinvestie en PEA si reinvest=true.
+ *         Sortie : IR sur capital+gains (TMI_s) + PS sur gains uniquement.
+ *         Bonus réinvestissement = P × TMI_e × [(1+r)^t × (1−0,172) + 0,172]
+ *
+ * @param {string}  id        - identifiant enveloppe
+ * @param {number}  P         - capital investi
+ * @param {number}  r         - rendement annuel net
+ * @param {number}  t         - durée en années
+ * @param {number}  tmiE      - TMI à l'entrée (%)
+ * @param {number}  tmiS      - TMI à la sortie/retraite (%) — PER uniquement
+ * @param {boolean} reinvest  - réinvestir l'économie fiscale PER en PEA
+ */
+function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true) {
   const rate = id === 'livretA' ? 0.03 : r;
   const Brut = P * Math.pow(1 + rate, t);
   const G    = Brut - P;
-  const T    = tmi / 100;
+  const Te   = tmiE / 100;
+  const Ts   = (tmiS ?? tmiE) / 100;
+
   switch (id) {
     case 'livretA': return Brut;
-    case 'pea':     return Brut - G * 0.172;
+    // PEA : flat tax 30% avant 5 ans, PS 17,2% seulement après
+    case 'pea':     return t >= 5 ? Brut - G * 0.172 : Brut - G * 0.30;
     case 'av8':     return Brut - G * 0.172 - Math.max(0, G - 4600) * 0.075;
     case 'per': {
-      // Déduction à l'entrée + taxation pleine à la sortie (hypothèse TMI stable)
-      const deduction = P * T;
-      const taxExit   = Brut * T + G * 0.172;
-      return Brut - taxExit + deduction;
+      // Capital net PER à la sortie (IR sur Brut au TMI_s + PS sur gains)
+      const netBase = Brut * (1 - Ts) - G * 0.172;
+      if (!reinvest) return netBase;
+      // Bonus : économie IR immédiate (P × TMI_e) réinvestie en PEA pendant t ans
+      const bonus = P * Te * (Math.pow(1 + r, t) * (1 - 0.172) + 0.172);
+      return netBase + bonus;
     }
     case 'cto':     return Brut - G * 0.30;
     default:        return Brut;
   }
+}
+
+/** Année à partir de laquelle PER >= PEA, ou null si PEA toujours gagnant sur l'horizon. */
+function perCrossover(P, r, tmiE, tmiS, reinvest, maxY = 50) {
+  for (let y = 1; y <= maxY; y++) {
+    if (envNet('per', P, r, y, tmiE, tmiS, reinvest) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest)) return y;
+  }
+  return null;
 }
 
 const ENVELOPES = [
@@ -585,35 +614,53 @@ function SimPER({ data }) {
 
 function SimEnveloppes({ data }) {
   const navigate = useNavigate();
-  const tmi = data.tmi;
+  const tmiProfile = data.tmi || 30; // TMI entrée depuis le profil
 
-  const [capital,  setCapital]  = useState(10_000);
-  const [duration, setDuration] = useState(20);
-  const [rate,     setRate]     = useState(0.05);
+  const [capital,   setCapital]   = useState(10_000);
+  const [duration,  setDuration]  = useState(20);
+  const [rate,      setRate]      = useState(0.05);
+  const [tmiE,      setTmiE]      = useState(tmiProfile);  // TMI à l'entrée (prérempli)
+  const [tmiS,      setTmiS]      = useState(11);           // TMI à la sortie/retraite
+  const [reinvest,  setReinvest]  = useState(true);         // réinvestir l'économie IR en PEA
 
+  const tmiDiff = tmiE - tmiS;
+
+  // Calcul des valeurs nettes avec TMI sortie et toggle réinvestissement
   const tableRows = useMemo(() => ENVELOPES.map(env => {
-    const net  = Math.round(envNet(env.id, capital, rate, duration, tmi));
+    const net  = Math.round(envNet(env.id, capital, rate, duration, tmiE, tmiS, reinvest));
     const gain = net - capital;
-    return { ...env, net, gain };
-  }), [capital, rate, duration, tmi]);
+    let perBonus = 0;
+    if (env.id === 'per' && reinvest) {
+      const netBase = Math.round(envNet('per', capital, rate, duration, tmiE, tmiS, false));
+      perBonus = net - netBase;
+    }
+    return { ...env, net, gain, perBonus };
+  }), [capital, rate, duration, tmiE, tmiS, reinvest]);
 
   const bestId = useMemo(
     () => tableRows.reduce((b, r) => r.net > b.net ? r : b, tableRows[0])?.id,
     [tableRows]
   );
 
+  // Point de croisement PER / PEA
+  const crossoverYear = useMemo(
+    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, 60),
+    [capital, rate, tmiE, tmiS, reinvest]
+  );
+
   const chartData = useMemo(() => {
     const step = duration <= 10 ? 1 : duration <= 20 ? 2 : 5;
-    const pts = [];
-    for (let y = 0; y <= duration; y += step) {
+    const pts = new Map();
+    for (let y = 0; y <= duration; y += step) pts.set(y, y);
+    if (crossoverYear && crossoverYear <= duration) pts.set(crossoverYear, crossoverYear);
+    return [...pts.values()].sort((a, b) => a - b).map(y => {
       const pt = { année: y };
       for (const env of ENVELOPES) {
-        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmi));
+        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest));
       }
-      pts.push(pt);
-    }
-    return pts;
-  }, [capital, rate, duration, tmi]);
+      return pt;
+    });
+  }, [capital, rate, duration, tmiE, tmiS, reinvest, crossoverYear]);
 
   const formatY = v => {
     if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -621,47 +668,103 @@ function SimEnveloppes({ data }) {
     return `${v}`;
   };
 
+  // Message contextuel PER vs PEA
+  const perRow  = tableRows.find(r => r.id === 'per');
+  const peaRow  = tableRows.find(r => r.id === 'pea');
+  const perWins = (perRow?.net ?? 0) > (peaRow?.net ?? 0);
+  const econoIR = Math.round(capital * tmiE / 100);
+
+  const contextMsg = (() => {
+    if (tmiE <= 11) return {
+      color: 'amber',
+      text: `À TMI ${tmiE} %, l'avantage fiscal du PER est insuffisant pour compenser son manque de liquidité. Le PEA est recommandé dans ce cas.`,
+    };
+    if (perWins) return {
+      color: 'teal',
+      text: `Le PER est plus performant que le PEA sur ${duration} ans grâce à l'économie fiscale immédiate de ${fmt(econoIR)} € (TMI ${tmiE} %) réinvestie sur ${duration} ans. Condition clé : TMI estimée à la retraite ${tmiS} %.`,
+    };
+    if (crossoverYear) return {
+      color: 'blue',
+      text: crossoverYear <= duration
+        ? `Le PEA est plus performant sur ${duration} ans. Le PER devient gagnant à partir de ${crossoverYear} ans${tmiDiff > 0 ? ` grâce au différentiel fiscal de ${tmiDiff} %` : ''}.`
+        : `Le PEA reste plus performant sur ${duration} ans. Le PER deviendrait gagnant après ${crossoverYear} ans — horizon trop long. Pour réduire ce seuil : allonger la durée ou réduire TMI sortie.`,
+    };
+    if (tmiE === tmiS) return {
+      color: 'gray',
+      text: `TMI entrée = TMI sortie (${tmiE} %) : l'avantage PER se réduit à la déductibilité immédiate seule. Les PS identiques sur les gains désavantagent légèrement le PER vs PEA.`,
+    };
+    return {
+      color: 'gray',
+      text: `Avec ces hypothèses, le PEA surpasse le PER sur ${duration} ans. Réduire la TMI sortie ou allonger la durée peut inverser le résultat.`,
+    };
+  })();
+
   const handleChat = () => {
     const best = tableRows.find(r => r.id === bestId);
-    const msg = `Simulation enveloppes : ${fmt(capital)} € investis pendant ${duration} ans à ${(rate * 100).toFixed(0)} % annuels (TMI ${tmi} %). Meilleure option estimée : ${best?.name} avec ${fmt(best?.net || 0)} € nets. Peux-tu confirmer cette analyse et m'aider à choisir ?`;
+    const msg = `Simulation enveloppes : ${fmt(capital)} € investis pendant ${duration} ans à ${(rate * 100).toFixed(0)} % annuels. TMI entrée ${tmiE} %, TMI sortie (retraite) ${tmiS} %. Réinvestissement économie IR : ${reinvest ? 'oui' : 'non'}. Meilleure option : ${best?.name} avec ${fmt(best?.net || 0)} € nets.${crossoverYear ? ` PER dépasse PEA à ${crossoverYear} ans.` : ''} Peux-tu confirmer et m'aider à choisir ?`;
     navigate('/chat', { state: { prefill: msg } });
   };
 
+  const colorMap = { teal: 'border-teal-200 bg-teal-50 text-teal-800', amber: 'border-amber-200 bg-amber-50 text-amber-800', blue: 'border-blue-200 bg-blue-50 text-blue-800', gray: 'border-gray-200 bg-gray-50 text-gray-700' };
+
   return (
     <div className="flex flex-col gap-5">
+
+      {/* Paramètres généraux */}
       <div className="flex flex-col gap-4">
-        <SimSlider
-          label="Capital à investir"
-          value={capital}
-          min={1_000}
-          max={100_000}
-          step={1_000}
-          onChange={setCapital}
-          format={v => `${fmt(v)} €`}
-        />
+        <SimSlider label="Capital à investir" value={capital} min={1_000} max={100_000} step={1_000}
+          onChange={setCapital} format={v => `${fmt(v)} €`} />
         <div className="grid grid-cols-2 gap-4">
-          <ToggleGroup
-            label="Durée de placement"
-            options={DURATIONS}
-            value={duration}
-            onChange={setDuration}
-            format={v => `${v} ans`}
-          />
-          <ToggleGroup
-            label="Rendement annuel estimé"
-            options={RATES}
-            value={rate}
-            onChange={setRate}
-            format={v => `${(v * 100).toFixed(0)} %`}
-          />
+          <ToggleGroup label="Durée de placement" options={DURATIONS} value={duration}
+            onChange={setDuration} format={v => `${v} ans`} />
+          <ToggleGroup label="Rendement annuel estimé" options={RATES} value={rate}
+            onChange={setRate} format={v => `${(v * 100).toFixed(0)} %`} />
         </div>
+      </div>
+
+      {/* Paramètres PER */}
+      <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-violet-700 uppercase tracking-wide">Hypothèses PER</p>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tmiDiff > 0 ? 'bg-teal-100 text-teal-700' : tmiDiff < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+            Différentiel fiscal : {tmiDiff > 0 ? '+' : ''}{tmiDiff} %
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <ToggleGroup label={`TMI à l'entrée (profil : ${tmiProfile} %)`} options={TMI_OPTIONS} value={tmiE}
+              onChange={setTmiE} format={v => `${v} %`} />
+          </div>
+          <div>
+            <ToggleGroup label="TMI à la sortie (retraite)" options={TMI_OPTIONS} value={tmiS}
+              onChange={setTmiS} format={v => `${v} %`} />
+          </div>
+        </div>
+        <div className="flex items-center justify-between pt-1 border-t border-violet-200">
+          <span className="text-xs text-violet-700">Réinvestir l'économie IR ({fmt(econoIR)} €) en PEA</span>
+          <button
+            type="button"
+            onClick={() => setReinvest(v => !v)}
+            className={`relative w-10 h-5 rounded-full transition-colors ${reinvest ? 'bg-teal-500' : 'bg-gray-300'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${reinvest ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+        {!reinvest && (
+          <p className="text-[10px] text-violet-600 italic">Sans réinvestissement : l'économie IR reste en trésorerie — l'avantage PER est sous-estimé.</p>
+        )}
+      </div>
+
+      {/* Message contextuel */}
+      <div className={`rounded-xl border px-4 py-3 text-xs leading-relaxed ${colorMap[contextMsg.color]}`}>
+        {contextMsg.text}
       </div>
 
       {/* Table */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-            Comparatif après {duration} ans — TMI {tmi} %
+            Comparatif après {duration} ans — TMI entrée {tmiE} % / sortie {tmiS} %
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -669,9 +772,9 @@ function SimEnveloppes({ data }) {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-2.5 text-gray-400 font-semibold">Enveloppe</th>
-                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold">Capital net</th>
-                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold">Gain net</th>
-                <th className="text-right px-4 py-2.5 text-gray-400 font-semibold hidden sm:table-cell">Fiscalité</th>
+                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold whitespace-nowrap">Capital net</th>
+                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold whitespace-nowrap">Dont boost fiscal</th>
+                <th className="text-right px-3 py-2.5 text-gray-400 font-semibold whitespace-nowrap">Gain net</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -682,24 +785,31 @@ function SimEnveloppes({ data }) {
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
                       {row.name}
                       {row.id === bestId && (
-                        <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full">
-                          Meilleur
-                        </span>
+                        <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full">Meilleur</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-right font-bold font-mono tabular-nums text-gray-800">
+                  <td className="px-3 py-3 text-right font-bold font-mono tabular-nums text-gray-800 whitespace-nowrap">
                     {fmt(row.net)} €
                   </td>
-                  <td className={`px-3 py-3 text-right font-bold font-mono tabular-nums ${row.gain >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
+                  <td className="px-3 py-3 text-right font-mono tabular-nums text-violet-600 whitespace-nowrap">
+                    {row.id === 'per' && row.perBonus > 0 ? `+ ${fmt(row.perBonus)} €` : '—'}
+                  </td>
+                  <td className={`px-3 py-3 text-right font-bold font-mono tabular-nums whitespace-nowrap ${row.gain >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
                     {row.gain >= 0 ? '+' : ''}{fmt(row.gain)} €
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-400 hidden sm:table-cell">{row.taxLabel}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {crossoverYear && (
+          <p className="px-4 py-2.5 text-[11px] text-violet-700 bg-violet-50/50 border-t border-violet-100">
+            {crossoverYear <= duration
+              ? `✓ PER dépasse PEA à ${crossoverYear} ans sur ce graphe`
+              : `ℹ PER dépasserait PEA à ${crossoverYear} ans (au-delà de l'horizon affiché)`}
+          </p>
+        )}
       </div>
 
       {/* Chart */}
@@ -712,27 +822,26 @@ function SimEnveloppes({ data }) {
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickFormatter={formatY} width={38} />
             <Tooltip content={<ChartTooltip />} />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+            {crossoverYear && crossoverYear <= duration && (
+              <ReferenceLine x={crossoverYear} stroke="#8b5cf6" strokeDasharray="4 2"
+                label={{ value: `PER=PEA (${crossoverYear}a)`, position: 'top', fontSize: 9, fill: '#7c3aed' }} />
+            )}
             {ENVELOPES.map(env => (
-              <Line
-                key={env.id}
-                type="monotone"
-                dataKey={env.name}
-                stroke={env.color}
-                strokeWidth={env.id === bestId ? 2.5 : 1.5}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
+              <Line key={env.id} type="monotone" dataKey={env.name} stroke={env.color}
+                strokeWidth={env.id === bestId ? 2.5 : 1.5} dot={false} activeDot={{ r: 4 }} />
             ))}
           </LineChart>
         </ResponsiveContainer>
         <p className="text-[10px] text-gray-400 text-center mt-2">
-          Livret A taux fixe 3 %. PER avec hypothèse TMI identique entrée/sortie ({tmi} %).
+          Livret A taux fixe 3 %. PER : déduction TMI {tmiE} % à l'entrée, imposition TMI {tmiS} % à la sortie + PS 17,2 % sur gains.
+          {reinvest ? ` Économie IR (${fmt(econoIR)} €) réinvestie en PEA.` : ''}
+          {' '}Sortie capital (rente exclue). PEA : PS 17,2 % après 5 ans.
         </p>
       </div>
 
       <div className="flex gap-2">
         <Button variant="secondary" size="sm" className="flex-1"
-          onClick={() => saveSimulation(`Enveloppes — ${fmt(capital)} € × ${duration} ans à ${(rate * 100).toFixed(0)} %`)}>
+          onClick={() => saveSimulation(`Enveloppes — ${fmt(capital)} € × ${duration} ans — TMI e:${tmiE}% s:${tmiS}%`)}>
           <Save size={13} /> Sauvegarder
         </Button>
         <Button variant="primary" size="sm" className="flex-1" onClick={handleChat}>
