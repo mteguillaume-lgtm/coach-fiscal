@@ -314,12 +314,20 @@ function SimPER({ data }) {
           { label: 'TMI foyer',                                          value: `${profData.tmi} %`    },
           { label: showTwoSliders ? 'Plafond foyer' : 'Plafond PER',   value: `${fmt(plafondTotal)} €` },
         ]}
-        sub={showTwoSliders ? `D1 : ${fmt(plafondD1)} € · D2 : ${fmt(plafondD2)} €` : null}
+        sub={null}
       />
 
       {/* ── Curseurs D1 + D2 (ou curseur unique) ── */}
       {showTwoSliders ? (
         <div className="flex flex-col gap-5">
+          {/* Répartition plafonds D1/D2 */}
+          <div className="flex items-center justify-center gap-6 rounded-xl bg-blue-50 border border-blue-100 px-4 py-2 text-xs text-blue-700">
+            <span>Plafond D1&nbsp;: <strong className="font-mono tabular-nums">{fmt(plafondD1)}&nbsp;€</strong></span>
+            <span className="text-blue-300">·</span>
+            <span>Plafond D2&nbsp;: <strong className="font-mono tabular-nums">{fmt(plafondD2)}&nbsp;€</strong></span>
+            <span className="text-blue-300">·</span>
+            <span>Total&nbsp;: <strong className="font-mono tabular-nums">{fmt(plafondTotal)}&nbsp;€</strong></span>
+          </div>
           {/* D1 */}
           <div className="flex flex-col gap-1.5">
             <SimSlider

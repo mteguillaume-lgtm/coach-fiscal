@@ -1,7 +1,7 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR } from './taxCalculator';
+import { calcIR, computePerOptimumCascade } from './taxCalculator';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 
@@ -60,38 +60,35 @@ export function detectOpportunities(parsedProfile) {
 
   // ── GAINS ──────────────────────────────────────────────────────────────────
 
-  // PER optimal : plafond disponible + TMI >= 30 %
-  if (perPlafond > 0 && tmi >= 30) {
-    // Simulation barème réel avant/après versement PER complet.
-    // Bien plus précis que perPlafond × TMI : le quotient familial et la progressivité
-    // font que la déduction traverse souvent plusieurs tranches.
-    const nbParts   = parts || (isCouple ? 2 : 1);
-    const irAvant   = irNet > 0 ? irNet : calcIR(rniFoyer || 0, nbParts, isCouple);
-    const rniApres  = Math.max(0, (rniFoyer || 0) - perPlafond);
-    const irApres   = calcIR(rniApres, nbParts, isCouple);
-    const economie  = Math.max(0, irAvant - irApres);
-    const effortNet = perPlafond - economie;
-    const rendement = perPlafond > 0 ? Math.round((economie / perPlafond) * 100) : 0;
+  // PER optimal : cascade descendante par tranche — s'arrête à 11%
+  if (perPlafond > 0) {
+    const nbParts = parts || (isCouple ? 2 : 1);
+    const opt = computePerOptimumCascade(rniFoyer || 0, nbParts, plafondPerD1 || 0, plafondPerD2 || 0, isCouple);
 
-    const perD1 = plafondPerD1 || 0;
-    const perD2 = plafondPerD2 || 0;
-    opps.push({
-      id: 'per_optimal',
-      type: 'gain',
-      urgence: 'avant_decembre',
-      titre: '💡 Versement PER optimal détecté',
-      description: isCouple
-        ? `Plafonds PER — D1 : ${fmt(perD1)} €, D2 : ${fmt(perD2)} € (total ${fmt(perPlafond)} €). Simulation barème réel : économie IR de ${fmt(economie)} € — effort net ${fmt(effortNet)} € seulement.`
-        : `Plafond PER disponible de ${fmt(perPlafond)} €. Simulation barème réel : économie IR de ${fmt(economie)} € — effort net ${fmt(effortNet)} € seulement.`,
-      impact: `Économie IR (barème réel, quotient ${nbParts} parts) : ${fmt(economie)} €`,
-      impactEuros: economie,
-      action: isCouple
-        ? `Verser sur vos PER individuels : jusqu'à ${fmt(perD1)} € pour D1 et ${fmt(perD2)} € pour D2 avant le 31/12`
-        : `Verser ${fmt(perPlafond)} € sur votre PER avant le 31/12`,
-      questionChat: isCouple
-        ? `Mon foyer est marié/pacsé. RNI foyer : ${fmt(rniFoyer)} €, ${nbParts} parts fiscales, TMI ${tmi} %. Plafonds PER individuels : D1 ${fmt(perD1)} €, D2 ${fmt(perD2)} € (total ${fmt(perPlafond)} €). Simulation barème réel (quotient familial appliqué) : verser la totalité réduit l'IR de ${fmt(economie)} € (effort net réel ${fmt(effortNet)} €, rendement immédiat ${rendement} %). Comment répartir nos versements entre D1 et D2 pour maximiser l'économie fiscale compte tenu de nos tranches respectives ? Quels PER individuels recommander et comment souscrire ?`
-        : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${tmi} %. Plafond PER disponible : ${fmt(perPlafond)} €. Simulation barème réel : verser la totalité réduit l'IR de ${fmt(economie)} € (effort net réel ${fmt(effortNet)} €, rendement immédiat ${rendement} %). Quel PER individuel choisir et comment optimiser ce versement avant le 31/12 ?`,
-    });
+    if (opt.optimumTotal > 0 && opt.tmiDepart > 11) {
+      const zoneLabel = opt.zones.map(z => `${fmt(z.versement)} € × ${z.taux} % = ${fmt(z.economie)} €`).join(' + ');
+      const residuelNote = opt.capaciteResiduelle > 0
+        ? ` Capacité résiduelle ${fmt(opt.capaciteResiduelle)} € à orienter vers PEA ou AV (rendement PER : 11 % seulement).`
+        : '';
+
+      opps.push({
+        id: 'per_optimal',
+        type: 'gain',
+        urgence: 'avant_decembre',
+        titre: '💡 Versement PER optimal détecté',
+        description: isCouple
+          ? `Optimum fiscal : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} % — économie IR réelle ${fmt(opt.economieOptimum)} €, effort net ${fmt(opt.effortNet)} €.${residuelNote}`
+          : `Optimum fiscal : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} % — économie IR réelle ${fmt(opt.economieOptimum)} €, effort net ${fmt(opt.effortNet)} €.${residuelNote}`,
+        impact: `Économie IR optimum (${zoneLabel}) : ${fmt(opt.economieOptimum)} €`,
+        impactEuros: opt.economieOptimum,
+        action: isCouple
+          ? `Verser ${fmt(opt.optimumD1)} € pour D1 et ${fmt(opt.optimumD2)} € pour D2 avant le 31/12 (plafonds max : D1 ${fmt(opt.plafondD1)} €, D2 ${fmt(opt.plafondD2)} €)`
+          : `Verser ${fmt(opt.optimumTotal)} € sur votre PER avant le 31/12 (plafond max : ${fmt(opt.plafondTotal)} €)`,
+        questionChat: isCouple
+          ? `Mon foyer est marié/pacsé. RNI foyer : ${fmt(rniFoyer)} €, ${nbParts} parts fiscales, TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € (D1 ${fmt(opt.optimumD1)} €, D2 ${fmt(opt.optimumD2)} €) effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Capacité résiduelle : ${fmt(opt.capaciteResiduelle)} € (rendement PER résiduel 11 % seulement — alternatives PEA/AV à comparer).` : ''} Comment choisir nos PER et optimiser la répartition ?`
+          : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € à comparer avec PEA/AV (rendement PER résiduel 11 %).` : ''} Quel PER individuel choisir ?`,
+      });
+    }
   }
 
   // Épargne liquide mal rémunérée : total > 10 000 €

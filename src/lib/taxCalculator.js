@@ -167,3 +167,77 @@ export function calcPlafondPer(netImpSalaire, peroEmployeur = 0) {
   const plafond = Math.min(Math.max(brut, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
   return Math.max(0, plafond - (peroEmployeur || 0));
 }
+
+// ─── Optimum fiscal PER — cascade descendante ─────────────────────────────────
+
+/**
+ * Calcule l'optimum fiscal PER en cascade depuis la TMI jusqu'au seuil 11%.
+ * Retourne les zones prioritaires (rendement = taux effacé) et la capacité résiduelle
+ * (rendement 11% seulement → à orienter vers PEA/AV).
+ *
+ * @param {number}  rniFoyer    - RNI foyer après abattements
+ * @param {number}  parts       - parts fiscales
+ * @param {number}  plafondD1   - plafond PER net D1
+ * @param {number}  plafondD2   - plafond PER net D2
+ * @param {boolean} isCouple    - pour le calcul décote dans calcIR
+ */
+export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple) {
+  const STOP_RATE = 0.11;
+  const pd1 = plafondD1 || 0;
+  const pd2 = plafondD2 || 0;
+  const plafondTotal = pd1 + pd2;
+
+  const empty = {
+    zones: [], optimumTotal: 0, optimumD1: 0, optimumD2: 0,
+    economieOptimum: 0, effortNet: 0, rendementMoyen: 0,
+    capaciteResiduelle: plafondTotal, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart: 0,
+  };
+
+  if (!rniFoyer || !parts || !plafondTotal) return empty;
+
+  const quotientInit = rniFoyer / parts;
+  let tmiDepart = 0;
+  for (const [lo, , rate] of TRANCHES) {
+    if (quotientInit > lo) tmiDepart = Math.round(rate * 100);
+    else break;
+  }
+  if (tmiDepart <= 11) return { ...empty, tmiDepart };
+
+  const tranchesDesc = [...TRANCHES].filter(([, , rate]) => rate > STOP_RATE).reverse();
+  let rniResiduel = rniFoyer;
+  let plafondRestant = plafondTotal;
+  const zones = [];
+
+  for (const [lo, hi, rate] of tranchesDesc) {
+    if (plafondRestant <= 0) break;
+    const quotient = rniResiduel / parts;
+    if (quotient <= lo) continue;
+    const fractionFoyer = Math.round((Math.min(quotient, hi) - lo) * parts);
+    if (fractionFoyer <= 0) continue;
+    const versement = Math.min(fractionFoyer, plafondRestant);
+    const taux = Math.round(rate * 100);
+    zones.push({ taux, fractionFoyer, versement, economie: Math.round(versement * rate), partial: versement < fractionFoyer });
+    plafondRestant -= versement;
+    rniResiduel -= versement;
+  }
+
+  const optimumTotal = zones.reduce((s, z) => s + z.versement, 0);
+  const economieOptimum = Math.max(0, calcIR(rniFoyer, parts, isCouple) - calcIR(Math.max(0, rniFoyer - optimumTotal), parts, isCouple));
+  const capaciteResiduelle = plafondTotal - optimumTotal;
+
+  let optimumD1, optimumD2;
+  if (pd1 >= pd2) {
+    optimumD1 = Math.min(pd1, optimumTotal);
+    optimumD2 = Math.min(pd2, Math.max(0, optimumTotal - optimumD1));
+  } else {
+    optimumD2 = Math.min(pd2, optimumTotal);
+    optimumD1 = Math.min(pd1, Math.max(0, optimumTotal - optimumD2));
+  }
+
+  return {
+    zones, optimumTotal, optimumD1, optimumD2, economieOptimum,
+    effortNet: optimumTotal - economieOptimum,
+    rendementMoyen: optimumTotal > 0 ? Math.round((economieOptimum / optimumTotal) * 100) : 0,
+    capaciteResiduelle, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart,
+  };
+}

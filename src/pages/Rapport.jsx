@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
 import Button from '../components/Button';
-import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER } from '../lib/taxCalculator';
+import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade } from '../lib/taxCalculator';
 
 // ─── Float parser ─────────────────────────────────────────────────────────────
 
@@ -56,69 +56,6 @@ function decote(brut, isCouple) {
   const seuil   = isCouple ? DECOTE.seuil_couple   : DECOTE.seuil_celibataire;
   const plafond = isCouple ? DECOTE.plafond_couple  : DECOTE.plafond_celibataire;
   return brut < seuil ? Math.max(0, plafond - 0.4525 * brut) : 0;
-}
-
-// ─── Calcul cascade PER par tranche ─────────────────────────────────────────
-
-function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple) {
-  const STOP_RATE = 0.11;
-  const pd1 = plafondD1 || 0;
-  const pd2 = plafondD2 || 0;
-  const plafondTotal = pd1 + pd2;
-
-  const empty = {
-    zones: [], optimumTotal: 0, optimumD1: 0, optimumD2: 0,
-    economieOptimum: 0, effortNet: 0, rendementMoyen: 0,
-    capaciteResiduelle: plafondTotal, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart: 0,
-  };
-
-  if (!rniFoyer || !parts || !plafondTotal) return empty;
-
-  const quotientInit = rniFoyer / parts;
-  let tmiDepart = 0;
-  for (const [lo, , rate] of TRANCHES) {
-    if (quotientInit > lo) tmiDepart = Math.round(rate * 100);
-    else break;
-  }
-  if (tmiDepart <= 11) return { ...empty, tmiDepart };
-
-  const tranchesDesc = [...TRANCHES].filter(([, , rate]) => rate > STOP_RATE).reverse();
-  let rniResiduel = rniFoyer;
-  let plafondRestant = plafondTotal;
-  const zones = [];
-
-  for (const [lo, hi, rate] of tranchesDesc) {
-    if (plafondRestant <= 0) break;
-    const quotient = rniResiduel / parts;
-    if (quotient <= lo) continue;
-    const fractionFoyer = Math.round((Math.min(quotient, hi) - lo) * parts);
-    if (fractionFoyer <= 0) continue;
-    const versement = Math.min(fractionFoyer, plafondRestant);
-    const taux = Math.round(rate * 100);
-    zones.push({ taux, fractionFoyer, versement, economie: Math.round(versement * rate), partial: versement < fractionFoyer });
-    plafondRestant -= versement;
-    rniResiduel -= versement;
-  }
-
-  const optimumTotal = zones.reduce((s, z) => s + z.versement, 0);
-  const economieOptimum = Math.max(0, calcIR(rniFoyer, parts, isCouple) - calcIR(Math.max(0, rniFoyer - optimumTotal), parts, isCouple));
-  const capaciteResiduelle = plafondTotal - optimumTotal;
-
-  let optimumD1, optimumD2;
-  if (pd1 >= pd2) {
-    optimumD1 = Math.min(pd1, optimumTotal);
-    optimumD2 = Math.min(pd2, Math.max(0, optimumTotal - optimumD1));
-  } else {
-    optimumD2 = Math.min(pd2, optimumTotal);
-    optimumD1 = Math.min(pd1, Math.max(0, optimumTotal - optimumD2));
-  }
-
-  return {
-    zones, optimumTotal, optimumD1, optimumD2, economieOptimum,
-    effortNet: optimumTotal - economieOptimum,
-    rendementMoyen: optimumTotal > 0 ? Math.round((economieOptimum / optimumTotal) * 100) : 0,
-    capaciteResiduelle, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart,
-  };
 }
 
 // ─── Sections IA ─────────────────────────────────────────────────────────────
@@ -297,7 +234,7 @@ function TotalRow({ label, value, sub, color = 'teal', colSpan = 2 }) {
   return (
     <tr className={cls}>
       <td className="px-4 py-3 font-bold text-sm">{label}{sub && <span className="text-xs font-normal opacity-60 ml-2">{sub}</span>}</td>
-      <td colSpan={colSpan} className="px-4 py-3 font-bold text-sm text-right tabular-nums">{value}</td>
+      <td colSpan={colSpan} className="px-4 py-3 font-bold text-sm text-right tabular-nums whitespace-nowrap">{value}</td>
     </tr>
   );
 }
@@ -869,7 +806,7 @@ function PerZonesBlock({ p, d, perSim }) {
               </div>
               <div>
                 <p className="text-[10px] text-teal-600 uppercase tracking-wide">Économie IR</p>
-                <p className="text-sm font-semibold text-green-700 tabular-nums">{e0(z.versement)} × {z.taux}&nbsp;% = <strong>{e0(z.economie)}</strong></p>
+                <p className="text-sm font-semibold text-green-700 tabular-nums whitespace-nowrap">{e0(z.versement)} × {z.taux}&nbsp;% = <strong>{e0(z.economie)}</strong></p>
               </div>
             </div>
             {isCouple && i === opt.zones.length - 1 && (plafondD1 > 0 || plafondD2 > 0) && (

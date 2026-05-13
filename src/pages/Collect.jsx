@@ -588,8 +588,7 @@ export default function Collect() {
         dispatch({ type: 'SET_FORM_DATA', payload: newFormData });
         if (newD1) dispatch({ type: 'SET_D1_DATA', payload: newD1 });
         if (newD2) dispatch({ type: 'SET_D2_DATA', payload: newD2 });
-        toast.success('Profil importé — toutes les données sont chargées.');
-        setTimeout(() => navigate('/profile'), 200);
+        toast.success('Profil importé — vérifiez les données puis continuez.');
       } else {
         toast.error('Fichier vide ou invalide.');
       }
