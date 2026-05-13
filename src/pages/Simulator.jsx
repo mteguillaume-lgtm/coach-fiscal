@@ -56,16 +56,37 @@ const fmt = n => Math.round(n).toLocaleString('fr-FR');
  *   > 150k€ : fraction ≤ 150k€ à 7,5 %, fraction > 150k€ à 12,8 % (PFU)
  *   L'abattement annuel s'impute en priorité sur la tranche 7,5 %.
  */
-function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = false, avVerse = 0) {
+/**
+ * Capitalisation d'une mensualité M sur n mois au taux mensuel exact.
+ * r_mensuel = (1 + r_annuel)^(1/12) − 1  [géométrique exact, non r/12]
+ */
+function fvMensuel(m, r, t) {
+  if (m <= 0 || t <= 0) return 0;
+  const r_m = Math.pow(1 + r, 1 / 12) - 1;
+  const n   = t * 12;
+  return r_m > 0 ? m * ((Math.pow(1 + r_m, n) - 1) / r_m) : m * n;
+}
+
+/**
+ * Capital brut total (versement unique P + mensualité m) capitalisé t ans.
+ * Livret A : taux figé à 3 % quelle que soit la valeur de r.
+ */
+function brutEnv(id, P, r, t, m) {
+  const rate = id === 'livretA' ? 0.03 : r;
+  return (P > 0 ? P * Math.pow(1 + rate, t) : 0) + fvMensuel(m, rate, t);
+}
+
+function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = false, avVerse = 0, m = 0) {
   const rate    = id === 'livretA' ? 0.03 : r;
-  const Brut    = P * Math.pow(1 + rate, t);
-  const G       = Brut - P;                 // plus-value brute
+  const Brut    = brutEnv(id, P, r, t, m);
+  const P_total = P + m * t * 12;           // capital total investi
+  const G       = Math.max(0, Brut - P_total);
   const Te      = tmiE / 100;
   const Ts      = (tmiS ?? tmiE) / 100;
 
   switch (id) {
     case 'livretA':
-      return Brut;                           // 0 % — exonéré total
+      return Brut;                           // 0 % — exonéré total (taux légal 3 %)
 
     case 'pea':
       // < 5 ans : flat tax 30 % sur gains
@@ -77,15 +98,14 @@ function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = fals
       const abatt   = isCouple ? 9_200 : 4_600;
       const psTotal = G * 0.172;
       let irTotal;
-      if (avVerse <= 0 || avVerse <= 150_000) {
-        // Tout à 7,5 % IR (versements ≤ 150 000 €)
+      if ((avVerse + P_total) <= 150_000) {
+        // Tout à 7,5 % IR (versements cumulés ≤ 150 000 €)
         irTotal = Math.max(0, G - abatt) * 0.075;
       } else {
-        // Fractionnement : ratio de la part ≤ 150 000 € dans l'encours total
-        const ratio150 = Math.min(1, 150_000 / avVerse);
-        const G150     = G * ratio150;           // gains sur la fraction ≤ 150k
-        const GAbove   = G * (1 - ratio150);     // gains sur la fraction > 150k
-        // Abattement s'impute en priorité sur la tranche 7,5 %
+        // Fractionnement : ratio de la part ≤ 150 000 € dans les versements totaux
+        const ratio150 = Math.min(1, Math.max(0, 150_000 - avVerse) / Math.max(1, P_total));
+        const G150     = G * ratio150;
+        const GAbove   = G * (1 - ratio150);
         const G150imp  = Math.max(0, G150 - abatt);
         irTotal = G150imp * 0.075 + GAbove * 0.128;
       }
@@ -94,13 +114,18 @@ function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = fals
 
     case 'per': {
       // Toute la somme retirée = revenu imposable (versements déduits à l'entrée)
-      // IR = Brut × TMI_s ; PS = gains × 17,2 %
       const netBase = Brut * (1 - Ts) - G * 0.172;
       if (!reinvest) return netBase;
-      // Bonus : économie fiscale d'entrée (P × TMI_e) placée en PEA pendant t ans
-      // Rendement net PEA = (1+r)^t × (1 − 0,172) + 0,172  (PS sur les gains PEA)
-      const bonus = P * Te * (Math.pow(1 + r, t) * (1 - 0.172) + 0.172);
-      return netBase + bonus;
+      // Bonus versement unique : économie IR (P × TMI_e) placée en PEA t ans
+      const bonusLump = P > 0
+        ? P * Te * (Math.pow(1 + r, t) * (1 - 0.172) + 0.172)
+        : 0;
+      // Bonus mensuel : chaque année, m×12×TMI_e économisés → placés en PEA
+      // FV de cette rente annuelle dans PEA = (m×12×Te) × Σ(1+r)^k × (1−0,172) + base×0,172
+      const bonusMensuel = m > 0 && r > 0
+        ? m * 12 * Te * (((Math.pow(1 + r, t) - 1) / r) * (1 - 0.172) + t * 0.172)
+        : 0;
+      return netBase + bonusLump + bonusMensuel;
     }
 
     case 'cto':
@@ -113,31 +138,30 @@ function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = fals
 }
 
 /** Détail fiscal d'une enveloppe : brut, impôts, net, gain net. */
-function envDetail(id, P, r, t, tmiE, tmiS, reinvest, isCouple, avVerse = 0) {
-  const rate = id === 'livretA' ? 0.03 : r;
-  const Brut = P * Math.pow(1 + rate, t);
-  const G    = Brut - P;
-  const net  = envNet(id, P, r, t, tmiE, tmiS, reinvest, isCouple, avVerse);
-  let tax    = Brut - net;
-  let bonus  = 0;
+function envDetail(id, P, r, t, tmiE, tmiS, reinvest, isCouple, avVerse = 0, m = 0) {
+  const Brut    = brutEnv(id, P, r, t, m);
+  const P_total = P + m * t * 12;
+  const net     = envNet(id, P, r, t, tmiE, tmiS, reinvest, isCouple, avVerse, m);
+  let tax       = Brut - net;
+  let bonus     = 0;
   if (id === 'per' && reinvest) {
-    const netBase = envNet('per', P, r, t, tmiE, tmiS, false, isCouple, avVerse);
+    const netBase = envNet('per', P, r, t, tmiE, tmiS, false, isCouple, avVerse, m);
     bonus = net - netBase;
     tax   = Brut - netBase;
   }
-  return { brut: Math.round(Brut), tax: Math.round(tax), net: Math.round(net), gain: Math.round(net - P), bonus: Math.round(bonus) };
+  return { brut: Math.round(Brut), tax: Math.round(tax), net: Math.round(net), gain: Math.round(net - P_total), bonus: Math.round(bonus), pTotal: Math.round(P_total) };
 }
 
 /** Année à partir de laquelle PER >= PEA, ou null si PEA toujours gagnant sur l'horizon. */
-function perCrossover(P, r, tmiE, tmiS, reinvest, isCouple, maxY = 50, avVerse = 0) {
+function perCrossover(P, r, tmiE, tmiS, reinvest, isCouple, maxY = 50, avVerse = 0, m = 0) {
   for (let y = 1; y <= maxY; y++) {
-    if (envNet('per', P, r, y, tmiE, tmiS, reinvest, isCouple, avVerse) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest, isCouple, avVerse)) return y;
+    if (envNet('per', P, r, y, tmiE, tmiS, reinvest, isCouple, avVerse, m) >= envNet('pea', P, r, y, tmiE, tmiS, reinvest, isCouple, avVerse, m)) return y;
   }
   return null;
 }
 
 const ENVELOPES = [
-  { id: 'livretA', name: 'Livret A',      color: '#94a3b8', taxLabel: '0 % (exonéré)'                            },
+  { id: 'livretA', name: 'Livret A',      color: '#94a3b8', taxLabel: '0 % exonéré — taux légal 3 % (figé, indépendant du curseur)' },
   { id: 'pea',     name: 'PEA',           color: '#0d9488', taxLabel: '17,2 % PS sur gains (>5 ans)'             },
   { id: 'av8',     name: 'AV > 8 ans',   color: '#3b82f6', taxLabel: '7,5 % IR + 17,2 % PS (après abattement)'  },
   { id: 'per',     name: 'PER',           color: '#8b5cf6', taxLabel: 'TMI à la sortie + 17,2 % PS sur gains'    },
@@ -737,12 +761,13 @@ function SimEnveloppes({ data }) {
 
   const perEnvInfo = useMemo(() => getPerEnvInfo(data), [data]);
 
-  const [capital,   setCapital]   = useState(10_000);
-  const [duration,  setDuration]  = useState(20);
-  const [rate,      setRate]      = useState(0.05);
-  const [tmiE,      setTmiE]      = useState(tmiProfile);  // TMI à l'entrée (prérempli)
-  const [tmiS,      setTmiS]      = useState(data.tmiRetraiteD1 ?? 11); // TMI à la sortie/retraite
-  const [reinvest,  setReinvest]  = useState(true);         // réinvestir l'économie IR en PEA
+  const [capital,    setCapital]    = useState(10_000);
+  const [mensualite, setMensualite] = useState(0);          // 0 = versement unique ; > 0 = mensuel
+  const [duration,   setDuration]   = useState(20);
+  const [rate,       setRate]       = useState(0.05);
+  const [tmiE,       setTmiE]       = useState(tmiProfile); // TMI à l'entrée (prérempli)
+  const [tmiS,       setTmiS]       = useState(data.tmiRetraiteD1 ?? 11);
+  const [reinvest,   setReinvest]   = useState(true);       // réinvestir l'économie IR en PEA
 
   const isCouple = data.isCouple ?? false;
   const tmiDiff  = tmiE - tmiS;
@@ -752,8 +777,8 @@ function SimEnveloppes({ data }) {
 
   // Calcul détaillé par enveloppe (brut, impôts, net, gain, bonus PER)
   const tableRows = useMemo(
-    () => ENVELOPES.map(env => ({ ...env, ...envDetail(env.id, capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse) })),
-    [capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse]
+    () => ENVELOPES.map(env => ({ ...env, ...envDetail(env.id, capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse, mensualite) })),
+    [capital, mensualite, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse]
   );
 
   const bestId = useMemo(
@@ -763,27 +788,27 @@ function SimEnveloppes({ data }) {
 
   // Point de croisement PER / PEA
   const crossoverYear = useMemo(
-    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, isCouple, 60, avVerse),
-    [capital, rate, tmiE, tmiS, reinvest, isCouple, avVerse]
+    () => perCrossover(capital, rate, tmiE, tmiS, reinvest, isCouple, 60, avVerse, mensualite),
+    [capital, mensualite, rate, tmiE, tmiS, reinvest, isCouple, avVerse]
   );
 
   const chartData = useMemo(() => {
     const step = duration <= 10 ? 1 : duration <= 20 ? 2 : 5;
     const pts = new Map();
     for (let y = 0; y <= duration; y += step) pts.set(y, y);
-    // Always include year 5 to show PEA regime change (30% → 17,2%)
     if (duration >= 5) pts.set(5, 5);
     if (crossoverYear && crossoverYear <= duration) pts.set(crossoverYear, crossoverYear);
     return [...pts.values()].sort((a, b) => a - b).map(y => {
       const pt = { année: y };
-      // Référence intérêts composés bruts (avant impôts, au taux du curseur)
-      pt['Brut'] = Math.round(capital * Math.pow(1 + rate, y));
+      // Brut = capitalisation totale avant impôts (versement unique + mensualités)
+      // brutEnv avec id != 'livretA' → utilise le taux du curseur (pas le 3% légal)
+      pt['Brut'] = Math.round((capital > 0 ? capital * Math.pow(1 + rate, y) : 0) + fvMensuel(mensualite, rate, y));
       for (const env of ENVELOPES) {
-        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest, isCouple, avVerse));
+        pt[env.name] = Math.round(envNet(env.id, capital, rate, y, tmiE, tmiS, reinvest, isCouple, avVerse, mensualite));
       }
       return pt;
     });
-  }, [capital, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse, crossoverYear]);
+  }, [capital, mensualite, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse, crossoverYear]);
 
   const formatY = v => {
     if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -795,7 +820,8 @@ function SimEnveloppes({ data }) {
   const perRow  = tableRows.find(r => r.id === 'per');
   const peaRow  = tableRows.find(r => r.id === 'pea');
   const perWins = (perRow?.net ?? 0) > (peaRow?.net ?? 0);
-  const econoIR = Math.round(capital * tmiE / 100);
+  const totalInvesti = capital + mensualite * 12 * duration;
+  const econoIR = Math.round((capital + mensualite * 12) * tmiE / 100); // économie annuelle estimée
 
   const contextMsg = (() => {
     if (tmiE <= 11) return {
@@ -837,6 +863,17 @@ function SimEnveloppes({ data }) {
       <div className="flex flex-col gap-4">
         <SimSlider label="Capital à investir" value={capital} min={1_000} max={100_000} step={1_000}
           onChange={setCapital} format={v => `${fmt(v)} €`} />
+        <SimSlider
+          label={mensualite > 0
+            ? `Versements mensuels — ${fmt(mensualite)} €/mois × ${duration} ans = ${fmt(mensualite * 12 * duration)} € investis`
+            : 'Versements mensuels — désactivé (versement unique)'}
+          value={mensualite}
+          min={0}
+          max={5_000}
+          step={100}
+          onChange={setMensualite}
+          format={v => v > 0 ? `${fmt(v)} €/mois` : 'Versement unique'}
+        />
         {/* Info déclarant PER — visible en mode couple uniquement */}
         {perEnvInfo.declarant && (
           <div className={`rounded-lg border px-3 py-2 text-[11px] leading-snug ${perEnvInfo.fallback ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
@@ -964,8 +1001,11 @@ function SimEnveloppes({ data }) {
           <span className="text-[11px] text-gray-500">
             Intérêts composés bruts (avant impôts) à {(rate * 100).toFixed(0)} % sur {duration} ans :{' '}
             <span className="font-mono font-bold text-gray-700">
-              {fmt(capital * Math.pow(1 + rate, duration))} €
+              {fmt((capital > 0 ? capital * Math.pow(1 + rate, duration) : 0) + fvMensuel(mensualite, rate, duration))} €
             </span>
+            {mensualite > 0 && (
+              <span className="text-gray-400"> · capital {fmt(capital)} € + {fmt(mensualite)} €/mois</span>
+            )}
             {' '}— les courbes colorées = net après fiscalité
           </span>
         </div>
