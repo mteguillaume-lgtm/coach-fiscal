@@ -225,13 +225,17 @@ export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, 
   const economieOptimum = Math.max(0, calcIR(rniFoyer, parts, isCouple) - calcIR(Math.max(0, rniFoyer - optimumTotal), parts, isCouple));
   const capaciteResiduelle = plafondTotal - optimumTotal;
 
-  let optimumD1, optimumD2;
+  // Toujours remplir en premier le déclarant qui a le plus grand plafond
+  // (plafond = 10% du revenu → plus grand plafond = plus imposé = prioritaire)
+  let optimumD1, optimumD2, prioritaire;
   if (pd1 >= pd2) {
     optimumD1 = Math.min(pd1, optimumTotal);
     optimumD2 = Math.min(pd2, Math.max(0, optimumTotal - optimumD1));
+    prioritaire = 'D1';
   } else {
     optimumD2 = Math.min(pd2, optimumTotal);
     optimumD1 = Math.min(pd1, Math.max(0, optimumTotal - optimumD2));
+    prioritaire = 'D2';
   }
 
   return {
@@ -239,5 +243,6 @@ export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, 
     effortNet: optimumTotal - economieOptimum,
     rendementMoyen: optimumTotal > 0 ? Math.round((economieOptimum / optimumTotal) * 100) : 0,
     capaciteResiduelle, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart,
+    prioritaire, // 'D1' ou 'D2' — le déclarant le plus imposé (plafond le plus élevé)
   };
 }

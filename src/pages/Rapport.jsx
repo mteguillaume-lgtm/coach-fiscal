@@ -534,6 +534,7 @@ function BaremeTable({ d }) {
           <TotalRow
             label={`IR brut foyer (${e2(irParPart)} × ${parts} part${parts > 1 ? 's' : ''})`}
             value={e2(irBrutFoyer)}
+            colSpan={3}
           />
         </tbody>
       </Tbl>
@@ -690,15 +691,15 @@ function GainPacsTable({ d }) {
             <Td right>{e2(pasTotal)}</Td>
           </tr>
           <tr className={`border-t-2 ${solde >= 0 ? 'bg-teal-50/60 border-teal-200' : 'bg-amber-50/60 border-amber-200'}`}>
-            <td className="px-4 py-3 text-xs font-bold text-gray-900">Régularisation foyer</td>
-            <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums ${d.regloD1 >= 0 ? 'text-teal-700' : 'text-amber-700'}`}>
-              {d.regloD1 >= 0 ? 'récupère ' : 'verse '}{e2(Math.abs(d.regloD1))}
+            <td className="px-4 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">Régularisation foyer</td>
+            <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums whitespace-nowrap ${d.regloD1 >= 0 ? 'text-teal-700' : 'text-amber-700'}`}>
+              {d.regloD1 >= 0 ? 'récupère ' : 'verse '}{e2(Math.abs(d.regloD1))}
             </td>
-            <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums ${d.regloD2 >= 0 ? 'text-teal-700' : 'text-amber-700'}`}>
-              {d.regloD2 >= 0 ? 'récupère ' : 'verse '}{e2(Math.abs(d.regloD2))}
+            <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums whitespace-nowrap ${d.regloD2 >= 0 ? 'text-teal-700' : 'text-amber-700'}`}>
+              {d.regloD2 >= 0 ? 'récupère ' : 'verse '}{e2(Math.abs(d.regloD2))}
             </td>
-            <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums ${isRemb ? 'text-teal-700' : 'text-amber-700'}`}>
-              {isRemb ? '+ ' : '− '}{e2(Math.abs(solde))}
+            <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums whitespace-nowrap ${isRemb ? 'text-teal-700' : 'text-amber-700'}`}>
+              {isRemb ? '+ ' : '− '}{e2(Math.abs(solde))}
             </td>
           </tr>
         </tbody>
@@ -811,7 +812,11 @@ function PerZonesBlock({ p, d, perSim }) {
             </div>
             {isCouple && i === opt.zones.length - 1 && (plafondD1 > 0 || plafondD2 > 0) && (
               <p className="mt-2 text-[11px] text-teal-700 border-t border-teal-200 pt-2">
-                Répartition suggérée&nbsp;: <strong>D1 {e0(opt.optimumD1)}</strong>{isCouple && ` · D2 ${e0(opt.optimumD2)}`}
+                Répartition suggérée&nbsp;:{' '}
+                <strong>{opt.prioritaire === 'D1' ? 'D1' : 'D2'}&nbsp;{opt.prioritaire === 'D1' ? e0(opt.optimumD1) : e0(opt.optimumD2)}</strong>
+                <span className="text-[9px] bg-teal-200 text-teal-800 px-1 py-0.5 rounded font-semibold ml-1">prioritaire</span>
+                {' · '}
+                <strong>{opt.prioritaire === 'D1' ? 'D2' : 'D1'}&nbsp;{opt.prioritaire === 'D1' ? e0(opt.optimumD2) : e0(opt.optimumD1)}</strong>
               </p>
             )}
           </div>

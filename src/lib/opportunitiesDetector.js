@@ -71,6 +71,13 @@ export function detectOpportunities(parsedProfile) {
         ? ` Capacité résiduelle ${fmt(opt.capaciteResiduelle)} € à orienter vers PEA ou AV (rendement PER : 11 % seulement).`
         : '';
 
+      // Libellé priorité couple : toujours mentionner le + imposé en premier
+      const prio   = opt.prioritaire || 'D1';
+      const second = prio === 'D1' ? 'D2' : 'D1';
+      const prioPl = prio === 'D1' ? opt.plafondD1 : opt.plafondD2;
+      const prioOpt= prio === 'D1' ? opt.optimumD1 : opt.optimumD2;
+      const secOpt = prio === 'D1' ? opt.optimumD2 : opt.optimumD1;
+
       opps.push({
         id: 'per_optimal',
         type: 'gain',
@@ -82,11 +89,11 @@ export function detectOpportunities(parsedProfile) {
         impact: `Économie IR optimum (${zoneLabel}) : ${fmt(opt.economieOptimum)} €`,
         impactEuros: opt.economieOptimum,
         action: isCouple
-          ? `Verser ${fmt(opt.optimumD1)} € pour D1 et ${fmt(opt.optimumD2)} € pour D2 avant le 31/12 (plafonds max : D1 ${fmt(opt.plafondD1)} €, D2 ${fmt(opt.plafondD2)} €)`
+          ? `${prio} (plus imposé·e, plafond ${fmt(prioPl)} €) : verser ${fmt(prioOpt)} € en priorité${secOpt > 0 ? ` — puis ${second} : ${fmt(secOpt)} €` : ''} avant le 31/12`
           : `Verser ${fmt(opt.optimumTotal)} € sur votre PER avant le 31/12 (plafond max : ${fmt(opt.plafondTotal)} €)`,
         questionChat: isCouple
-          ? `Mon foyer est marié/pacsé. RNI foyer : ${fmt(rniFoyer)} €, ${nbParts} parts fiscales, TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € (D1 ${fmt(opt.optimumD1)} €, D2 ${fmt(opt.optimumD2)} €) effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Capacité résiduelle : ${fmt(opt.capaciteResiduelle)} € (rendement PER résiduel 11 % seulement — alternatives PEA/AV à comparer).` : ''} Comment choisir nos PER et optimiser la répartition ?`
-          : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € à comparer avec PEA/AV (rendement PER résiduel 11 %).` : ''} Quel PER individuel choisir ?`,
+          ? `Mon foyer est marié/pacsé. RNI foyer : ${fmt(rniFoyer)} €, ${nbParts} parts fiscales, TMI ${opt.tmiDepart} %. Déclarant prioritaire : ${prio} (plafond ${fmt(prioPl)} €, plus imposé). Optimum fiscal : ${prio} verse ${fmt(prioOpt)} €${secOpt > 0 ? `, ${second} verse ${fmt(secOpt)} €` : ''} (total ${fmt(opt.optimumTotal)} €) → économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € (rendement PER 11 % → PEA/AV à comparer).` : ''} Comment choisir nos PER ?`
+          : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € → PEA/AV (rendement PER résiduel 11 %).` : ''} Quel PER choisir ?`,
       });
     }
   }

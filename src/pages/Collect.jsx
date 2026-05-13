@@ -415,6 +415,11 @@ export default function Collect() {
   const handleD2Change = (key, val) => { setD2Data(p => ({ ...p, [key]: val }));   setAutoF2(p    => { const n = { ...p }; delete n[key]; return n; }); };
   const removeDoc = id => setDocs(p => p.filter(d => d.id !== id));
 
+  // Sync local states when a profile is imported (AppContext updated externally)
+  useEffect(() => { if (state.formData) setFormData(state.formData); }, [state.formData]);
+  useEffect(() => { if (state.d1Data)   setD1Data(state.d1Data);     }, [state.d1Data]);
+  useEffect(() => { if (state.d2Data)   setD2Data(state.d2Data);     }, [state.d2Data]);
+
   useEffect(() => {
     console.log('Fichiers anonymisés disponibles:', state.anonymizedFiles);
   // eslint-disable-next-line react-hooks/exhaustive-deps
