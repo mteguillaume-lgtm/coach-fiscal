@@ -55,7 +55,7 @@ export async function chatWithClaude({ apiKey, messages, system, onChunk, model 
       },
       body: JSON.stringify({
         model:      MODELS[model] ?? MODELS.sonnet,
-        max_tokens: 4096,
+        max_tokens: 8096,
         system,
         messages,
         stream:     true,
