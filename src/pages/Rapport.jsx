@@ -78,10 +78,10 @@ function parseProfileSections(text) {
 
 // ─── Extraction + calculs complets depuis le profil brut ─────────────────────
 
-function computeData(profile) {
+function computeData(profile, p = {}) {
   if (!profile) return null;
 
-  const isCouple = /FOYER 2025|DÉCLARANT 2/i.test(profile);
+  const isCouple = p.mode === 'couple' || /FOYER 2025|DÉCLARANT 2/i.test(profile);
 
   const secD1 = isCouple
     ? sec(profile, '== REVENUS 2025 — DÉCLARANT 1 ==')
@@ -105,8 +105,9 @@ function computeData(profile) {
   const foncierAbt = isMicro ? foncierBrut * 0.30 : 0;
   const foncierNet = foncierBrut - foncierAbt;
 
-  const parts     = pf(profile, /Parts fiscales\s*:\s*([\d,\.]+)/) || (isCouple ? 2 : 1);
-  const rniFoyer  = retD1 + retD2 + foncierNet;
+  const parts     = p.parts || pf(profile, /Parts fiscales\s*:\s*([\d,\.]+)/) || (isCouple ? 2 : 1);
+  // Prefer parsedProfile rniFoyer (handles pension/salary abattement differences)
+  const rniFoyer  = (p.rniFoyer > 0 ? p.rniFoyer : null) ?? (retD1 + retD2 + foncierNet);
   const quotient  = parts > 0 ? rniFoyer / parts : rniFoyer;
 
   const steps       = baremeSteps(rniFoyer, parts);
@@ -1646,6 +1647,337 @@ function RecapModule({ p, d }) {
   );
 }
 
+// ─── Module : Bilan patrimonial ──────────────────────────────────────────────
+
+function BilanPatrimonialModule({ p }) {
+  const liq = p.epargneLiquide || 0;
+  const lt  = p.epargneLongTerme || 0;
+  const cpt = p.cryptoTotal || 0;
+  const rpv = p.rpValeur || 0;
+  const crd = p.creditCrd || 0;
+  const imm = p.patrimoineImmoNet || 0;
+  const net = p.patrimoineNet || 0;
+  const cap = p.capaciteEpargneFoyer || 0;
+  const tep = p.tauxEpargneFoyer || 0;
+  const obj = p.objectifPatrimonial || '';
+
+  if (!net && !cap) return null;
+
+  return (
+    <SectionBox title="Bilan patrimonial" num="02b">
+      <Tbl>
+        <thead>
+          <tr><Th wide>Composante</Th><Th right>Valeur</Th></tr>
+        </thead>
+        <tbody>
+          {liq > 0 && <tr><Td>Épargne liquide (livrets réglementés)</Td><Td right>{e0(liq)}</Td></tr>}
+          {lt > 0  && <tr><Td>Épargne long terme (PEA, AV, PEL, PERCO)</Td><Td right>{e0(lt)}</Td></tr>}
+          {cpt > 0 && <tr><Td>Actifs crypto</Td><Td right>{e0(cpt)}</Td></tr>}
+          {rpv > 0 && <tr><Td>Résidence principale (valeur estimée)</Td><Td right>{e0(rpv)}</Td></tr>}
+          {crd > 0 && <tr><Td className="pl-8">− Crédit restant dû</Td><Td right minus>− {e0(crd)}</Td></tr>}
+          {imm > 0 && <tr className="bg-gray-50/50"><Td bold>= Immobilier net</Td><Td right bold>{e0(imm)}</Td></tr>}
+          <TotalRow label="Patrimoine net estimé" value={e0(net)} />
+          {cap > 0 && <tr><Td>Capacité d'épargne mensuelle</Td><Td right>{e0(cap)}</Td></tr>}
+          {tep > 0 && <tr><Td>Taux d'épargne estimé</Td><Td right>{tep} %</Td></tr>}
+        </tbody>
+      </Tbl>
+      {obj && (
+        <div className="mx-4 mb-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2.5 text-xs text-blue-800">
+          <strong>Objectif patrimonial :</strong> {obj}
+        </div>
+      )}
+    </SectionBox>
+  );
+}
+
+// ─── Module : Alertes critiques 🔴 ───────────────────────────────────────────
+
+function AlertesCritiquesModule({ p }) {
+  const aiAlerts = p.alertsCritiques || [];
+  const staticAlerts = [];
+
+  if (p.hasCrypto) staticAlerts.push(
+    '[🔴 CRITIQUE] Actifs crypto — Formulaire 2086 (chaque cession) + 3916 bis (comptes étrangers) obligatoires. Amende : 1 500 € par compte non déclaré (10 000 € si pays non coopératif).'
+  );
+  if (p.hasCompteEtranger) staticAlerts.push(
+    '[🔴 CRITIQUE] Compte bancaire étranger — Formulaire 3916 obligatoire (art. 1649 A CGI), même à solde zéro ou clôturé. Amende : 1 500 € par compte.'
+  );
+  if (p.hasTestamentManquant) staticAlerts.push(
+    '[🔴 URGENT] PACS sans testament — Le partenaire ne perçoit rien automatiquement. Actifs légués aux héritiers légaux (parents, fratrie). Rédiger un testament et vérifier les clauses bénéficiaires des AV.'
+  );
+
+  const staticPrefixes = staticAlerts.map(s => s.slice(0, 25));
+  const all = [
+    ...staticAlerts,
+    ...aiAlerts.filter(a => !staticPrefixes.some(p => a.startsWith(p.slice(0, 15)))),
+  ];
+  if (all.length === 0) return null;
+
+  return (
+    <SectionBox title="Alertes critiques" num="03b">
+      <div className="p-4 flex flex-col gap-2">
+        {all.map((line, i) => (
+          <div key={i} className="rp-alert-red border-l-4 border-red-400 bg-red-50 px-4 py-3 rounded-r-lg">
+            <p className="text-xs text-red-800 leading-relaxed">{line}</p>
+          </div>
+        ))}
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module : Enveloppes — dates, antériorité & espace ───────────────────────
+
+function EnveloppesDetailModule({ p }) {
+  const isCouple = p.mode === 'couple';
+  const fmtAnt = y => (y !== null && y !== undefined) ? `${y} an${y !== 1 ? 's' : ''}` : null;
+
+  const rows = [];
+
+  if (p.peaD1 > 0 || p.peaD2 > 0) {
+    rows.push({ sep: 'PEA — Plan d\'épargne en actions' });
+    if (p.peaD1 > 0 || (isCouple && p.peaDateD1)) {
+      const ant1 = p.peaAnterioriteD1;
+      const antStr1 = fmtAnt(ant1);
+      const status1 = ant1 !== null ? (ant1 >= 5 ? ' ✓ exonéré IR' : ` — encore ${5 - ant1} an${5 - ant1 > 1 ? 's' : ''} avant exon.`) : '';
+      rows.push({ label: 'Valeur', d1: p.peaD1 > 0 ? e0(p.peaD1) : '—', d2: p.peaD2 > 0 ? e0(p.peaD2) : '—' });
+      rows.push({ label: 'Ouverture', d1: p.peaDateD1 || '—', d2: p.peaDateD2 || '—', sub: true });
+      const ant2 = p.peaAnterioriteD2;
+      const antStr2 = fmtAnt(ant2);
+      const status2 = ant2 !== null ? (ant2 >= 5 ? ' ✓ exonéré IR' : ` — encore ${5 - ant2} an${5 - ant2 > 1 ? 's' : ''} avant exon.`) : '';
+      rows.push({ label: 'Antériorité', d1: antStr1 ? antStr1 + status1 : '—', d2: antStr2 ? antStr2 + status2 : '—', sub: true });
+      rows.push({ label: 'Espace restant (plaf. 150 k€)', d1: e0(p.peaEspaceD1 ?? 150_000), d2: e0(p.peaEspaceD2 ?? 150_000), sub: true });
+    }
+  }
+
+  if (p.avD1 > 0 || p.avD2 > 0) {
+    rows.push({ sep: 'Assurance-vie' });
+    rows.push({ label: 'Valeur', d1: p.avD1 > 0 ? e0(p.avD1) : '—', d2: p.avD2 > 0 ? e0(p.avD2) : '—' });
+    rows.push({ label: 'Souscription', d1: p.avDateD1 || '—', d2: p.avDateD2 || '—', sub: true });
+    const avSt = (ant) => {
+      const s = fmtAnt(ant);
+      if (!s) return '—';
+      return s + (ant >= 8 ? ' ✓ abattement actif' : ` — encore ${8 - ant} an${8 - ant > 1 ? 's' : ''} avant abatt.`);
+    };
+    rows.push({ label: 'Antériorité', d1: avSt(p.avAnterioriteD1), d2: avSt(p.avAnterioriteD2), sub: true });
+    if (p.avVerseD1 > 0 || p.avVerseD2 > 0) {
+      rows.push({ label: 'Versements cumulés', d1: p.avVerseD1 > 0 ? e0(p.avVerseD1) : '—', d2: p.avVerseD2 > 0 ? e0(p.avVerseD2) : '—', sub: true });
+    }
+  }
+
+  if (p.pelD1 > 0 || p.pelD2 > 0) {
+    rows.push({ sep: 'PEL — Plan d\'épargne logement' });
+    rows.push({ label: 'Valeur', d1: p.pelD1 > 0 ? e0(p.pelD1) : '—', d2: p.pelD2 > 0 ? e0(p.pelD2) : '—' });
+    rows.push({ label: 'Ouverture', d1: p.pelDateD1 || '—', d2: p.pelDateD2 || '—', sub: true });
+    const pelSt = (ant, regime) => {
+      const s = fmtAnt(ant);
+      if (!s) return '—';
+      return s + (regime === 'imposable' ? ' ⚠ intérêts imposables' : ' ✓ exonéré');
+    };
+    rows.push({ label: 'Régime fiscal', d1: pelSt(p.pelAnterioriteD1, p.pelFiscalD1), d2: pelSt(p.pelAnterioriteD2, p.pelFiscalD2), sub: true });
+    if (p.pelInteretsD1 > 0 || p.pelInteretsD2 > 0) {
+      rows.push({ label: 'Intérêts 2025', d1: p.pelInteretsD1 > 0 ? e0(p.pelInteretsD1) : '—', d2: p.pelInteretsD2 > 0 ? e0(p.pelInteretsD2) : '—', sub: true });
+    }
+  }
+
+  if ((p.livretPlusD1 || 0) + (p.livretPlusD2 || 0) > 0) {
+    const g1 = p.livretPlusGainAnnuelD1 || 0;
+    const g2 = p.livretPlusGainAnnuelD2 || 0;
+    if (g1 > 0 || g2 > 0) {
+      rows.push({ sep: 'Livret+ / Livret bancaire — gain si réallocation PEA' });
+      rows.push({ label: 'Solde', d1: p.livretPlusD1 > 0 ? e0(p.livretPlusD1) : '—', d2: p.livretPlusD2 > 0 ? e0(p.livretPlusD2) : '—' });
+      rows.push({ label: 'Gain net annuel estimé (+4 % net)', d1: g1 > 0 ? `+ ${e0(g1)}/an` : '—', d2: g2 > 0 ? `+ ${e0(g2)}/an` : '—', sub: true });
+    }
+  }
+
+  if ((p.percoAbondD1 || 0) + (p.percoAbondD2 || 0) > 0) {
+    rows.push({ sep: 'PERCO — abondement employeur' });
+    rows.push({ label: 'Abondement annuel', d1: p.percoAbondD1 > 0 ? e0(p.percoAbondD1) : '—', d2: p.percoAbondD2 > 0 ? e0(p.percoAbondD2) : '—' });
+    if (p.percoPlafondD1 > 0 || p.percoPlafondD2 > 0) {
+      rows.push({ label: 'Plafond abondement', d1: p.percoPlafondD1 > 0 ? e0(p.percoPlafondD1) : '—', d2: p.percoPlafondD2 > 0 ? e0(p.percoPlafondD2) : '—', sub: true });
+    }
+  }
+
+  if (rows.length === 0) return null;
+
+  return (
+    <SectionBox title="Enveloppes — dates, antériorité & espace" num="05">
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Enveloppe</Th>
+            <Th right>{isCouple ? 'D1' : 'Valeur / Statut'}</Th>
+            {isCouple && <Th right>D2</Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            if (r.sep) return (
+              <tr key={i}>
+                <td colSpan={isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                  {r.sep}
+                </td>
+              </tr>
+            );
+            return (
+              <tr key={i} className={r.sub ? 'bg-gray-50/30' : ''}>
+                <Td className={r.sub ? 'pl-8 text-gray-500 text-[11px]' : ''}>{r.label}</Td>
+                <Td right muted={r.sub}>{r.d1}</Td>
+                {isCouple && <Td right muted={r.sub}>{r.d2}</Td>}
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tbl>
+    </SectionBox>
+  );
+}
+
+// ─── Module : Transmission et protection ─────────────────────────────────────
+
+function TransmissionModule({ p }) {
+  const hasData = p.hasTestamentManquant
+    || p.beneficiairesAvD1 || p.beneficiairesAvD2
+    || p.donationsRecues > 0
+    || p.hasNuPropriete
+    || p.indivisionValeur > 0;
+  if (!hasData) return null;
+
+  return (
+    <SectionBox title="Transmission et protection" num="06">
+      <div className="p-4 flex flex-col gap-3">
+        {p.hasTestamentManquant && (
+          <div className="rp-alert-red border-l-4 border-red-400 bg-red-50 px-4 py-3 rounded-r-lg">
+            <p className="text-xs font-bold text-red-800 mb-0.5">⚠ PACS sans testament</p>
+            <p className="text-xs text-red-700 leading-relaxed">Le partenaire n'hérite pas automatiquement — actifs légués aux héritiers légaux (parents, fratrie). Rédiger un testament et vérifier les clauses bénéficiaires des AV.</p>
+          </div>
+        )}
+        {(p.beneficiairesAvD1 || p.beneficiairesAvD2) && (
+          <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+            <p className="text-xs font-semibold text-gray-700 mb-1.5">Clauses bénéficiaires AV</p>
+            {p.beneficiairesAvD1 && <p className="text-xs text-gray-600"><span className="font-medium">D1 :</span> {p.beneficiairesAvD1}</p>}
+            {p.beneficiairesAvD2 && <p className="text-xs text-gray-600 mt-0.5"><span className="font-medium">D2 :</span> {p.beneficiairesAvD2}</p>}
+          </div>
+        )}
+        {p.donationsRecues > 0 && (
+          <div className="rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
+            <p className="text-xs font-semibold text-teal-700 mb-1">Donations reçues</p>
+            <p className="text-xs text-teal-700">Montant reçu : <strong>{e0(p.donationsRecues)}</strong></p>
+            {p.abattementDonRest > 0 && (
+              <p className="text-xs text-teal-600 mt-0.5">Abattement restant : {e0(p.abattementDonRest)} (renouvelable tous les 15 ans)</p>
+            )}
+          </div>
+        )}
+        {p.hasNuPropriete && (
+          <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+            <p className="text-xs font-semibold text-gray-700 mb-1">Nu-propriété détectée</p>
+            {p.nuProprieteValeur > 0 && <p className="text-xs text-gray-600">Valeur : {e0(p.nuProprieteValeur)}</p>}
+            <p className="text-xs text-gray-500 mt-0.5">Attention aux règles IFI et succession — vérifier avec un notaire.</p>
+          </div>
+        )}
+        {p.indivisionValeur > 0 && (
+          <div className="rp-alert-amber rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-700 mb-1">Indivision</p>
+            <p className="text-xs text-amber-700">Quote-part estimée : <strong>{e0(p.indivisionValeur)}</strong>. Une convention d'indivision ou une SCI peut simplifier la gestion et la transmission.</p>
+          </div>
+        )}
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module : Documents à récupérer 🟡 ───────────────────────────────────────
+
+function DocumentsModule({ p }) {
+  const aiDocs = p.alertsAVerifier || [];
+  const computed = [];
+
+  if (p.pelD1 > 0 || p.pelD2 > 0) {
+    computed.push('[🟡 À CONFIRMER] Date exacte d\'ouverture du PEL — vérifier sur le livret ou auprès de la banque pour confirmer le régime fiscal applicable (exonéré / imposable selon l\'antériorité).');
+  }
+  if (p.peroD1 > 0 || p.peroD2 > 0) {
+    computed.push('[🟡 À RÉCUPÉRER] Attestation PERO employeur (case 6QS) — document fourni par l\'employeur en début d\'année, à saisir dans la déclaration pour déduire les cotisations obligatoires.');
+  }
+  if (p.hasCrypto) {
+    computed.push('[🟡 À PRÉPARER] Historique complet des cessions crypto 2025 — export depuis les exchanges pour remplir le formulaire 2086 (méthode FIFO obligatoire pour le calcul des plus-values).');
+  }
+  if (p.hasCompteEtranger) {
+    computed.push('[🟡 À RASSEMBLER] RIB et justificatifs des comptes bancaires étrangers (Revolut, N26, Wise…) — nécessaires pour le formulaire 3916 à joindre à la déclaration.');
+  }
+
+  const computedPrefixes = computed.map(c => c.slice(0, 20));
+  const all = [
+    ...computed,
+    ...aiDocs.filter(a => !computedPrefixes.some(pr => a.startsWith(pr.slice(0, 15)))),
+  ];
+  if (all.length === 0) return null;
+
+  return (
+    <SectionBox title="Documents à récupérer" num="07">
+      <div className="p-4 flex flex-col gap-2">
+        {all.map((line, i) => (
+          <div key={i} className="rp-alert-amber border-l-4 border-amber-400 bg-amber-50 px-4 py-3 rounded-r-lg">
+            <p className="text-xs text-amber-800 leading-relaxed">{line}</p>
+          </div>
+        ))}
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module : Actions avant 31/12 🟢 ─────────────────────────────────────────
+
+function ActionsAnDecModule({ p, d }) {
+  const isCouple = d?.isCouple || p.mode === 'couple';
+  const parts    = p.parts || (isCouple ? 2 : 1);
+  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
+  const perOpt   = useMemo(
+    () => computePerOptimumCascade(
+      d?.rniFoyer || 0, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0,
+      isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate
+    ),
+    [d?.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple, p.rniD1, p.rniD2, stopRate]
+  );
+
+  const aiOps = p.alertsOpportunites || [];
+  const computed = [];
+
+  if (perOpt.optimumTotal > 0 && perOpt.tmiDepart > 11) {
+    computed.push(
+      `[🟢 LEVIER FORT] Versement PER avant 31/12/2025 — ${e0(perOpt.optimumTotal)} effacent la tranche ${perOpt.tmiDepart} % · économie IR réelle : ${e0(perOpt.economieOptimum)} · effort net : ${e0(perOpt.effortNet)}.`
+    );
+  }
+  if (!p.peaD1 && !p.peaD2) {
+    computed.push('[🟢 OPPORTUNITÉ] Ouvrir un PEA (1 € suffit) — démarre l\'horloge fiscale 5 ans. Après 5 ans : plus-values exonérées d\'IR. Plafond 150 000 € par personne.');
+  } else if (isCouple && (!p.peaD1 || !p.peaD2)) {
+    const who = !p.peaD1 ? 'D1' : 'D2';
+    computed.push(`[🟢 OPPORTUNITÉ] Ouvrir un PEA pour ${who} (1 € suffit) — démarre l'horloge fiscale 5 ans. Plafond : 150 000 €.`);
+  }
+  if ((p.percoAbondD1 || 0) + (p.percoAbondD2 || 0) > 0) {
+    const totalAbond = (p.percoAbondD1 || 0) + (p.percoAbondD2 || 0);
+    computed.push(`[🟢 LEVIER] PERCO — saturer l'abondement employeur avant la fin de l'année (${e0(totalAbond)} versés par l'employeur, hors impôts et charges sociales).`);
+  }
+
+  const computedPrefixes = computed.map(c => c.slice(0, 20));
+  const all = [
+    ...computed,
+    ...aiOps.filter(a => !computedPrefixes.some(pr => a.startsWith(pr.slice(0, 15)))),
+  ];
+  if (all.length === 0) return null;
+
+  return (
+    <SectionBox title="Actions avant 31/12" num="08">
+      <div className="p-4 flex flex-col gap-2">
+        {all.map((line, i) => (
+          <div key={i} className="border-l-4 border-teal-400 bg-teal-50 px-4 py-3 rounded-r-lg">
+            <p className="text-xs text-teal-800 leading-relaxed">{line}</p>
+          </div>
+        ))}
+      </div>
+    </SectionBox>
+  );
+}
+
 // ─── Section IA ───────────────────────────────────────────────────────────────
 
 function AttentionLine({ line }) {
@@ -1700,7 +2032,7 @@ export default function Rapport() {
   const profile   = state.profile;
   const p         = state.parsedProfile ?? {};
 
-  const d = useMemo(() => computeData(profile), [profile]);
+  const d = useMemo(() => computeData(profile, p), [profile, p]);
 
   const handleExportPDF = () => {
     const title = document.title;
@@ -1887,6 +2219,7 @@ export default function Rapport() {
             </div>
             <RevenusTable d={d} p={p} />
             <EpargneTable p={p} />
+            <BilanPatrimonialModule p={p} />
             <PatrimoineDesequilibreBlock p={p} />
           </>
         )}
@@ -1916,6 +2249,9 @@ export default function Rapport() {
           </>
         )}
 
+        {/* ── Alertes critiques 🔴 (avant PER) ── */}
+        <AlertesCritiquesModule p={p} />
+
         {/* ── Section 04 : Stratégie PER ── */}
         {(plafondPerTotal > 0 || (p.plafondPerD1 || 0) > 0 || (p.plafondPerD2 || 0) > 0) && (
           <>
@@ -1938,17 +2274,27 @@ export default function Rapport() {
           </>
         )}
 
-        {/* ── Section 05 : Cases déclaratives ── */}
+        {/* ── Section 05 : Enveloppes détail ── */}
+        <EnveloppesDetailModule p={p} />
+
+        {/* ── Section 05b : PEA & AV (non-enrichi ou complément) ── */}
+        {!p.isEnriched && <PeaAvModule p={p} />}
+        {!p.isEnriched && <ReallocationModule p={p} />}
+
+        {/* ── Section 06 : Transmission et protection ── */}
+        <TransmissionModule p={p} />
+
+        {/* ── Section 07 : Documents à récupérer ── */}
+        <DocumentsModule p={p} />
+
+        {/* ── Section 08 : Actions avant 31/12 ── */}
+        <ActionsAnDecModule p={p} d={d} />
+
+        {/* ── Cases déclaratives ── */}
         <CasesModule p={p} d={d} />
 
-        {/* ── Section 06 : Vigilances ── */}
-        <VigilancesModule p={p} d={d} />
-
-        {/* ── Section 07 : PEA & AV ── */}
-        <PeaAvModule p={p} />
-
-        {/* ── Section 08 : Réallocation D2 (couples seulement) ── */}
-        <ReallocationModule p={p} />
+        {/* ── Vigilances (mode non-enrichi seulement) ── */}
+        {!p.isEnriched && <VigilancesModule p={p} d={d} />}
 
         {/* ── Section 09 : Conditionnels ── */}
         {d.foncierBrut > 0 && <FoncierModule d={d} />}

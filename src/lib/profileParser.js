@@ -53,6 +53,23 @@ function section(text, header) {
   return text.match(rx)?.[1] ?? '';
 }
 
+/**
+ * Calcule l'antériorité en années entières depuis une date.
+ * Accepte : DD/MM/YYYY · MM/YYYY · YYYY · YYYY-MM-DD
+ */
+function anteriorite(dateStr) {
+  if (!dateStr) return null;
+  const d = dateStr.trim();
+  let dt;
+  if (/^\d{4}$/.test(d))                 dt = new Date(parseInt(d), 0, 1);
+  else if (/^\d{2}\/\d{4}$/.test(d))     { const [m, y] = d.split('/'); dt = new Date(parseInt(y), parseInt(m) - 1, 1); }
+  else if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) { const [dy, m, y] = d.split('/'); dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(dy)); }
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(d)) dt = new Date(d);
+  else return null;
+  if (isNaN(dt.getTime())) return null;
+  return Math.floor((Date.now() - dt.getTime()) / (365.25 * 24 * 3600 * 1000));
+}
+
 // ─── parseProfile ─────────────────────────────────────────────────────────────
 
 export function parseProfile(text) {
@@ -270,6 +287,74 @@ export function parseProfile(text) {
   const hasMultipleEmployeurs  = /plusieurs employeurs/i.test(text);
   const isEnriched             = /DÉCLARATION.*CASES|OBJECTIFS PRIORITAIRES|ANALYSE DES SITUATIONS/i.test(text);
 
+  // ── ANTÉRIORITÉ DES ENVELOPPES ───────────────────────────────────────────────
+  const avAnterioriteD1  = anteriorite(avDateD1);
+  const avAnterioriteD2  = anteriorite(avDateD2);
+  const peaAnterioriteD1 = anteriorite(peaDateD1);
+  const peaAnterioriteD2 = anteriorite(peaDateD2);
+  const pelAnterioriteD1 = anteriorite(pelDateD1);
+  const pelAnterioriteD2 = anteriorite(pelDateD2);
+
+  // ── PEA ESPACE RESTANT (plafond 150 000 €) ───────────────────────────────────
+  const peaEspaceD1 = peaD1 > 0 ? Math.max(0, 150_000 - (peaVerseD1 || peaD1)) : 150_000;
+  const peaEspaceD2 = peaD2 > 0 ? Math.max(0, 150_000 - (peaVerseD2 || peaD2)) : 150_000;
+
+  // ── LIVRET A PLAFOND (22 950 € depuis févr. 2023) ────────────────────────────
+  const livretAExceedsD1 = livretAD1 > 22_950;
+  const livretAExceedsD2 = livretAD2 > 22_950;
+
+  // ── PEL RÉGIME FISCAL (intérêts imposables si PEL > 12 ans) ─────────────────
+  const pelFiscalD1 = pelAnterioriteD1 !== null
+    ? (pelAnterioriteD1 >= 12 ? 'imposable' : 'exonéré') : null;
+  const pelFiscalD2 = pelAnterioriteD2 !== null
+    ? (pelAnterioriteD2 >= 12 ? 'imposable' : 'exonéré') : null;
+
+  // ── PEL INTÉRÊTS (enrichissement IA) ────────────────────────────────────────
+  const pelInteretsD1 = n(secEpD1, /PEL intérêts 2025[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const pelInteretsD2 = n(secEpD2, /PEL intérêts 2025[^:\n]*:\s*([\d\s,]+)\s*€/i);
+
+  // ── LIVRET+ GAIN SI RÉALLOCATION PEA (hyp. 7 % PEA vs 3 % livret) ────────────
+  const livretPlusGainAnnuelD1 = Math.round((livretPlusD1 || 0) * (0.07 - 0.03) * (1 - 0.172));
+  const livretPlusGainAnnuelD2 = Math.round((livretPlusD2 || 0) * (0.07 - 0.03) * (1 - 0.172));
+
+  // ── AV RACHATS 2025 ──────────────────────────────────────────────────────────
+  const avRachatsD1 = n(secEpD1, /AV rachats?[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const avRachatsD2 = n(secEpD2, /AV rachats?[^:\n]*:\s*([\d\s,]+)\s*€/i);
+
+  // ── PERCO ABONDEMENT ─────────────────────────────────────────────────────────
+  const percoAbondD1   = n(secEpD1, /(?:PERCO|PER.*?col)[^:\n]*abondement[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const percoPlafondD1 = n(secEpD1, /(?:PERCO|PER.*?col)[^:\n]*plafond[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const percoAbondD2   = n(secEpD2, /(?:PERCO|PER.*?col)[^:\n]*abondement[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const percoPlafondD2 = n(secEpD2, /(?:PERCO|PER.*?col)[^:\n]*plafond[^:\n]*:\s*([\d\s,]+)\s*€/i);
+
+  // ── TRANSMISSION ─────────────────────────────────────────────────────────────
+  const secTransmission = section(text, '== TRANSMISSION ==')
+                       || section(text, '== PROTECTION & TRANSMISSION ==')
+                       || section(text, '== TRANSMISSION ET PROTECTION ==')
+                       || '';
+  const beneficiairesAvD1     = s(secTransmission, /Bénéficiaires AV D1[^:\n]*:\s*(.+)/i);
+  const beneficiairesAvD2     = s(secTransmission, /Bénéficiaires AV D2[^:\n]*:\s*(.+)/i);
+  const donationsRecues       = n(text, /Donations? reçues?[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const abattementDonRest     = n(text, /[Aa]battement.*?restant[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const hasNuPropriete        = /nu.?propriété/i.test(text);
+  const nuProprieteValeur     = n(text, /nu.?propriété[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const indivisionValeur      = n(text, /indivision[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                             || n(text, /quote.?part[^:\n]*:\s*([\d\s,]+)\s*€/i);
+
+  // ── ALERTES IA (depuis "== POINTS D'ATTENTION ==") ────────────────────────────
+  const secAttn = section(text, "== POINTS D'ATTENTION ==");
+  const attnLines = (secAttn || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const alertsCritiques    = attnLines.filter(l => l.startsWith('[🔴') || l.startsWith('🔴'));
+  const alertsAVerifier    = attnLines.filter(l => l.startsWith('[🟡') || l.startsWith('🟡'));
+  const alertsOpportunites = attnLines.filter(l => l.startsWith('[🟢') || l.startsWith('🟢'));
+
+  // ── PATRIMOINE NET & TAUX D'ÉPARGNE ──────────────────────────────────────────
+  const patrimoineImmoNet = Math.max(0, (rpValeur || 0) - (creditCrd || 0));
+  const patrimoineNet     = epargneLiquide + epargneLongTerme + cryptoTotal + patrimoineImmoNet;
+  const revenuMensuelFoyer = Math.round((rniFoyer || (rniD1 + rniD2)) / 12);
+  const tauxEpargneFoyer   = revenuMensuelFoyer > 0 && capaciteEpargneFoyer > 0
+    ? Math.round(capaciteEpargneFoyer / revenuMensuelFoyer * 100) : 0;
+
   return {
     mode,
     parts:       parts || 1,
@@ -307,6 +392,23 @@ export function parseProfile(text) {
     hasCrypto, hasCompteEtranger, hasIndivision, hasTestamentManquant,
     hasPelAncien, hasChangementEmployeur, hasMultipleEmployeurs,
     isEnriched,
+
+    avAnterioriteD1, avAnterioriteD2,
+    peaAnterioriteD1, peaAnterioriteD2,
+    pelAnterioriteD1, pelAnterioriteD2,
+    pelFiscalD1, pelFiscalD2,
+    peaEspaceD1, peaEspaceD2,
+    livretAExceedsD1, livretAExceedsD2,
+    pelInteretsD1, pelInteretsD2,
+    livretPlusGainAnnuelD1, livretPlusGainAnnuelD2,
+    avRachatsD1, avRachatsD2,
+    percoAbondD1, percoPlafondD1, percoAbondD2, percoPlafondD2,
+    beneficiairesAvD1, beneficiairesAvD2,
+    donationsRecues, abattementDonRest,
+    hasNuPropriete, nuProprieteValeur, indivisionValeur,
+    alertsCritiques, alertsAVerifier, alertsOpportunites,
+    patrimoineImmoNet, patrimoineNet,
+    revenuMensuelFoyer, tauxEpargneFoyer,
   };
 }
 
@@ -341,5 +443,22 @@ export function emptyProfile() {
     hasTestamentManquant: false, hasPelAncien: false,
     hasChangementEmployeur: false, hasMultipleEmployeurs: false,
     isEnriched: false,
+
+    avAnterioriteD1: null, avAnterioriteD2: null,
+    peaAnterioriteD1: null, peaAnterioriteD2: null,
+    pelAnterioriteD1: null, pelAnterioriteD2: null,
+    pelFiscalD1: null, pelFiscalD2: null,
+    peaEspaceD1: 150_000, peaEspaceD2: 150_000,
+    livretAExceedsD1: false, livretAExceedsD2: false,
+    pelInteretsD1: 0, pelInteretsD2: 0,
+    livretPlusGainAnnuelD1: 0, livretPlusGainAnnuelD2: 0,
+    avRachatsD1: 0, avRachatsD2: 0,
+    percoAbondD1: 0, percoPlafondD1: 0, percoAbondD2: 0, percoPlafondD2: 0,
+    beneficiairesAvD1: '', beneficiairesAvD2: '',
+    donationsRecues: 0, abattementDonRest: 0,
+    hasNuPropriete: false, nuProprieteValeur: 0, indivisionValeur: 0,
+    alertsCritiques: [], alertsAVerifier: [], alertsOpportunites: [],
+    patrimoineImmoNet: 0, patrimoineNet: 0,
+    revenuMensuelFoyer: 0, tauxEpargneFoyer: 0,
   };
 }
