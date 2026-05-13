@@ -58,6 +58,69 @@ function decote(brut, isCouple) {
   return brut < seuil ? Math.max(0, plafond - 0.4525 * brut) : 0;
 }
 
+// ─── Calcul cascade PER par tranche ─────────────────────────────────────────
+
+function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, isCouple) {
+  const STOP_RATE = 0.11;
+  const pd1 = plafondD1 || 0;
+  const pd2 = plafondD2 || 0;
+  const plafondTotal = pd1 + pd2;
+
+  const empty = {
+    zones: [], optimumTotal: 0, optimumD1: 0, optimumD2: 0,
+    economieOptimum: 0, effortNet: 0, rendementMoyen: 0,
+    capaciteResiduelle: plafondTotal, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart: 0,
+  };
+
+  if (!rniFoyer || !parts || !plafondTotal) return empty;
+
+  const quotientInit = rniFoyer / parts;
+  let tmiDepart = 0;
+  for (const [lo, , rate] of TRANCHES) {
+    if (quotientInit > lo) tmiDepart = Math.round(rate * 100);
+    else break;
+  }
+  if (tmiDepart <= 11) return { ...empty, tmiDepart };
+
+  const tranchesDesc = [...TRANCHES].filter(([, , rate]) => rate > STOP_RATE).reverse();
+  let rniResiduel = rniFoyer;
+  let plafondRestant = plafondTotal;
+  const zones = [];
+
+  for (const [lo, hi, rate] of tranchesDesc) {
+    if (plafondRestant <= 0) break;
+    const quotient = rniResiduel / parts;
+    if (quotient <= lo) continue;
+    const fractionFoyer = Math.round((Math.min(quotient, hi) - lo) * parts);
+    if (fractionFoyer <= 0) continue;
+    const versement = Math.min(fractionFoyer, plafondRestant);
+    const taux = Math.round(rate * 100);
+    zones.push({ taux, fractionFoyer, versement, economie: Math.round(versement * rate), partial: versement < fractionFoyer });
+    plafondRestant -= versement;
+    rniResiduel -= versement;
+  }
+
+  const optimumTotal = zones.reduce((s, z) => s + z.versement, 0);
+  const economieOptimum = Math.max(0, calcIR(rniFoyer, parts, isCouple) - calcIR(Math.max(0, rniFoyer - optimumTotal), parts, isCouple));
+  const capaciteResiduelle = plafondTotal - optimumTotal;
+
+  let optimumD1, optimumD2;
+  if (pd1 >= pd2) {
+    optimumD1 = Math.min(pd1, optimumTotal);
+    optimumD2 = Math.min(pd2, Math.max(0, optimumTotal - optimumD1));
+  } else {
+    optimumD2 = Math.min(pd2, optimumTotal);
+    optimumD1 = Math.min(pd1, Math.max(0, optimumTotal - optimumD2));
+  }
+
+  return {
+    zones, optimumTotal, optimumD1, optimumD2, economieOptimum,
+    effortNet: optimumTotal - economieOptimum,
+    rendementMoyen: optimumTotal > 0 ? Math.round((economieOptimum / optimumTotal) * 100) : 0,
+    capaciteResiduelle, plafondTotal, plafondD1: pd1, plafondD2: pd2, tmiDepart,
+  };
+}
+
 // ─── Sections IA ─────────────────────────────────────────────────────────────
 
 const AI_TITLES = ['DÉCLARATION', 'ANALYSE DES SITUATIONS', "POINTS D'ATTENTION", 'OBJECTIFS PRIORITAIRES'];
@@ -736,6 +799,171 @@ function AccordCoupleProseBlock({ d }) {
 
 // ─── Tableau 4 scénarios PER ─────────────────────────────────────────────────
 
+// ─── Bloc zones PER par tranche ──────────────────────────────────────────────
+
+function PerZonesBlock({ p, d, perSim }) {
+  const isCouple = d.isCouple;
+  const parts = p.parts || (isCouple ? 2 : 1);
+  const plafondD1 = p.plafondPerD1 || 0;
+  const plafondD2 = p.plafondPerD2 || 0;
+
+  const opt = useMemo(
+    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple),
+    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple]
+  );
+
+  const simD1 = perSim?.versementD1 || 0;
+  const simD2 = perSim?.versementD2 || 0;
+  const hasSimState = (simD1 + simD2) > 0;
+
+  const moduleHeader = (
+    <div className="rp-section-header flex items-center gap-2 px-5 py-3 bg-teal-700 border-b border-teal-600">
+      <h3 className="text-sm font-bold text-white">
+        <span className="rp-module-num font-mono mr-2 opacity-70">04a</span>
+        Stratégie PER — Optimum fiscal par tranche
+      </h3>
+    </div>
+  );
+
+  if (opt.tmiDepart <= 11) {
+    return (
+      <div className="rp-module rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
+        {moduleHeader}
+        <div className="p-5">
+          <p className="text-xs text-gray-700">
+            <strong>TMI foyer = {d.tmi}&nbsp;%</strong> — PER non recommandé.
+            Le rendement fiscal insuffisant ne justifie pas l'immobilisation des fonds jusqu'à la retraite.
+            Privilégier : PEA (exonération plus-values après 5 ans), assurance-vie (fiscalité allégée après 8 ans) ou livrets garantis.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rp-module rounded-2xl border border-teal-200 overflow-hidden shadow-sm print:shadow-none">
+      {moduleHeader}
+      <div className="p-4 flex flex-col gap-3">
+
+        {/* Zones prioritaires */}
+        {opt.zones.map((z, i) => (
+          <div key={i} className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+              <span className="text-[11px] font-bold text-teal-800 uppercase tracking-wide">
+                Zone {i + 1} — PER prioritaire · Effacement tranche {z.taux}&nbsp;% · Rendement {z.taux}&nbsp;%
+              </span>
+              {z.partial && (
+                <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Plafond épuisé avant effacement complet</span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <p className="text-[10px] text-teal-600 uppercase tracking-wide">Fraction imposée à {z.taux}&nbsp;%</p>
+                <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(z.fractionFoyer)}</p>
+                {z.partial && <p className="text-[10px] text-amber-600 mt-0.5">Couverture plafond&nbsp;: {e0(z.versement)}</p>}
+              </div>
+              <div>
+                <p className="text-[10px] text-teal-600 uppercase tracking-wide">Versement PER cible</p>
+                <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(z.versement)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-teal-600 uppercase tracking-wide">Économie IR</p>
+                <p className="text-sm font-semibold text-green-700 tabular-nums">{e0(z.versement)} × {z.taux}&nbsp;% = <strong>{e0(z.economie)}</strong></p>
+              </div>
+            </div>
+            {isCouple && i === opt.zones.length - 1 && (plafondD1 > 0 || plafondD2 > 0) && (
+              <p className="mt-2 text-[11px] text-teal-700 border-t border-teal-200 pt-2">
+                Répartition suggérée&nbsp;: <strong>D1 {e0(opt.optimumD1)}</strong>{isCouple && ` · D2 ${e0(opt.optimumD2)}`}
+              </p>
+            )}
+          </div>
+        ))}
+
+        {/* Récapitulatif */}
+        <div className="rounded-xl border border-teal-300 bg-teal-100/70 px-4 py-3 flex flex-wrap gap-x-6 gap-y-2">
+          <div>
+            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Versement optimum</p>
+            <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(opt.optimumTotal)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Économie IR réelle</p>
+            <p className="text-sm font-bold text-green-700 tabular-nums">{e0(opt.economieOptimum)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Effort net réel</p>
+            <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(opt.effortNet)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Rendement fiscal</p>
+            <p className="text-sm font-bold text-teal-900 tabular-nums">{opt.rendementMoyen}&nbsp;%</p>
+          </div>
+        </div>
+
+        {/* Zone résiduelle 11% */}
+        {opt.capaciteResiduelle > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-2">
+              Zone PER à rendement réduit — Tranche 11&nbsp;% atteinte
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-3">
+              <div>
+                <p className="text-[10px] text-amber-600 uppercase tracking-wide">Capacité PER résiduelle</p>
+                <p className="text-sm font-bold text-amber-900 tabular-nums">
+                  {e0(opt.capaciteResiduelle)} <span className="text-amber-500 font-normal text-[10px]">({e0(opt.plafondTotal)} − {e0(opt.optimumTotal)})</span>
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-amber-600 uppercase tracking-wide">Rendement PER résiduel</p>
+                <p className="text-sm font-semibold text-amber-800">11&nbsp;% seulement</p>
+              </div>
+            </div>
+            <div className="border-t border-amber-200 pt-2 space-y-1.5">
+              <p className="text-[11px] font-semibold text-amber-800">Alternatives à privilégier pour cet excédent&nbsp;:</p>
+              <p className="text-[11px] text-amber-700">→ <strong>PEA</strong>&nbsp;: pas d'économie IR immédiate, mais exonération des plus-values après 5 ans et meilleure liquidité</p>
+              <p className="text-[11px] text-amber-700">→ <strong>Assurance-vie</strong>&nbsp;: fiscalité allégée après 8 ans, disponibilité des fonds</p>
+              <p className="text-[11px] text-amber-700">→ <strong>LDDS / Livret A</strong>&nbsp;: liquidité totale, rendement garanti (mais faible)</p>
+            </div>
+          </div>
+        )}
+
+        {/* Simulation active depuis le Simulateur */}
+        {hasSimState && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+            <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-2">Versements retenus dans le Simulateur</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {isCouple ? (
+                <>
+                  <div>
+                    <p className="text-[10px] text-blue-600 uppercase">D1 versé</p>
+                    <p className="text-xs font-bold text-blue-900 tabular-nums">{e0(simD1)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-600 uppercase">D2 versé</p>
+                    <p className="text-xs font-bold text-blue-900 tabular-nums">{e0(simD2)}</p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <p className="text-[10px] text-blue-600 uppercase">Versement simulé</p>
+                  <p className="text-xs font-bold text-blue-900 tabular-nums">{e0(simD1)}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] text-blue-600 uppercase">Économie IR (barème réel)</p>
+                <p className="text-xs font-bold text-green-700 tabular-nums">
+                  {e0(Math.max(0, d.irNetFoyer - calcIR(Math.max(0, d.rniFoyer - simD1 - simD2), parts, isCouple)))}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 function PerScenariosTable({ p, d }) {
   const isCouple = d.isCouple;
   const plafD1 = p.plafondPerD1 || 0;
@@ -1264,26 +1492,20 @@ function ReallocationModule({ p }) {
 
 function FeuilleRouteModule({ p, d }) {
   const isCouple = d.isCouple;
-  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
   const peaD1 = p.peaD1 || 0;
   const peaD2 = p.peaD2 || 0;
   const epargneLiquide = p.epargneLiquide || 0;
 
-  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
-  const irApres = calcIR(
-    Math.max(0, d.rniFoyer - totalVersionable),
-    p.parts || (isCouple ? 2 : 1),
-    isCouple
-  );
-  const economie = Math.max(0, d.irNetFoyer - irApres);
+  const fParts = p.parts || (isCouple ? 2 : 1);
+  const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple);
 
   const priorities = [];
 
-  if (plafondPerTotal > 0 && d.tmi >= 30) {
+  if (opt.optimumTotal > 0 && opt.tmiDepart > 11) {
     priorities.push({
       title: 'Versement PER avant 31/12/2025',
-      levier: `Déduction RNI — économie IR réelle : ${e0(economie)}`,
-      gain: `${e0(economie)} d'économie IR`,
+      levier: `Efface la tranche ${opt.tmiDepart} % — économie IR réelle : ${e0(opt.economieOptimum)} (effort net : ${e0(opt.effortNet)})`,
+      gain: `${e0(opt.economieOptimum)} d'économie IR`,
       deadline: '31 décembre 2025',
       color: 'teal',
     });
@@ -1520,13 +1742,14 @@ export default function Rapport() {
   const isRemb     = d.solde >= 0;
   const isCouple   = d.isCouple;
   const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
+  const perSimulation = state.perSimulation ?? {};
 
-  // Pré-calculer l'économie PER pour le prose KPI
-  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
-  const irApresPerTotal = totalVersionable > 0
-    ? calcIR(Math.max(0, d.rniFoyer - totalVersionable), p.parts || (isCouple ? 2 : 1), isCouple)
-    : d.irNetFoyer;
-  const perEconomie = Math.max(0, d.irNetFoyer - irApresPerTotal);
+  // Cascade PER — optimum fiscal (source de vérité pour tout le rapport)
+  const parts = p.parts || (isCouple ? 2 : 1);
+  const perOpt = useMemo(
+    () => computePerOptimumCascade(d.rniFoyer, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple),
+    [d.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple]
+  );
 
   return (
     <>
@@ -1654,8 +1877,8 @@ export default function Rapport() {
                 ? `Un remboursement de ${e0(d.solde)} est attendu après la déclaration (PAS excédentaire).`
                 : `Un complément de ${e0(Math.abs(d.solde))} sera dû à l'automne 2026 (PAS insuffisant).`
               }
-              {plafondPerTotal > 0 && perEconomie > 0 && (
-                <> Le principal levier fiscal disponible est le PER : <strong>{e0(plafondPerTotal)}</strong> déductibles avant le 31/12, soit une économie IR réelle estimée à <strong>{e0(perEconomie)}</strong>.</>
+              {perOpt.optimumTotal > 0 && perOpt.economieOptimum > 0 && (
+                <> Le principal levier fiscal est le versement PER&nbsp;: <strong>{e0(perOpt.optimumTotal)}</strong> permettent d'effacer la tranche à {perOpt.tmiDepart}&nbsp;% et de générer <strong>{e0(perOpt.economieOptimum)}</strong> d'économie IR (effort net réel&nbsp;: {e0(perOpt.effortNet)}).{perOpt.capaciteResiduelle > 0 ? ` La capacité résiduelle (${e0(perOpt.capaciteResiduelle)}) est à orienter vers PEA ou AV — le PER ne génère plus que 11 % sur cet excédent.` : ''}</>
               )}
             </ProseCard>
           </>
@@ -1714,6 +1937,7 @@ export default function Rapport() {
               lorsque la déduction empiète sur une tranche moins taxée. La comparaison de scénarios ci-dessous utilise le barème progressif exact.
             </ProseCard>
 
+            <PerZonesBlock p={p} d={d} perSim={perSimulation} />
             <PerPlafondsModule p={p} d={d} />
             <PerScenariosTable p={p} d={d} />
             <PerCalendarBlock p={p} d={d} />
