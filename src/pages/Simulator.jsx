@@ -1,15 +1,15 @@
-import { useState, useMemo }      from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate }             from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
+  Tooltip, Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import toast                       from 'react-hot-toast';
 import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, PenLine } from 'lucide-react';
 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
-import { getTMI, baseIRFoyer, MIN_PLAFOND_PER } from '../lib/taxCalculator';
+import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, calcIR, TRANCHES } from '../lib/taxCalculator';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
 const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
@@ -50,6 +50,32 @@ const ENVELOPES = [
 const DURATIONS = [5, 10, 20, 30];
 const RATES     = [0.03, 0.05, 0.07, 0.09];
 const SAVE_KEY  = 'coachFiscal.simulations';
+
+// ─── Décomposition de l'économie PER par tranche ─────────────────────────────
+// La déduction PER réduit le revenu depuis le haut — elle traverse d'abord la
+// tranche marginale haute, puis les tranches inférieures si la déduction dépasse
+// le montant imposé dans la tranche haute.
+
+function computeBracketBreakdown(rniFoyer, versement, parts) {
+  if (!versement || versement <= 0 || !rniFoyer || !parts) return [];
+  const quotient      = rniFoyer / parts;
+  const quotientApres = Math.max(0, (rniFoyer - versement) / parts);
+  const breakdown     = [];
+  for (const [lo, hi, rate] of TRANCHES) {
+    if (rate === 0)         continue;
+    if (quotient <= lo)     break;   // au-delà du revenu actuel
+    if (quotientApres >= Math.min(hi, quotient)) continue; // non touché
+    const loQ = Math.max(lo, quotientApres);
+    const hiQ = Math.min(hi, quotient);
+    if (hiQ <= loQ)         continue;
+    breakdown.push({
+      rate:   Math.round(rate * 100),
+      amount: Math.round((hiQ - loQ) * parts),
+      saving: Math.round((hiQ - loQ) * parts * rate),
+    });
+  }
+  return breakdown.reverse(); // tranche la plus haute en premier
+}
 
 function saveSimulation(label) {
   try {
@@ -124,7 +150,7 @@ function ToggleGroup({ label, options, value, onChange, format }) {
 
 // ─── Bandeau données profil ───────────────────────────────────────────────────
 
-function ProfileBanner({ items, isDefault }) {
+function ProfileBanner({ items, isDefault, sub }) {
   return (
     <div className="rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3">
       <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Données du profil</p>
@@ -136,6 +162,7 @@ function ProfileBanner({ items, isDefault }) {
           </div>
         ))}
       </div>
+      {sub && <p className="text-[10px] text-blue-500 mt-2 text-center">{sub}</p>}
       {isDefault && (
         <p className="text-[10px] text-blue-300 mt-2 text-center">
           Valeurs d'exemple — générez un profil pour les personnaliser
@@ -165,69 +192,223 @@ function ChartTooltip({ active, payload, label }) {
 // ─── Simulateur PER ───────────────────────────────────────────────────────────
 
 function SimPER({ data }) {
-  const navigate = useNavigate();
-  const profData = data;
+  const navigate  = useNavigate();
+  const { dispatch } = useApp();
+  const profData  = data;
 
-  const [versement, setVersement] = useState(
-    () => Math.round(Math.min(profData.plafond, 5000) / 100) * 100
+  const isCouple       = profData.isCouple;
+  const parts          = profData.parts || 1;
+  const rniFoyer       = profData.rni;
+
+  // Two sliders only available in profile mode (perCalcD1/D2 present)
+  const showTwoSliders = isCouple && profData.perCalcD1 != null && profData.perCalcD2 != null;
+
+  const plafondD1    = showTwoSliders ? (profData.perCalcD1?.plafondNet || 0) : (profData.plafond || 0);
+  const plafondD2    = showTwoSliders ? (profData.perCalcD2?.plafondNet || 0) : 0;
+  const plafondTotal = plafondD1 + plafondD2;
+
+  const [versementD1, setVersementD1] = useState(
+    () => plafondD1 > 0 ? Math.round(Math.min(plafondD1, 3000) / 100) * 100 : 0
+  );
+  const [versementD2, setVersementD2] = useState(
+    () => showTwoSliders && plafondD2 > 0 ? Math.round(Math.min(plafondD2, 2000) / 100) * 100 : 0
   );
 
+  const totalVerse = versementD1 + (showTwoSliders ? versementD2 : 0);
+
+  // Sync versements to global state for inter-tab bandeau
+  useEffect(() => {
+    dispatch({
+      type: 'SET_PER_SIMULATION',
+      payload: { versementD1, versementD2: showTwoSliders ? versementD2 : 0 },
+    });
+  }, [versementD1, versementD2, showTwoSliders, dispatch]);
+
+  // Inflection point: amount of RNI in the top bracket
+  const { fractionInTopBracket, nextLowerRate } = useMemo(() => {
+    const tmiRate  = profData.tmi / 100;
+    const tmiIdx   = TRANCHES.findIndex(t => Math.abs(t[2] - tmiRate) < 0.001);
+    const tmiEntry = TRANCHES[tmiIdx];
+    const seuilPerPart = tmiEntry ? tmiEntry[0] : 0;
+    const seuilTotal   = Math.round(seuilPerPart * parts);
+    const fraction     = Math.max(0, Math.round(rniFoyer - seuilTotal));
+    const nextRate     = tmiIdx > 0 ? Math.round(TRANCHES[tmiIdx - 1][2] * 100) : 0;
+    return { fractionInTopBracket: fraction, nextLowerRate: nextRate };
+  }, [rniFoyer, parts, profData.tmi]);
+
+  // Real IR calculations
   const res = useMemo(() => {
-    const economie  = Math.round(versement * (profData.tmi / 100));
-    const effort    = versement - economie;
-    const newRNI    = profData.rni - versement;
-    const newTMI    = getTMI(newRNI * 0.9, 1); // approx : 1 part, abattement 10%
-    const rendement = versement > 0 ? Math.round((economie / versement) * 100) : 0;
-    return { economie, effort, newRNI, newTMI, rendement };
-  }, [versement, profData]);
+    const irAvant   = calcIR(rniFoyer, parts, isCouple);
+    const irApresD1 = calcIR(Math.max(0, rniFoyer - versementD1), parts, isCouple);
+    const rniApres  = Math.max(0, rniFoyer - totalVerse);
+    const irApres   = calcIR(rniApres, parts, isCouple);
+    const economie  = Math.max(0, irAvant - irApres);
+    const economieD1 = Math.max(0, irAvant - irApresD1);
+    const economieD2 = Math.max(0, irApresD1 - irApres);
+    const effort    = totalVerse - economie;
+    const newTMI    = getTMI(rniApres, parts);
+    const rendement = totalVerse > 0 ? Math.round((economie / totalVerse) * 100) : 0;
+    const bracketBreakdown = computeBracketBreakdown(rniFoyer, totalVerse, parts);
+    return { irAvant, rniApres, economie, economieD1, economieD2, effort, newTMI, rendement, bracketBreakdown };
+  }, [versementD1, versementD2, rniFoyer, parts, isCouple, totalVerse]);
+
+  // Economy curve chart data
+  const chartData = useMemo(() => {
+    const irAvant = calcIR(rniFoyer, parts, isCouple);
+    const maxV    = Math.max(plafondTotal || 0, fractionInTopBracket, 2000);
+    const step    = Math.max(50, Math.round(maxV / 80) * 10);
+    const pts     = new Map();
+    for (let v = 0; v <= maxV; v += step) {
+      pts.set(v, Math.max(0, irAvant - calcIR(Math.max(0, rniFoyer - v), parts, isCouple)));
+    }
+    pts.set(0, 0);
+    if (fractionInTopBracket > 0 && fractionInTopBracket <= maxV) {
+      pts.set(fractionInTopBracket, Math.max(0, irAvant - calcIR(Math.max(0, rniFoyer - fractionInTopBracket), parts, isCouple)));
+    }
+    if (totalVerse > 0 && totalVerse <= maxV) {
+      pts.set(totalVerse, Math.max(0, irAvant - calcIR(Math.max(0, rniFoyer - totalVerse), parts, isCouple)));
+    }
+    return [...pts.entries()].sort((a, b) => a[0] - b[0]).map(([v, e]) => ({ versement: v, economie: e }));
+  }, [rniFoyer, parts, isCouple, plafondTotal, fractionInTopBracket, totalVerse]);
+
+  // Auto-optimize: fill top bracket first, prioritize larger plafond
+  const handleAutoOptimize = () => {
+    if (fractionInTopBracket <= 0) return;
+    if (showTwoSliders) {
+      if (plafondD1 >= plafondD2) {
+        const d1 = Math.min(plafondD1, fractionInTopBracket);
+        const d2 = Math.min(plafondD2, Math.max(0, fractionInTopBracket - d1));
+        setVersementD1(Math.round(d1 / 50) * 50);
+        setVersementD2(Math.round(d2 / 50) * 50);
+      } else {
+        const d2 = Math.min(plafondD2, fractionInTopBracket);
+        const d1 = Math.min(plafondD1, Math.max(0, fractionInTopBracket - d2));
+        setVersementD1(Math.round(d1 / 50) * 50);
+        setVersementD2(Math.round(d2 / 50) * 50);
+      }
+    } else {
+      setVersementD1(Math.round(Math.min(plafondD1, fractionInTopBracket) / 50) * 50);
+    }
+  };
+
+  const topBracketDone = fractionInTopBracket > 0 && totalVerse >= fractionInTopBracket;
+  const rendD1 = versementD1 > 0 ? Math.round((res.economieD1 / versementD1) * 100) : 0;
+  const rendD2 = versementD2 > 0 ? Math.round((res.economieD2 / versementD2) * 100) : 0;
 
   const handleChat = () => {
-    const msg = `Simulation PER : versement de ${fmt(versement)} € (TMI ${profData.tmi} %, plafond disponible ${fmt(profData.plafond)} €). Économie IR estimée : ${fmt(res.economie)} €, effort réel net : ${fmt(res.effort)} €, rendement immédiat ${res.rendement} %. Quels PER recommandes-tu et comment optimiser ce versement avant le 31/12 ?`;
+    const bracketInfo = res.bracketBreakdown.map(b => `${fmt(b.amount)} € × ${b.rate} % = ${fmt(b.saving)} €`).join(' + ');
+    const msg = showTwoSliders
+      ? `PER couple (barème réel 2025) : D1 verse ${fmt(versementD1)} €, D2 verse ${fmt(versementD2)} € (total ${fmt(totalVerse)} €). RNI foyer ${fmt(rniFoyer)} €, ${parts} parts, TMI ${profData.tmi} %. Économie IR réelle : ${fmt(res.economie)} €${bracketInfo ? ` (${bracketInfo})` : ''}. Effort net : ${fmt(res.effort)} €, rendement ${res.rendement} %. Comment choisir nos PER et optimiser la répartition ?`
+      : `PER (barème réel 2025) : versement ${fmt(versementD1)} €. RNI ${fmt(rniFoyer)} €, ${parts} part${parts > 1 ? 's' : ''}, TMI ${profData.tmi} %. Économie IR réelle : ${fmt(res.economie)} €${bracketInfo ? ` (${bracketInfo})` : ''}. Effort net : ${fmt(res.effort)} €, rendement ${res.rendement} %. Quels PER recommandes-tu ?`;
     navigate('/chat', { state: { prefill: msg } });
   };
 
-  const rows = [
-    { label: 'Économie IR immédiate',  value: `${fmt(res.economie)} €`, color: 'text-teal-700', hi: true  },
-    { label: 'Effort réel net',        value: `${fmt(res.effort)} €`,   color: 'text-gray-800', hi: false },
-    { label: 'Nouveau RNI estimé',     value: `${fmt(res.newRNI)} €`,   color: 'text-gray-800', hi: false },
-    { label: 'Rendement immédiat',     value: `${res.rendement} %`,     color: 'text-teal-600', hi: false },
-  ];
-
   return (
     <div className="flex flex-col gap-5">
+
+      {/* ── Profile banner ── */}
       <ProfileBanner
         isDefault={profData.isDefault}
         items={[
-          { label: 'RNI foyer',    value: `${fmt(profData.rni)} €`    },
-          { label: 'TMI actuel',   value: `${profData.tmi} %`          },
-          { label: 'Plafond PER',  value: `${fmt(profData.plafond)} €` },
+          { label: 'RNI foyer',                                          value: `${fmt(rniFoyer)} €`   },
+          { label: 'TMI foyer',                                          value: `${profData.tmi} %`    },
+          { label: showTwoSliders ? 'Plafond foyer' : 'Plafond PER',   value: `${fmt(plafondTotal)} €` },
         ]}
+        sub={showTwoSliders ? `D1 : ${fmt(plafondD1)} € · D2 : ${fmt(plafondD2)} €` : null}
       />
 
-      <SimSlider
-        label="Montant à verser sur le PER"
-        value={versement}
-        min={0}
-        max={profData.plafond}
-        step={100}
-        onChange={setVersement}
-        format={v => `${fmt(v)} €`}
-      />
+      {/* ── Curseurs D1 + D2 (ou curseur unique) ── */}
+      {showTwoSliders ? (
+        <div className="flex flex-col gap-5">
+          {/* D1 */}
+          <div className="flex flex-col gap-1.5">
+            <SimSlider
+              label={`Versement D1 — plafond disponible ${fmt(plafondD1)} €`}
+              value={versementD1}
+              min={0}
+              max={plafondD1}
+              step={50}
+              onChange={setVersementD1}
+              format={v => `${fmt(v)} €`}
+            />
+            {versementD1 > 0 && (
+              <div className="flex items-center justify-end gap-2 text-xs text-teal-600">
+                <span>Économie D1 : <strong className="font-mono">{fmt(res.economieD1)} €</strong></span>
+                <span className="text-gray-400">(rendement {rendD1} %)</span>
+              </div>
+            )}
+          </div>
+          {/* D2 */}
+          <div className="flex flex-col gap-1.5">
+            <SimSlider
+              label={`Versement D2 — plafond disponible ${fmt(plafondD2)} €`}
+              value={versementD2}
+              min={0}
+              max={plafondD2}
+              step={50}
+              onChange={setVersementD2}
+              format={v => `${fmt(v)} €`}
+            />
+            {versementD2 > 0 && (
+              <div className="flex items-center justify-end gap-2 text-xs text-teal-600">
+                <span>Économie marginale D2 : <strong className="font-mono">{fmt(res.economieD2)} €</strong></span>
+                <span className="text-gray-400">(rendement {rendD2} %)</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <SimSlider
+          label={`Montant à verser sur le PER — plafond ${fmt(plafondD1)} €`}
+          value={versementD1}
+          min={0}
+          max={plafondD1 || 10_000}
+          step={100}
+          onChange={setVersementD1}
+          format={v => `${fmt(v)} €`}
+        />
+      )}
 
+      {/* ── Bouton Optimiser / Badge succès ── */}
+      {fractionInTopBracket > 0 && plafondTotal > 0 && !topBracketDone && (
+        <button
+          type="button"
+          onClick={handleAutoOptimize}
+          className="rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 active:bg-teal-200 px-4 py-2.5 text-xs font-semibold text-teal-700 transition-colors flex items-center justify-center gap-1.5"
+        >
+          ⚡ Optimiser — effacer entièrement la tranche {profData.tmi} %
+          <span className="ml-1 text-teal-500">({fmt(Math.min(plafondTotal, fractionInTopBracket))} € nécessaires)</span>
+        </button>
+      )}
+      {topBracketDone && (
+        <div className="rounded-xl border border-teal-200 bg-teal-50/60 px-4 py-2.5 text-xs font-semibold text-teal-700 flex items-center gap-2">
+          ✅ Tranche {profData.tmi} % entièrement effacée.
+          {nextLowerRate > 0 && ` Versements supplémentaires s'imputent sur la tranche ${nextLowerRate} %.`}
+        </div>
+      )}
+
+      {/* ── Résultats foyer ── */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Résultats en temps réel</p>
-          <span className="text-xs font-mono text-gray-400">Versement : {fmt(versement)} €</span>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Impact fiscal foyer</p>
+          <span className="text-xs font-mono text-gray-400">
+            {showTwoSliders ? `D1 ${fmt(versementD1)} + D2 ${fmt(versementD2)} =` : 'Versement :'} {fmt(totalVerse)} €
+          </span>
         </div>
         <div className="divide-y divide-gray-50">
-          {rows.map(({ label, value, color, hi }) => (
+          {[
+            { label: 'Économie IR totale (barème réel)', value: `${fmt(res.economie)} €`, color: 'text-teal-700', hi: true },
+            { label: 'Effort net réel (versé − économie)', value: `${fmt(res.effort)} €`, color: 'text-gray-800' },
+            { label: 'RNI foyer résiduel', value: `${fmt(res.rniApres)} €`, color: 'text-gray-800' },
+            { label: 'Rendement fiscal', value: `${res.rendement} %`, color: 'text-teal-600' },
+          ].map(({ label, value, color, hi }) => (
             <div key={label} className={`flex items-center justify-between px-4 py-3 ${hi ? 'bg-teal-50/40' : ''}`}>
               <span className="text-sm text-gray-600">{label}</span>
               <span className={`text-sm font-bold font-mono tabular-nums ${color}`}>{value}</span>
             </div>
           ))}
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">TMI après versement</span>
+            <span className="text-sm text-gray-600">TMI résiduelle après PER</span>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-mono text-gray-400">{profData.tmi} %</span>
               <ChevronRight size={12} className="text-gray-300" />
@@ -239,9 +420,139 @@ function SimPER({ data }) {
         </div>
       </div>
 
+      {/* ── Décomposition par tranche ── */}
+      {totalVerse > 0 && res.bracketBreakdown.length > 0 && (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/40 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-blue-100 bg-blue-100/50">
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Décomposition par tranche</p>
+          </div>
+          <div className="divide-y divide-blue-100/60">
+            {res.bracketBreakdown.map(({ rate, amount, saving }) => (
+              <div key={rate} className="flex items-center justify-between px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 text-right font-bold text-blue-700 font-mono text-xs shrink-0">{rate} %</span>
+                  <span className="text-xs text-blue-600">{fmt(amount)} € effacés dans cette tranche</span>
+                </div>
+                <span className="text-xs font-bold text-teal-700 font-mono">→ {fmt(saving)} €</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between px-4 py-3 bg-blue-50">
+              <span className="text-xs font-bold text-gray-700">Économie totale réelle</span>
+              <span className="text-sm font-bold text-teal-700 font-mono">{fmt(res.economie)} €</span>
+            </div>
+          </div>
+          {res.bracketBreakdown.length > 1 && (
+            <div className="px-4 py-2 border-t border-blue-100">
+              <p className="text-[10px] text-blue-400">
+                ≠ {fmt(totalVerse)} € × {profData.tmi} % = {fmt(Math.round(totalVerse * profData.tmi / 100))} €
+                {' '}(méthode TMI fixe — incorrecte car {res.bracketBreakdown.length} tranches traversées)
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Courbe d'économie IR ── */}
+      {chartData.length > 2 && (
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Courbe d'économie IR</p>
+          {fractionInTopBracket > 0 && plafondTotal > fractionInTopBracket && (
+            <p className="text-[10px] text-amber-600 mb-3 leading-snug">
+              Rupture de pente à {fmt(fractionInTopBracket)} € : tranche {profData.tmi} % entièrement effacée
+              {nextLowerRate > 0 && ` → rendement passe à ${nextLowerRate} %`}
+            </p>
+          )}
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData} margin={{ top: 8, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis
+                dataKey="versement"
+                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tickFormatter={v => v >= 1000 ? `${Math.round(v / 1000)}k` : v}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tickFormatter={v => `${Math.round(v / 1000)}k€`}
+                width={42}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div className="rounded-xl border border-gray-200 bg-white shadow-xl p-3 text-xs">
+                      <p className="font-bold text-gray-700">Versement : {fmt(payload[0].payload.versement)} €</p>
+                      <p className="text-teal-700 font-bold">Économie IR : {fmt(payload[0].value)} €</p>
+                    </div>
+                  );
+                }}
+              />
+              <Line type="monotone" dataKey="economie" stroke="#0d9488" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#0d9488' }} name="Économie IR" />
+              {fractionInTopBracket > 0 && fractionInTopBracket <= Math.max(plafondTotal, fractionInTopBracket) && (
+                <ReferenceLine
+                  x={fractionInTopBracket}
+                  stroke="#D68910"
+                  strokeDasharray="5 3"
+                  label={{ value: `${profData.tmi}%→${nextLowerRate}%`, position: 'insideTopRight', fontSize: 9, fill: '#D68910', offset: 5 }}
+                />
+              )}
+              {totalVerse > 0 && (
+                <ReferenceLine
+                  x={totalVerse}
+                  stroke="#0d9488"
+                  strokeDasharray="3 3"
+                  label={{ value: `${fmt(res.economie)} €`, position: 'insideTopLeft', fontSize: 9, fill: '#0d9488' }}
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── Bloc pédagogique ── */}
+      <details className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden group">
+        <summary className="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-widest cursor-pointer flex items-center justify-between select-none hover:bg-gray-50 transition-colors">
+          <span>Comment fonctionne le PER fiscalement ?</span>
+          <span className="text-gray-400 text-[10px] group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div className="px-5 py-4 flex flex-col gap-3 text-xs text-gray-700 leading-relaxed border-t border-gray-100">
+          <p>
+            <strong>Principe :</strong> chaque euro versé sur un PER réduit directement le revenu net imposable.
+            L'économie d'IR dépend de la tranche dans laquelle ce versement s'impute.
+          </p>
+          <p>
+            <strong>Règle d'imputation :</strong> les versements s'imputent en priorité sur la{' '}
+            <em>tranche marginale la plus haute</em>. L'économie par euro versé = taux de la tranche effacée.
+          </p>
+          {fractionInTopBracket > 0 && rniFoyer > 0 && (
+            <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+              <p className="font-semibold text-blue-800 mb-2">Votre profil — calcul détaillé</p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-blue-700">
+                <span>RNI foyer avant PER</span>
+                <span className="font-mono text-right">{fmt(rniFoyer)} €</span>
+                <span>Seuil tranche {profData.tmi} % ({parts} part{parts > 1 ? 's' : ''})</span>
+                <span className="font-mono text-right">{fmt(Math.round(rniFoyer - fractionInTopBracket))} €</span>
+                <span className="font-semibold border-t border-blue-200 pt-1 mt-0.5">Fraction dans la tranche {profData.tmi} %</span>
+                <span className="font-mono font-bold text-right border-t border-blue-200 pt-1 mt-0.5">{fmt(fractionInTopBracket)} €</span>
+              </div>
+              <div className="mt-3 pt-2 border-t border-blue-200 space-y-1.5">
+                <p>→ Pour effacer entièrement la tranche {profData.tmi} % : verser <strong>{fmt(fractionInTopBracket)} €</strong></p>
+                <p>→ Économie : {fmt(fractionInTopBracket)} × {profData.tmi} % = <strong>{fmt(Math.round(fractionInTopBracket * profData.tmi / 100))} €</strong></p>
+                {nextLowerRate > 0 && (
+                  <p className="text-blue-500">
+                    → Au-delà de {fmt(fractionInTopBracket)} €, chaque euro s'impute sur la tranche{' '}
+                    {nextLowerRate} % → économie = {nextLowerRate} centimes par euro versé
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </details>
+
+      {/* ── Actions ── */}
       <div className="flex gap-2">
         <Button variant="secondary" size="sm" className="flex-1"
-          onClick={() => saveSimulation(`PER — ${fmt(versement)} € → économie ${fmt(res.economie)} €`)}>
+          onClick={() => saveSimulation(`PER — ${fmt(totalVerse)} € → économie ${fmt(res.economie)} €`)}>
           <Save size={13} /> Sauvegarder
         </Button>
         <Button variant="primary" size="sm" className="flex-1" onClick={handleChat}>
@@ -250,7 +561,8 @@ function SimPER({ data }) {
       </div>
 
       <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-        Simulation indicative (1 part fiscale). L'impact réel sur le TMI dépend du quotient familial.
+        Barème progressif réel 2025 · {parts} part{parts > 1 ? 's' : ''} fiscale{parts > 1 ? 's' : ''}
+        {showTwoSliders ? ` · Plafond foyer ${fmt(plafondTotal)} €` : ` · Plafond ${fmt(plafondD1)} €`}
       </p>
     </div>
   );
@@ -590,6 +902,7 @@ export default function Simulator() {
   // Champs saisie manuelle
   const [manualTMI,        setManualTMI]        = useState(30);
   const [manualRNI,        setManualRNI]        = useState('65000');
+  const [manualParts,      setManualParts]      = useState(1);
   const [manualPERO,       setManualPERO]       = useState('');
   const [manualAnterieurs, setManualAnterieurs] = useState('');
 
@@ -607,28 +920,31 @@ export default function Simulator() {
   // Données transmises aux simulateurs
   const profileData = useMemo(() => {
     if (mode === 'manual') {
+      const isCouple = manualParts >= 2;
       return {
         rni: perCalc.rni || 65_000, tmi: manualTMI,
+        parts: manualParts,
         plafond: perCalc.plafondTotal || 10_000, isDefault: false,
-        isCouple: false, perCalcD1: null, perCalcD2: null, selectedCalc: null,
+        isCouple, perCalcD1: null, perCalcD2: null, selectedCalc: null,
       };
     }
     const pp       = state.parsedProfile ?? {};
     const hasData  = !!(pp.salaireNetImposableD1 || pp.rniFoyer);
     const isCouple = pp.mode === 'couple';
+    const parts    = pp.parts || (isCouple ? 2 : 1);
 
     // Plafond PER D1 — rniD1 est déjà post-abattement 10%
-    const rniD1        = pp.rniD1 || 0;
-    const peroD1       = pp.peroD1 || 0;
-    const brut10D1     = Math.round(rniD1 * 0.1);
+    const rniD1         = pp.rniD1 || 0;
+    const peroD1        = pp.peroD1 || 0;
+    const brut10D1      = Math.round(rniD1 * 0.1);
     const plafondBrutD1 = Math.max(brut10D1, MIN_PLAFOND);
     const plafondNetD1  = Math.max(0, plafondBrutD1 - peroD1);
     const perCalcD1 = { rni: rniD1, pero: peroD1, brut10: brut10D1, plafondBrut: plafondBrutD1, plafondNet: plafondNetD1 };
 
     // Plafond PER D2 (couple uniquement)
-    const rniD2        = pp.rniD2 || 0;
-    const peroD2       = pp.peroD2 || 0;
-    const brut10D2     = Math.round(rniD2 * 0.1);
+    const rniD2         = pp.rniD2 || 0;
+    const peroD2        = pp.peroD2 || 0;
+    const brut10D2      = Math.round(rniD2 * 0.1);
     const plafondBrutD2 = Math.max(brut10D2, MIN_PLAFOND);
     const plafondNetD2  = Math.max(0, plafondBrutD2 - peroD2);
     const perCalcD2 = isCouple ? { rni: rniD2, pero: peroD2, brut10: brut10D2, plafondBrut: plafondBrutD2, plafondNet: plafondNetD2 } : null;
@@ -636,15 +952,16 @@ export default function Simulator() {
     const selectedCalc = (isCouple && perDeclarant === 'd2') ? perCalcD2 : perCalcD1;
 
     const baseFoyer = baseIRFoyer(pp);
-    const tmi       = hasData ? getTMI(baseFoyer, pp.parts || (isCouple ? 2 : 1)) : 30;
+    const tmi       = hasData ? getTMI(baseFoyer, parts) : 30;
 
     return {
       rni: pp.rniFoyer || 65_000, tmi,
-      plafond:     hasData ? selectedCalc.plafondNet : MIN_PLAFOND,
-      isDefault:   !hasData,
-      isCouple,    perCalcD1, perCalcD2, selectedCalc,
+      parts,
+      plafond:   hasData ? selectedCalc.plafondNet : MIN_PLAFOND,
+      isDefault: !hasData,
+      isCouple,  perCalcD1, perCalcD2, selectedCalc,
     };
-  }, [mode, manualTMI, perCalc, state.parsedProfile, perDeclarant]);
+  }, [mode, manualTMI, manualParts, perCalc, state.parsedProfile, perDeclarant]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -681,8 +998,8 @@ export default function Simulator() {
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Vos paramètres</p>
 
-          {/* Ligne 1 : TMI + RNI */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Ligne 1 : TMI + RNI + parts */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-gray-600">TMI actuel</label>
               <select
@@ -702,6 +1019,19 @@ export default function Simulator() {
                 placeholder="65 000"
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
               />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-600">Parts fiscales</label>
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+                {[1, 2].map(n => (
+                  <button key={n} type="button" onClick={() => setManualParts(n)}
+                    className={['flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
+                      manualParts === n ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                    ].join(' ')}>
+                    {n} part{n > 1 ? 's' : ''}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -809,6 +1139,28 @@ export default function Simulator() {
               <span className="font-mono font-bold text-teal-700 border-t border-blue-200 pt-1 text-right">{fmt(profileData.selectedCalc.plafondNet)} €</span>
             </div>
           </div>
+
+          {/* Foyer consolidé (couple uniquement) */}
+          {profileData.isCouple && profileData.perCalcD1 && profileData.perCalcD2 && (
+            <div className="rounded-xl border border-teal-100 bg-teal-50/40 px-4 py-3">
+              <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-2">
+                Plafond PER du foyer consolidé
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                <span>Plafond disponible D1</span>
+                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.perCalcD1.plafondNet)} €</span>
+                <span>Plafond disponible D2</span>
+                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.perCalcD2.plafondNet)} €</span>
+                <span className="font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5">→ Plafond mutualisable foyer</span>
+                <span className="font-mono font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5 text-right">
+                  {fmt(profileData.perCalcD1.plafondNet + profileData.perCalcD2.plafondNet)} €
+                </span>
+              </div>
+              <p className="text-[9px] text-teal-500 mt-2 leading-snug">
+                art. 163 quatervicies II CGI — chaque déclarant utilise son propre plafond individuel
+              </p>
+            </div>
+          )}
         </div>
       )}
 

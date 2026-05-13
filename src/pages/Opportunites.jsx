@@ -7,6 +7,7 @@ import { useApp }              from '../context/AppContext';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
 import OpportunitiesPanel      from '../components/OpportunitiesPanel';
 import Button                  from '../components/Button';
+import PERBandeau              from '../components/PERBandeau';
 
 export default function Opportunites() {
   const { state } = useApp();
@@ -43,6 +44,8 @@ export default function Opportunites() {
             : 'Analyse de votre profil fiscal.'}
         </p>
       </div>
+
+      <PERBandeau />
 
       {/* Panel */}
       <OpportunitiesPanel opportunities={opportunities} />

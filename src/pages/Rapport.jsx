@@ -239,10 +239,26 @@ function TotalRow({ label, value, sub, color = 'teal', colSpan = 2 }) {
   );
 }
 
+// ─── ProseCard — bloc narratif entre sections ────────────────────────────────
+
+function ProseCard({ children, color = 'gray' }) {
+  const cls = {
+    gray:  'bg-gray-50 border-gray-200 text-gray-700',
+    teal:  'bg-teal-50/60 border-teal-200 text-teal-900',
+    amber: 'bg-amber-50/60 border-amber-200 text-amber-800',
+    blue:  'bg-blue-50/60 border-blue-200 text-blue-900',
+    navy:  'bg-slate-50 border-slate-200 text-slate-800',
+  }[color] ?? 'bg-gray-50 border-gray-200 text-gray-700';
+  return (
+    <div className={`rounded-xl border px-5 py-4 text-sm leading-relaxed ${cls}`}>
+      {children}
+    </div>
+  );
+}
+
 // ─── Table récap revenus ──────────────────────────────────────────────────────
 
 function RevenusTable({ d, p }) {
-  const cols = d.isCouple ? 3 : 2;
   const fmtTaux = t => t > 0 ? `${t} %` : '—';
 
   const Row = ({ label, v1, v2, sub = false, minus: isMinus = false }) => (
@@ -283,7 +299,7 @@ function RevenusTable({ d, p }) {
           )}
           {d.foncierBrut > 0 && <>
             <tr>
-              <td colSpan={cols} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+              <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
                 Revenus fonciers
               </td>
             </tr>
@@ -358,6 +374,36 @@ function EpargneTable({ p }) {
         </tbody>
       </Tbl>
     </SectionBox>
+  );
+}
+
+// ─── Bloc déséquilibre patrimonial (couples) ──────────────────────────────────
+
+function PatrimoineDesequilibreBlock({ p }) {
+  if (p.mode !== 'couple') return null;
+
+  const D1_FIELDS = ['livretAD1','lddsD1','lepD1','livretPlusD1','pelD1','peaD1','avD1','percoD1','cryptoD1'];
+  const D2_FIELDS = ['livretAD2','lddsD2','lepD2','livretPlusD2','pelD2','peaD2','avD2','percoD2','cryptoD2'];
+
+  const totalD1 = D1_FIELDS.reduce((s, f) => s + (p[f] || 0), 0);
+  const totalD2 = D2_FIELDS.reduce((s, f) => s + (p[f] || 0), 0);
+  const total = totalD1 + totalD2;
+  if (total < 1000) return null;
+
+  const pctD1 = total > 0 ? Math.round((totalD1 / total) * 100) : 0;
+  const pctD2 = 100 - pctD1;
+  const isImbalanced = Math.abs(pctD1 - 50) > 20;
+
+  return (
+    <ProseCard color={isImbalanced ? 'amber' : 'teal'}>
+      <strong>Répartition patrimoniale :</strong>{' '}
+      D1 détient {pctD1}&nbsp;% du patrimoine financier du foyer ({e0(totalD1)}), D2 en détient {pctD2}&nbsp;% ({e0(totalD2)}).
+      {isImbalanced ? (
+        <> Ce déséquilibre mérite attention : en cas de dissolution du PACS, chacun récupère ses actifs propres (sauf biens communs). Alimenter les enveloppes de D2 (PER, PEA, AV) permet de rééquilibrer progressivement.</>
+      ) : (
+        <> La répartition est équilibrée — bonne base pour une stratégie patrimoniale coordonnée.</>
+      )}
+    </ProseCard>
   );
 }
 
@@ -495,6 +541,38 @@ function BaremeTable({ d }) {
   );
 }
 
+// ─── Prose TMI ────────────────────────────────────────────────────────────────
+
+function TmiProseBlock({ d }) {
+  if (!d.steps.length) return null;
+  const lastStep = d.steps[d.steps.length - 1];
+  const tmi = Math.round(lastStep.rate * 100);
+  if (tmi === 0) return null;
+
+  const amountInTopBracket = Math.round(lastStep.taxable * d.parts);
+  const seuilTotal = Math.round(lastStep.lo * d.parts);
+
+  const tranLabel = tmi === 11
+    ? `tranche à 11 % (revenus de 11 600 € à 29 579 € par part)`
+    : tmi === 30
+    ? `tranche à 30 % (revenus de 29 579 € à 84 577 € par part)`
+    : tmi === 41
+    ? `tranche à 41 %`
+    : `tranche à ${tmi} %`;
+
+  return (
+    <ProseCard color="navy">
+      Le foyer entre dans la <strong>{tranLabel}</strong>. Sur le quotient familial de{' '}
+      <strong>{e2(d.quotient)}/part</strong>, {e0(amountInTopBracket)} sont imposés au taux marginal
+      de <strong>{tmi}&nbsp;%</strong> (seuil {e0(seuilTotal)} pour {d.parts} part{d.parts > 1 ? 's' : ''}).
+      {tmi >= 30 && (
+        <> Un versement PER réduit d'abord cette tranche haute — son rendement réel peut être légèrement inférieur
+        au TMI si la déduction déborde sur la tranche{tmi > 30 ? ` 30 %` : ` 11 %`}.</>
+      )}
+    </ProseCard>
+  );
+}
+
 // ─── Table 3 : IR foyer et solde ─────────────────────────────────────────────
 
 function SoldeTable({ d }) {
@@ -629,6 +707,734 @@ function GainPacsTable({ d }) {
   );
 }
 
+// ─── Accord couple — prose explicatif ────────────────────────────────────────
+
+function AccordCoupleProseBlock({ d }) {
+  if (!d.isCouple || d.gainPacs <= 0) return null;
+  const { contribD1, contribD2, pasD1, pasD2, regloD1, regloD2, solde } = d;
+
+  const regloMsg = () => {
+    if (regloD1 > 50 && regloD2 > 50)
+      return `Les deux déclarants récupèrent chacun une partie du remboursement : D1 perçoit ${e0(regloD1)}, D2 perçoit ${e0(regloD2)}.`;
+    if (regloD1 < -50)
+      return `D1 verse ${e0(Math.abs(regloD1))} à D2 pour équilibrer la répartition (D1 a été sous-prélevé relativement à sa contribution équitable).`;
+    if (regloD2 < -50)
+      return `D2 verse ${e0(Math.abs(regloD2))} à D1 pour équilibrer la répartition.`;
+    return `La régularisation est équilibrée entre les deux déclarants.`;
+  };
+
+  return (
+    <ProseCard color="blue">
+      <strong>Accord couple — répartition interne :</strong>{' '}
+      Sur la base d'une contribution proportionnelle aux revenus et d'un partage équitable du gain PACS (−{e0(d.gainPacs / 2)} chacun),
+      D1 prend en charge <strong>{e0(contribD1)}</strong> d'IR et D2 <strong>{e0(contribD2)}</strong>.{' '}
+      {regloMsg()}{' '}
+      Cet accord ne modifie pas l'impôt dû à l'État — il régit uniquement la répartition interne au foyer.
+    </ProseCard>
+  );
+}
+
+// ─── Tableau 4 scénarios PER ─────────────────────────────────────────────────
+
+function PerScenariosTable({ p, d }) {
+  const isCouple = d.isCouple;
+  const plafD1 = p.plafondPerD1 || 0;
+  const plafD2 = p.plafondPerD2 || 0;
+  const irAvant = d.irNetFoyer;
+  const parts = p.parts || (isCouple ? 2 : 1);
+
+  const calcScen = (versement) => {
+    if (versement === 0) return { versement: 0, irApres: irAvant, economie: 0, effort: 0, rendement: 0 };
+    const rniApres = Math.max(0, d.rniFoyer - versement);
+    const irApres = calcIR(rniApres, parts, isCouple);
+    const economie = Math.max(0, irAvant - irApres);
+    const effort = versement - economie;
+    const rendement = Math.round((economie / versement) * 100);
+    return { versement, irApres, economie, effort, rendement };
+  };
+
+  let scenarios;
+  if (isCouple && (plafD1 > 0 || plafD2 > 0)) {
+    scenarios = [
+      { label: 'A — Statu quo',  desc: 'Aucun versement',          ...calcScen(0) },
+      { label: 'B — D1 seul',    desc: `Plafond D1 (${e0(plafD1)})`,  ...calcScen(plafD1) },
+      { label: 'C — D2 seul',    desc: `Plafond D2 (${e0(plafD2)})`,  ...calcScen(plafD2) },
+      { label: 'D — D1 + D2',   desc: `Total (${e0(plafD1 + plafD2)})`, ...calcScen(plafD1 + plafD2) },
+    ];
+  } else if (!isCouple && plafD1 > 0) {
+    const t1 = Math.round((plafD1 / 3) / 100) * 100;
+    const t2 = Math.round((plafD1 * 2 / 3) / 100) * 100;
+    scenarios = [
+      { label: 'A — Statu quo',  desc: 'Aucun versement',      ...calcScen(0) },
+      { label: 'B — Partiel 33%', desc: `${e0(t1)} versés`,    ...calcScen(t1) },
+      { label: 'C — Partiel 66%', desc: `${e0(t2)} versés`,    ...calcScen(t2) },
+      { label: 'D — Plafond',    desc: `${e0(plafD1)} versés`, ...calcScen(plafD1) },
+    ];
+  } else return null;
+
+  const bestScen = scenarios.reduce((best, s) => s.economie > best.economie ? s : best, scenarios[0]);
+
+  return (
+    <div className="rp-module rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
+      <div className="rp-section-header flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
+        <h3 className="text-sm font-bold text-gray-800">
+          <span className="rp-module-num text-teal-600 font-mono mr-2">04b</span>
+          Comparaison de scénarios PER — barème réel 2025
+        </h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr>
+              <Th wide>Scénario</Th>
+              <Th right>Versement</Th>
+              <Th right>IR après</Th>
+              <Th right>Économie</Th>
+              <Th right>Effort net</Th>
+              <Th right>Rendement</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {scenarios.map((s, i) => {
+              const isBest = s.label === bestScen.label && i > 0;
+              return (
+                <tr key={i} className={isBest ? 'bg-teal-50/50' : i === 0 ? 'bg-gray-50/40' : ''}>
+                  <td className="px-4 py-2.5 border-b border-gray-50">
+                    <span className={`font-semibold ${isBest ? 'text-teal-800' : 'text-gray-800'}`}>{s.label}</span>
+                    <span className="text-gray-400 ml-2 text-[10px]">{s.desc}</span>
+                    {isBest && <span className="ml-2 text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-semibold">Optimal</span>}
+                  </td>
+                  <Td right muted={s.versement === 0}>{s.versement > 0 ? e0(s.versement) : '—'}</Td>
+                  <Td right>{e0(s.irApres)}</Td>
+                  <Td right plus={s.economie > 0} bold={isBest}>{s.economie > 0 ? e0(s.economie) : '—'}</Td>
+                  <Td right muted={s.effort === 0}>{s.effort > 0 ? e0(s.effort) : '—'}</Td>
+                  <Td right muted={s.rendement === 0}>{s.rendement > 0 ? `${s.rendement} %` : '—'}</Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="px-4 py-2.5 text-[11px] text-gray-500 italic border-t border-gray-50">
+        Économie calculée sur le barème progressif réel — souvent inférieure à TMI × versement car la déduction traverse plusieurs tranches.
+      </p>
+    </div>
+  );
+}
+
+// ─── Calendrier d'exécution PER ──────────────────────────────────────────────
+
+function PerCalendarBlock({ p, d }) {
+  const isCouple = d.isCouple;
+  const plafD1 = p.plafondPerD1 || 0;
+  const plafD2 = p.plafondPerD2 || 0;
+  const total = plafD1 + plafD2;
+  if (total === 0) return null;
+
+  const showD2 = isCouple && plafD2 > 0;
+  const showD1 = plafD1 > 0;
+
+  return (
+    <div className="mx-4 mb-3 rounded-xl border border-teal-200 bg-teal-50/30 overflow-hidden">
+      <div className="px-4 py-2 border-b border-teal-200 bg-teal-100/50">
+        <p className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">Calendrier d'exécution — versements PER avant 31/12</p>
+      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr>
+            <th className="px-4 py-2 text-left text-[10px] font-semibold text-teal-700 uppercase tracking-wide">Rythme</th>
+            {showD1 && <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">{isCouple ? 'D1' : 'Montant'}</th>}
+            {showD2 && <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">D2</th>}
+            {isCouple && (showD1 || showD2) && <th className="px-4 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">Total</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            { label: 'Mensuel (× 12)', div: 12, suffix: '/mois' },
+            { label: 'Trimestriel (× 4)', div: 4, suffix: '/trim.' },
+          ].map(({ label, div, suffix }) => (
+            <tr key={label} className="border-t border-teal-100">
+              <td className="px-4 py-2 text-teal-800 font-medium">{label}</td>
+              {showD1 && <td className="px-3 py-2 text-right tabular-nums text-teal-800">{e0(plafD1 / div)}{suffix}</td>}
+              {showD2 && <td className="px-3 py-2 text-right tabular-nums text-teal-800">{e0(plafD2 / div)}{suffix}</td>}
+              {isCouple && (showD1 || showD2) && <td className="px-4 py-2 text-right tabular-nums font-semibold text-teal-800">{e0(total / div)}{suffix}</td>}
+            </tr>
+          ))}
+          <tr className="border-t border-teal-200 bg-teal-100/40">
+            <td className="px-4 py-2.5 text-teal-900 font-bold">Versement unique (décembre)</td>
+            {showD1 && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900">{e0(plafD1)}</td>}
+            {showD2 && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900">{e0(plafD2)}</td>}
+            {isCouple && (showD1 || showD2) && <td className="px-4 py-2.5 text-right tabular-nums font-bold text-teal-900">{e0(total)}</td>}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Module 04 : Plafonds PER ────────────────────────────────────────────────
+
+function PerPlafondsModule({ p, d }) {
+  const isCouple = d.isCouple;
+  const plafondPerD1 = p.plafondPerD1 || 0;
+  const plafondPerD2 = p.plafondPerD2 || 0;
+  const rniD1 = p.rniD1 || d.retD1 || 0;
+  const rniD2 = p.rniD2 || d.retD2 || 0;
+  const peroD1 = p.peroD1 || 0;
+  const peroD2 = p.peroD2 || 0;
+
+  const brut10D1 = Math.round(rniD1 * 0.1);
+  const brut10D2 = Math.round(rniD2 * 0.1);
+  const plafondBrutD1 = Math.max(brut10D1, MIN_PLAFOND_PER);
+  const plafondBrutD2 = Math.max(brut10D2, MIN_PLAFOND_PER);
+
+  const irAvant = d.irNetFoyer;
+  const totalVersionable = plafondPerD1 + plafondPerD2;
+  const irApres = calcIR(
+    Math.max(0, d.rniFoyer - totalVersionable),
+    p.parts || (isCouple ? 2 : 1),
+    isCouple
+  );
+  const economie = Math.max(0, irAvant - irApres);
+  const effort = totalVersionable - economie;
+  const rendement = Math.round((economie / Math.max(1, totalVersionable)) * 100);
+
+  return (
+    <SectionBox title="Plafonds PER disponibles — calcul déclarant par déclarant" num="04">
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Élément</Th>
+            <Th right>D1</Th>
+            {isCouple && <Th right>D2</Th>}
+            <Th>Case</Th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <Td>RNI 2025 (post-abattement 10 %)</Td>
+            <Td right>{e0(rniD1)}</Td>
+            {isCouple && <Td right>{e0(rniD2)}</Td>}
+            <Td muted>—</Td>
+          </tr>
+          <tr>
+            <Td>10 % × RNI</Td>
+            <Td right>{e0(brut10D1)}</Td>
+            {isCouple && <Td right>{e0(brut10D2)}</Td>}
+            <Td muted>—</Td>
+          </tr>
+          <tr>
+            <Td>Minimum légal (10 % PASS — {e0(MIN_PLAFOND_PER)})</Td>
+            <Td right>{e0(MIN_PLAFOND_PER)}</Td>
+            {isCouple && <Td right>{e0(MIN_PLAFOND_PER)}</Td>}
+            <Td muted>—</Td>
+          </tr>
+          <tr className="bg-gray-50/60">
+            <Td bold>Plafond brut retenu (max des deux)</Td>
+            <Td right bold>{e0(plafondBrutD1)}</Td>
+            {isCouple && <Td right bold>{e0(plafondBrutD2)}</Td>}
+            <Td muted>—</Td>
+          </tr>
+          {(peroD1 > 0 || peroD2 > 0) && (
+            <tr>
+              <Td>− PERO employeur (cotisations déjà déduites)</Td>
+              <Td right minus>{peroD1 > 0 ? `− ${e0(peroD1)}` : '—'}</Td>
+              {isCouple && <Td right minus>{peroD2 > 0 ? `− ${e0(peroD2)}` : '—'}</Td>}
+              <Td muted>6QS</Td>
+            </tr>
+          )}
+          <tr className="bg-teal-50/40">
+            <Td bold>= Plafond disponible net (versements volontaires)</Td>
+            <Td right bold plus>{e0(plafondPerD1)}</Td>
+            {isCouple && <Td right bold plus>{e0(plafondPerD2)}</Td>}
+            <Td muted>{isCouple ? '6NS / 6NT' : '6NS'}</Td>
+          </tr>
+          {totalVersionable > 0 && <>
+            <tr>
+              <td colSpan={isCouple ? 4 : 3} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+                Simulation économie IR (si plafond total utilisé)
+              </td>
+            </tr>
+            <tr>
+              <Td>Économie IR réelle (barème progressif)</Td>
+              <Td right colSpan={isCouple ? 2 : 1}>
+                <span className="rp-gain text-teal-700 font-bold">{e0(economie)}</span>
+              </Td>
+              <Td muted>—</Td>
+            </tr>
+            <tr>
+              <Td>Rendement immédiat</Td>
+              <Td right colSpan={isCouple ? 2 : 1}>{rendement} %</Td>
+              <Td muted>—</Td>
+            </tr>
+            <tr>
+              <Td>Effort net réel (versé − économie)</Td>
+              <Td right colSpan={isCouple ? 2 : 1}>{e0(effort)}</Td>
+              <Td muted>—</Td>
+            </tr>
+          </>}
+        </tbody>
+      </Tbl>
+      <div className="mx-4 my-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2.5 text-xs text-blue-800">
+        Versement avant le 31/12 — case 6NS (D1){isCouple ? ' et 6NT (D2)' : ''}. Déductible du RNI 2025 (art. 163 quatervicies CGI).
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module 05 : Cases déclaratives formulaire 2042 ──────────────────────────
+
+function CasesModule({ p, d }) {
+  const isCouple = d.isCouple;
+  const cases = [];
+
+  if ((p.salaireNetImposableD1 || 0) > 0) {
+    cases.push({ code: '1AJ', desc: 'Salaires nets D1', montant: e0(p.salaireNetImposableD1) });
+  }
+  if (isCouple && (p.salaireNetImposableD2 || 0) > 0) {
+    cases.push({ code: '1BJ', desc: 'Salaires nets D2', montant: e0(p.salaireNetImposableD2) });
+  }
+  if ((p.revensFonciers || 0) > 0 && d.isMicro) {
+    cases.push({ code: '4BE', desc: 'Revenus fonciers bruts (micro-foncier)', montant: e0(p.revensFonciers) });
+  }
+  if ((p.revensFonciers || 0) > 0 && !d.isMicro) {
+    cases.push({ code: '4BA', desc: 'Revenus fonciers réels (2044)', montant: e0(p.revensFonciers) });
+  }
+  if ((p.peroD1 || 0) > 0) {
+    cases.push({ code: '6QS', desc: 'PERO employeur D1 (pré-rempli)', montant: e0(p.peroD1) });
+  }
+  if ((p.plafondPerD1 || 0) > 0) {
+    cases.push({ code: '6NS', desc: 'Versements PER volontaires D1 (plafond disponible)', montant: e0(p.plafondPerD1), italic: true });
+  }
+  if (isCouple && (p.plafondPerD2 || 0) > 0) {
+    cases.push({ code: '6NT', desc: 'Versements PER volontaires D2 (plafond disponible)', montant: e0(p.plafondPerD2), italic: true });
+  }
+  if ((p.dividendes || 0) > 0) {
+    cases.push({ code: '2DC', desc: 'Dividendes (PFU 30 %)', montant: e0(p.dividendes) });
+  }
+  if (p.hasCrypto) {
+    cases.push({ code: '3AN', desc: 'Cessions crypto — formulaire 2086 requis', montant: '⚠ à calculer' });
+  }
+  if (p.hasCompteEtranger) {
+    cases.push({ code: '3916', desc: 'Comptes étrangers — à déclarer même à solde zéro', montant: '⚠ obligatoire' });
+  }
+
+  if (cases.length === 0) return null;
+
+  return (
+    <SectionBox title="Cases déclaratives — formulaire 2042" num="05">
+      <Tbl>
+        <thead>
+          <tr>
+            <Th>Case</Th>
+            <Th wide>Description</Th>
+            <Th right>Montant</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {cases.map((c, i) => (
+            <tr key={i}>
+              <Td bold><code className="bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">{c.code}</code></Td>
+              <Td className={c.italic ? 'italic' : ''}>{c.desc}</Td>
+              <Td right>{c.montant}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Tbl>
+      <p className="px-4 py-2.5 text-[11px] text-gray-500 italic border-t border-gray-50">
+        Les cases en italique sont des <strong>opportunités de versement</strong> à effectuer avant le 31/12 — pas des montants déjà versés.
+      </p>
+    </SectionBox>
+  );
+}
+
+// ─── Module 06 : Vigilances & obligations ────────────────────────────────────
+
+function VigilancesModule({ p, d }) {
+  const isCouple = d.isCouple;
+  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
+  const irApres = calcIR(
+    Math.max(0, d.rniFoyer - totalVersionable),
+    p.parts || (isCouple ? 2 : 1),
+    isCouple
+  );
+  const economie = Math.max(0, d.irNetFoyer - irApres);
+
+  const peaD1 = p.peaD1 || 0;
+  const peaD2 = p.peaD2 || 0;
+
+  const alerts = [];
+
+  if (p.hasCrypto) {
+    alerts.push({
+      level: 'red',
+      icon: '🔴',
+      title: 'CRITIQUE — Actifs crypto sur exchanges étrangers',
+      msg: 'Exchanges crypto étrangers (Binance, Kraken, Coinbase…) → formulaire 3916 bis obligatoire pour chaque compte. Amende : 1 500 € par compte non déclaré (10 000 € si pays non coopératif). Chaque cession 2025 doit être reportée via le formulaire 2086.',
+    });
+  }
+  if (p.hasCompteEtranger) {
+    alerts.push({
+      level: 'red',
+      icon: '🔴',
+      title: 'CRITIQUE — Compte bancaire étranger',
+      msg: 'Tout compte bancaire à l\'étranger doit être déclaré via le formulaire 3916, même à solde zéro ou clôturé en cours d\'année. Amende : 1 500 € par compte (10 000 € si pays non coopératif). Source : art. 1649 A CGI.',
+    });
+  }
+  if (p.hasTestamentManquant) {
+    alerts.push({
+      level: 'amber',
+      icon: '🟠',
+      title: 'ATTENTION — PACS sans testament',
+      msg: 'En PACS sans testament, le partenaire n\'hérite pas automatiquement. Le décès d\'un partenaire entraîne la dévolution aux héritiers légaux (parents, frères/sœurs), non au partenaire. Conséquence : perte du logement commun possible. Solution : testament ou clause bénéficiaire AV.',
+    });
+  }
+  if (totalVersionable > 0 && d.tmi >= 30) {
+    alerts.push({
+      level: 'teal',
+      icon: '🟢',
+      title: 'OPTIMISATION — Levier PER disponible',
+      msg: `Plafond PER total : ${e0(totalVersionable)}. Économie IR simulée sur le barème réel : ${e0(economie)} (rendement immédiat ${Math.round((economie / Math.max(1, totalVersionable)) * 100)} %). À verser avant le 31/12.`,
+    });
+  }
+  if (peaD1 === 0 && peaD2 === 0) {
+    alerts.push({
+      level: 'teal',
+      icon: '🟢',
+      title: 'OPTIMISATION — PEA non ouvert',
+      msg: 'Aucun PEA ouvert — l\'horloge fiscale des 5 ans n\'a pas démarré. Ouvrir avec 1 € suffit à déclencher l\'antériorité. Après 5 ans : plus-values exonérées d\'IR (hors prélèvements sociaux 17,2 %). Plafond : 150 000 € par personne.',
+    });
+  }
+  if (p.hasPelAncien) {
+    alerts.push({
+      level: 'yellow',
+      icon: '🟡',
+      title: 'À CONFIRMER — PEL ancien (avant 2018)',
+      msg: 'PEL ouvert avant 2018 : intérêts exonérés d\'IR pendant les 12 premières années. Vérifier la date d\'ouverture exacte — si le PEL a plus de 12 ans, les intérêts sont imposables au barème ou sur option au PFU.',
+    });
+  }
+
+  const clsMap = {
+    red:    'rp-alert-red border-l-4 border-red-400 bg-red-50',
+    amber:  'rp-alert-amber border-l-4 border-amber-400 bg-amber-50',
+    teal:   'border-l-4 border-teal-400 bg-teal-50',
+    yellow: 'rp-alert-amber border-l-4 border-yellow-400 bg-yellow-50',
+  };
+  const titleClsMap = { red: 'text-red-800', amber: 'text-amber-800', teal: 'text-teal-800', yellow: 'text-yellow-800' };
+  const msgClsMap   = { red: 'text-red-700', amber: 'text-amber-700', teal: 'text-teal-700', yellow: 'text-yellow-700' };
+
+  return (
+    <SectionBox title="Vigilances & obligations" num="06">
+      <div className="p-4 flex flex-col gap-3">
+        {alerts.length === 0 ? (
+          <div className="border-l-4 border-teal-400 bg-teal-50 px-4 py-3 rounded-r-lg">
+            <p className="text-sm font-semibold text-teal-800">Aucune alerte critique détectée.</p>
+          </div>
+        ) : alerts.map((a, i) => (
+          <div key={i} className={`${clsMap[a.level]} px-4 py-3 rounded-r-lg`}>
+            <p className={`text-xs font-bold mb-1 ${titleClsMap[a.level]}`}>{a.icon} {a.title}</p>
+            <p className={`text-xs leading-relaxed ${msgClsMap[a.level]}`}>{a.msg}</p>
+          </div>
+        ))}
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module 07 : PEA & Assurance-vie ─────────────────────────────────────────
+
+function PeaAvModule({ p }) {
+  const isCouple = p.mode === 'couple';
+  const peaD1 = p.peaD1 || 0;
+  const peaD2 = p.peaD2 || 0;
+  const avD1 = p.avD1 || 0;
+  const avD2 = p.avD2 || 0;
+  const hasPea = peaD1 > 0 || peaD2 > 0;
+  const hasAv  = avD1 > 0 || avD2 > 0;
+
+  return (
+    <SectionBox title="PEA & Assurance-vie" num="07">
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-gray-200 p-4">
+          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Plan d'épargne en actions (PEA)</p>
+          {hasPea ? (
+            <>
+              <p className="text-sm font-semibold text-teal-700 mb-2">PEA ouvert ✓</p>
+              {peaD1 > 0 && <p className="text-xs text-gray-600">D1 : <span className="font-semibold tabular-nums">{e0(peaD1)}</span> — plafond restant : {e0(150000 - peaD1)}</p>}
+              {isCouple && peaD2 > 0 && <p className="text-xs text-gray-600 mt-1">D2 : <span className="font-semibold tabular-nums">{e0(peaD2)}</span> — plafond restant : {e0(150000 - peaD2)}</p>}
+              <p className="text-[11px] text-teal-600 mt-2 leading-snug">Exonéré IR sur plus-values après 5 ans (art. 150-0 A CGI).</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-amber-600 mb-2">PEA non ouvert ⚠</p>
+              <p className="text-xs text-gray-600 mb-1"><strong>Action immédiate :</strong> ouvrir avec 1 € pour démarrer l'horloge fiscale 5 ans.</p>
+              <p className="text-xs text-gray-500">Plafond disponible : 150 000 € {isCouple ? '× 2 (un PEA par personne)' : ''}</p>
+            </>
+          )}
+        </div>
+        <div className="rounded-xl border border-gray-200 p-4">
+          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Assurance-vie</p>
+          {hasAv ? (
+            <>
+              <p className="text-sm font-semibold text-teal-700 mb-2">Assurance-vie ouverte ✓</p>
+              {avD1 > 0 && <p className="text-xs text-gray-600">D1 : <span className="font-semibold tabular-nums">{e0(avD1)}</span></p>}
+              {isCouple && avD2 > 0 && <p className="text-xs text-gray-600 mt-1">D2 : <span className="font-semibold tabular-nums">{e0(avD2)}</span></p>}
+              <p className="text-[11px] text-teal-600 mt-2 leading-snug">Abattement {isCouple ? '4 600 € / 4 600 €' : '4 600 €'}/an sur gains après 8 ans.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-amber-600 mb-2">Assurance-vie non ouverte ⚠</p>
+              <p className="text-xs text-gray-600"><strong>Action :</strong> ouvrir sans versement pour déclencher l'antériorité fiscale 8 ans.</p>
+              <p className="text-xs text-gray-500 mt-1">Transmission hors succession jusqu'à 152 500 € par bénéficiaire (art. 990 I CGI).</p>
+            </>
+          )}
+        </div>
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module 08 : Réallocation patrimoniale D2 ────────────────────────────────
+
+function ReallocationModule({ p }) {
+  if (p.mode !== 'couple') return null;
+
+  const peaD2 = p.peaD2 || 0;
+  const avD2 = p.avD2 || 0;
+  const liquidD2 = (p.livretAD2 || 0) + (p.lddsD2 || 0) + (p.lepD2 || 0) + (p.livretPlusD2 || 0) + (p.pelD2 || 0);
+
+  // Only show if D2 has meaningful liquid savings and lacks key envelopes
+  if (liquidD2 < 3000 || (peaD2 > 0 && avD2 > 0)) return null;
+
+  const options = [];
+  if (peaD2 === 0) {
+    options.push({
+      label: 'Ouvrir PEA D2',
+      montant: '1 € minimum',
+      detail: 'Démarre l\'horloge fiscale 5 ans. Versements progressifs jusqu\'à 150 000 €. Plus-values exonérées IR après 5 ans.',
+      couleur: 'teal',
+    });
+  }
+  if (avD2 === 0) {
+    options.push({
+      label: 'Ouvrir AV D2',
+      montant: '1 € minimum',
+      detail: 'Antériorité fiscale 8 ans, abattement 4 600 €/an sur gains, transmission avantageuse (152 500 € par bénéficiaire hors succession).',
+      couleur: 'teal',
+    });
+  }
+  options.push({
+    label: 'Arbitrage progressif (DCA)',
+    montant: `${e0(liquidD2 * 0.5)} sur 12 mois`,
+    detail: 'Réduire progressivement l\'exposition aux livrets réglementés (taux variable) vers des enveloppes à long terme.',
+    couleur: 'gray',
+  });
+
+  return (
+    <SectionBox title="Réallocation D2 — optimiser l'épargne liquide" num="08b">
+      <div className="px-5 py-3 text-xs text-gray-600 bg-gray-50/50 border-b border-gray-100">
+        D2 dispose de <strong>{e0(liquidD2)}</strong> d'épargne liquide sur livrets (rendement brut ~3 %, soumis aux PS 17,2 %)
+        {peaD2 === 0 ? ', sans PEA ouvert' : ''}
+        {avD2 === 0 ? ' et sans assurance-vie' : ''}.
+        {' '}Une réallocation améliore le rendement net et la fiscalité à long terme.
+      </div>
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Stratégie</Th>
+            <Th right>Montant</Th>
+            <Th>Avantage</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {options.map((o, i) => (
+            <tr key={i}>
+              <Td bold>{o.label}</Td>
+              <Td right>{o.montant}</Td>
+              <Td muted>{o.detail}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Tbl>
+    </SectionBox>
+  );
+}
+
+// ─── Module 09 : Feuille de route ────────────────────────────────────────────
+
+function FeuilleRouteModule({ p, d }) {
+  const isCouple = d.isCouple;
+  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
+  const peaD1 = p.peaD1 || 0;
+  const peaD2 = p.peaD2 || 0;
+  const epargneLiquide = p.epargneLiquide || 0;
+
+  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
+  const irApres = calcIR(
+    Math.max(0, d.rniFoyer - totalVersionable),
+    p.parts || (isCouple ? 2 : 1),
+    isCouple
+  );
+  const economie = Math.max(0, d.irNetFoyer - irApres);
+
+  const priorities = [];
+
+  if (plafondPerTotal > 0 && d.tmi >= 30) {
+    priorities.push({
+      title: 'Versement PER avant 31/12/2025',
+      levier: `Déduction RNI — économie IR réelle : ${e0(economie)}`,
+      gain: `${e0(economie)} d'économie IR`,
+      deadline: '31 décembre 2025',
+      color: 'teal',
+    });
+  }
+  if (peaD1 === 0 && peaD2 === 0) {
+    priorities.push({
+      title: 'Ouvrir un PEA (ou deux pour le couple)',
+      levier: 'Démarrer l\'horloge fiscale 5 ans — exonération IR future',
+      gain: 'Exonération plus-values à terme',
+      deadline: 'Dès que possible',
+      color: 'teal',
+    });
+  }
+  if (d.solde < -500) {
+    priorities.push({
+      title: 'Ajuster le taux PAS',
+      levier: 'Éviter le complément à payer en septembre',
+      gain: `${e0(Math.abs(d.solde))} de solde à régulariser`,
+      deadline: 'Avant le 1er juillet',
+      color: 'amber',
+    });
+  }
+  if (epargneLiquide > 10000) {
+    priorities.push({
+      title: 'Réallouer l\'épargne liquide dormante',
+      levier: 'Investir le surplus en PEA ou AV pour améliorer le rendement net',
+      gain: `${e0(epargneLiquide)} disponibles`,
+      deadline: 'Avant fin d\'année',
+      color: 'gray',
+    });
+  }
+
+  const displayed = priorities.slice(0, 4);
+
+  const colorMap = {
+    teal:  { border: 'border-teal-200',  bg: 'bg-teal-50',  num: 'bg-teal-600',  text: 'text-teal-800',  sub: 'text-teal-600' },
+    amber: { border: 'border-amber-200', bg: 'bg-amber-50', num: 'bg-amber-500', text: 'text-amber-800', sub: 'text-amber-600' },
+    gray:  { border: 'border-gray-200',  bg: 'bg-gray-50',  num: 'bg-gray-500',  text: 'text-gray-800',  sub: 'text-gray-600' },
+  };
+
+  return (
+    <SectionBox title="Feuille de route 2026 — priorités d'action" num="09">
+      <div className="p-4 flex flex-col gap-3">
+        {displayed.length === 0 ? (
+          <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
+        ) : displayed.map((pr, i) => {
+          const c = colorMap[pr.color] || colorMap.gray;
+          return (
+            <div key={i} className={`rounded-xl border ${c.border} ${c.bg} p-4 flex gap-3 items-start`}>
+              <div className={`shrink-0 w-8 h-8 rounded-full ${c.num} text-white text-xs font-bold flex items-center justify-center`}>
+                {String(i + 1).padStart(2, '0')}
+              </div>
+              <div className="flex-1">
+                <p className={`text-sm font-bold ${c.text}`}>{pr.title}</p>
+                <p className={`text-xs ${c.sub} mt-0.5`}>{pr.levier}</p>
+                <div className="flex flex-wrap gap-4 mt-2">
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Impact estimé</p>
+                    <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Deadline</p>
+                    <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </SectionBox>
+  );
+}
+
+// ─── Module 10 : Revenus fonciers détaillés ───────────────────────────────────
+
+function FoncierModule({ d }) {
+  const { foncierBrut, foncierAbt, foncierNet, isMicro, psFoncier } = d;
+  const total = foncierNet + psFoncier;
+
+  return (
+    <SectionBox title="Revenus fonciers — détail" num="10">
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Élément</Th>
+            <Th right>Montant</Th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><Td>Revenus fonciers bruts (case 4BE)</Td><Td right>{e0(foncierBrut)}</Td></tr>
+          {isMicro && <tr><Td className="pl-8">− Abattement 30 % micro-foncier (art. 32 CGI)</Td><Td right minus>− {e0(foncierAbt)}</Td></tr>}
+          <tr className="bg-gray-50/60"><Td bold>Net imposable</Td><Td right bold>{e0(foncierNet)}</Td></tr>
+          <tr><Td className="pl-8">Prélèvements sociaux 17,2 %</Td><Td right plus>+ {e0(psFoncier)}</Td></tr>
+          <tr className="bg-amber-50 border-t-2 border-amber-200">
+            <td className="px-4 py-3 text-xs font-bold text-amber-900">Total foncier (IR + PS)</td>
+            <td className="px-4 py-3 text-xs font-bold text-amber-900 text-right tabular-nums">{e0(total)}</td>
+          </tr>
+        </tbody>
+      </Tbl>
+      <p className="px-4 py-2.5 text-[11px] text-gray-500 border-t border-gray-50">
+        Régime : {isMicro ? 'Micro-foncier (abattement 30 %)' : 'Régime réel (formulaire 2044)'}
+        {isMicro && foncierBrut > 15000 && (
+          <span className="ml-2 text-amber-600 font-medium">⚠ Seuil micro-foncier dépassé (15 000 €) — option régime réel à étudier.</span>
+        )}
+      </p>
+    </SectionBox>
+  );
+}
+
+// ─── Module 11 : Récapitulatif chiffres clés ─────────────────────────────────
+
+function RecapModule({ p, d }) {
+  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
+  const patrimoineTotal = p.patrimoineTotal || 0;
+  const epargneLiquide = p.epargneLiquide || 0;
+
+  const rows = [
+    { label: 'RNI foyer 2025',                      value: e0(d.rniFoyer) },
+    { label: 'Quotient familial',                   value: `${e0(d.quotient)} / part (${d.parts} part${d.parts > 1 ? 's' : ''})` },
+    { label: 'TMI',                                  value: `${d.tmi} %` },
+    { label: 'IR net foyer',                         value: e0(d.irNetFoyer) },
+    { label: 'PAS prélevé 2025',                     value: e0(d.pasTotal) },
+    { label: 'Solde (rembours. / complément)',        value: (d.solde >= 0 ? '+ ' : '− ') + e0(Math.abs(d.solde)) },
+    ...(plafondPerTotal > 0 ? [{ label: 'Plafonds PER disponibles',  value: e0(plafondPerTotal) }] : []),
+    ...(patrimoineTotal > 0 ? [{ label: 'Patrimoine financier total', value: e0(patrimoineTotal) }] : []),
+    ...(epargneLiquide > 0  ? [{ label: 'Épargne liquide',           value: e0(epargneLiquide) }] : []),
+  ];
+
+  return (
+    <SectionBox title="Récapitulatif chiffres clés" num="12">
+      <Tbl>
+        <thead>
+          <tr>
+            <Th wide>Indicateur</Th>
+            <Th right>Valeur</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <Td>{r.label}</Td>
+              <Td right bold>{r.value}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Tbl>
+    </SectionBox>
+  );
+}
+
 // ─── Section IA ───────────────────────────────────────────────────────────────
 
 function AttentionLine({ line }) {
@@ -675,513 +1481,6 @@ function AiSectionCard({ section }) {
   );
 }
 
-// ─── Module 04 : Plafonds PER ────────────────────────────────────────────────
-
-function PerPlafondsModule({ p, d }) {
-  const isCouple = d.isCouple;
-  const plafondPerD1 = p.plafondPerD1 || 0;
-  const plafondPerD2 = p.plafondPerD2 || 0;
-  const plafondPerTotal = p.plafondPerTotal || (plafondPerD1 + plafondPerD2);
-  const rniD1 = p.rniD1 || d.retD1 || 0;
-  const rniD2 = p.rniD2 || d.retD2 || 0;
-  const peroD1 = p.peroD1 || 0;
-  const peroD2 = p.peroD2 || 0;
-
-  const brut10D1 = Math.round(rniD1 * 0.1);
-  const brut10D2 = Math.round(rniD2 * 0.1);
-  const plafondBrutD1 = Math.max(brut10D1, MIN_PLAFOND_PER);
-  const plafondBrutD2 = Math.max(brut10D2, MIN_PLAFOND_PER);
-
-  const irAvant = d.irNetFoyer;
-  const totalVersionable = plafondPerD1 + plafondPerD2;
-  const irApres = calcIR(
-    Math.max(0, d.rniFoyer - totalVersionable),
-    p.parts || (isCouple ? 2 : 1),
-    isCouple
-  );
-  const economie = Math.max(0, irAvant - irApres);
-  const effort = totalVersionable - economie;
-  const rendement = Math.round((economie / Math.max(1, totalVersionable)) * 100);
-
-  return (
-    <SectionBox title="Plafonds PER & stratégie épargne retraite" num="04">
-      <Tbl>
-        <thead>
-          <tr>
-            <Th wide>Élément</Th>
-            <Th right>D1</Th>
-            {isCouple && <Th right>D2</Th>}
-            <Th>Case</Th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <Td>RNI 2025</Td>
-            <Td right>{e0(rniD1)}</Td>
-            {isCouple && <Td right>{e0(rniD2)}</Td>}
-            <Td muted>—</Td>
-          </tr>
-          <tr>
-            <Td>10 % × RNI</Td>
-            <Td right>{e0(brut10D1)}</Td>
-            {isCouple && <Td right>{e0(brut10D2)}</Td>}
-            <Td muted>—</Td>
-          </tr>
-          <tr>
-            <Td>Minimum légal (10 % PASS)</Td>
-            <Td right>{e0(MIN_PLAFOND_PER)}</Td>
-            {isCouple && <Td right>{e0(MIN_PLAFOND_PER)}</Td>}
-            <Td muted>—</Td>
-          </tr>
-          <tr className="bg-gray-50/60">
-            <Td bold>Plafond brut retenu</Td>
-            <Td right bold>{e0(plafondBrutD1)}</Td>
-            {isCouple && <Td right bold>{e0(plafondBrutD2)}</Td>}
-            <Td muted>—</Td>
-          </tr>
-          {(peroD1 > 0 || peroD2 > 0) && (
-            <tr>
-              <Td>− PERO employeur</Td>
-              <Td right minus>{peroD1 > 0 ? `− ${e0(peroD1)}` : '—'}</Td>
-              {isCouple && <Td right minus>{peroD2 > 0 ? `− ${e0(peroD2)}` : '—'}</Td>}
-              <Td muted>6QS</Td>
-            </tr>
-          )}
-          <tr className="bg-teal-50/40">
-            <Td bold>= Plafond disponible net</Td>
-            <Td right bold plus>{e0(plafondPerD1)}</Td>
-            {isCouple && <Td right bold plus>{e0(plafondPerD2)}</Td>}
-            <Td muted>{isCouple ? '6NS / 6NT' : '6NS'}</Td>
-          </tr>
-          <tr>
-            <td colSpan={isCouple ? 4 : 3} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
-              Simulation économie IR (barème réel)
-            </td>
-          </tr>
-          <tr>
-            <Td>Économie IR simulée (barème réel)</Td>
-            <Td right colSpan={isCouple ? 2 : 1}>
-              <span className="rp-gain text-teal-700 font-bold">{e0(economie)}</span>
-            </Td>
-            <Td muted>—</Td>
-          </tr>
-          <tr>
-            <Td>Rendement immédiat</Td>
-            <Td right colSpan={isCouple ? 2 : 1}>{rendement} %</Td>
-            <Td muted>—</Td>
-          </tr>
-          <tr>
-            <Td>Effort net réel</Td>
-            <Td right colSpan={isCouple ? 2 : 1}>{e0(effort)}</Td>
-            <Td muted>—</Td>
-          </tr>
-        </tbody>
-      </Tbl>
-      <div className="mx-4 my-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2.5 text-xs text-blue-800">
-        Versement avant le 31/12 — case 6NS (D1){isCouple ? ' et 6NT (D2)' : ''}. Déductible du RNI 2025.
-      </div>
-    </SectionBox>
-  );
-}
-
-// ─── Module 05 : Cases déclaratives formulaire 2042 ──────────────────────────
-
-function CasesModule({ p, d }) {
-  const isCouple = d.isCouple;
-  const cases = [];
-
-  if ((p.salaireNetImposableD1 || 0) > 0) {
-    cases.push({ code: '1AJ', desc: 'Salaires nets D1', montant: e0(p.salaireNetImposableD1) });
-  }
-  if (isCouple && (p.salaireNetImposableD2 || 0) > 0) {
-    cases.push({ code: '1BJ', desc: 'Salaires nets D2', montant: e0(p.salaireNetImposableD2) });
-  }
-  if ((p.revensFonciers || 0) > 0 && d.isMicro) {
-    cases.push({ code: '4BE', desc: 'Revenus fonciers bruts (micro-foncier)', montant: e0(p.revensFonciers) });
-  }
-  if ((p.revensFonciers || 0) > 0 && !d.isMicro) {
-    cases.push({ code: '4BA', desc: 'Revenus fonciers réels', montant: e0(p.revensFonciers) });
-  }
-  if ((p.peroD1 || 0) > 0) {
-    cases.push({ code: '6QS', desc: 'PERO employeur D1', montant: e0(p.peroD1) });
-  }
-  if ((p.plafondPerD1 || 0) > 0) {
-    cases.push({ code: '6NS', desc: 'Versements PER volontaires D1 (plafond disponible)', montant: e0(p.plafondPerD1), italic: true });
-  }
-  if (isCouple && (p.plafondPerD2 || 0) > 0) {
-    cases.push({ code: '6NT', desc: 'Versements PER volontaires D2 (plafond disponible)', montant: e0(p.plafondPerD2), italic: true });
-  }
-  if ((p.dividendes || 0) > 0) {
-    cases.push({ code: '2DC', desc: 'Dividendes', montant: e0(p.dividendes) });
-  }
-  if (p.hasCrypto) {
-    cases.push({ code: '3AN', desc: 'Cessions crypto', montant: '⚠ formulaire 2086 requis' });
-  }
-  if (p.hasCompteEtranger) {
-    cases.push({ code: '3916', desc: 'Comptes étrangers', montant: '⚠ à déclarer' });
-  }
-
-  if (cases.length === 0) return null;
-
-  return (
-    <SectionBox title="Cases déclaratives — formulaire 2042" num="05">
-      <Tbl>
-        <thead>
-          <tr>
-            <Th>Case</Th>
-            <Th wide>Description</Th>
-            <Th right>Montant</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {cases.map((c, i) => (
-            <tr key={i}>
-              <Td bold><code className="bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">{c.code}</code></Td>
-              <Td className={c.italic ? 'italic' : ''}>{c.desc}</Td>
-              <Td right>{c.montant}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Tbl>
-      <p className="px-4 py-2.5 text-[11px] text-gray-500 italic border-t border-gray-50">
-        Les cases en italique sont des opportunités de versement, pas des montants déjà versés.
-      </p>
-    </SectionBox>
-  );
-}
-
-// ─── Module 06 : Vigilances & obligations ────────────────────────────────────
-
-function VigilancesModule({ p, d }) {
-  const isCouple = d.isCouple;
-  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
-
-  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
-  const irApres = calcIR(
-    Math.max(0, d.rniFoyer - totalVersionable),
-    p.parts || (isCouple ? 2 : 1),
-    isCouple
-  );
-  const economie = Math.max(0, d.irNetFoyer - irApres);
-
-  const peaD1 = p.peaD1 || 0;
-  const peaD2 = p.peaD2 || 0;
-
-  const alerts = [];
-
-  if (p.hasCrypto) {
-    alerts.push({
-      level: 'red',
-      icon: '🔴',
-      title: 'CRITIQUE — Crypto étrangers',
-      msg: 'Exchanges crypto étrangers (Binance, Kraken…) → formulaire 3916 bis obligatoire. Amende : 1 500 € par compte non déclaré.',
-    });
-  }
-  if (p.hasCompteEtranger) {
-    alerts.push({
-      level: 'red',
-      icon: '🔴',
-      title: 'CRITIQUE — Compte étranger',
-      msg: 'Compte bancaire étranger → formulaire 3916 obligatoire. Amende : 1 500 € par compte.',
-    });
-  }
-  if (p.hasTestamentManquant) {
-    alerts.push({
-      level: 'amber',
-      icon: '🟠',
-      title: 'ATTENTION — PACS sans testament',
-      msg: 'PACS sans testament — le partenaire n\'hérite pas automatiquement.',
-    });
-  }
-  if (plafondPerTotal > 0 && d.tmi >= 30) {
-    alerts.push({
-      level: 'teal',
-      icon: '🟢',
-      title: 'OPTIMISATION — PER',
-      msg: `PER : ${e0(plafondPerTotal)} disponibles, économie simulée ${e0(economie)}.`,
-    });
-  }
-  if (peaD1 === 0 && peaD2 === 0) {
-    alerts.push({
-      level: 'teal',
-      icon: '🟢',
-      title: 'OPTIMISATION — PEA',
-      msg: 'PEA non ouvert — horloge fiscale des 5 ans non démarrée. Ouvrir avec 1 € suffit.',
-    });
-  }
-  if (p.hasPelAncien) {
-    alerts.push({
-      level: 'yellow',
-      icon: '🟡',
-      title: 'À CONFIRMER — PEL ancien',
-      msg: 'PEL ancien (< 2018) : vérifier date ouverture — exonéré IR avant 12 ans.',
-    });
-  }
-
-  const clsMap = {
-    red:    'rp-alert-red border-l-4 border-red-400 bg-red-50',
-    amber:  'rp-alert-amber border-l-4 border-amber-400 bg-amber-50',
-    teal:   'border-l-4 border-teal-400 bg-teal-50',
-    yellow: 'rp-alert-amber border-l-4 border-yellow-400 bg-yellow-50',
-  };
-  const titleClsMap = {
-    red:    'text-red-800',
-    amber:  'text-amber-800',
-    teal:   'text-teal-800',
-    yellow: 'text-yellow-800',
-  };
-  const msgClsMap = {
-    red:    'text-red-700',
-    amber:  'text-amber-700',
-    teal:   'text-teal-700',
-    yellow: 'text-yellow-700',
-  };
-
-  return (
-    <SectionBox title="Vigilances & obligations" num="06">
-      <div className="p-4 flex flex-col gap-3">
-        {alerts.length === 0 ? (
-          <div className="border-l-4 border-teal-400 bg-teal-50 px-4 py-3 rounded-r-lg">
-            <p className="text-sm font-semibold text-teal-800">Aucune alerte critique détectée.</p>
-          </div>
-        ) : alerts.map((a, i) => (
-          <div key={i} className={`${clsMap[a.level]} px-4 py-3 rounded-r-lg`}>
-            <p className={`text-xs font-bold mb-0.5 ${titleClsMap[a.level]}`}>{a.icon} {a.title}</p>
-            <p className={`text-xs leading-relaxed ${msgClsMap[a.level]}`}>{a.msg}</p>
-          </div>
-        ))}
-      </div>
-    </SectionBox>
-  );
-}
-
-// ─── Module 07 : PEA & Assurance-vie ─────────────────────────────────────────
-
-function PeaAvModule({ p }) {
-  const isCouple = p.mode === 'couple';
-  const peaD1 = p.peaD1 || 0;
-  const peaD2 = p.peaD2 || 0;
-  const avD1 = p.avD1 || 0;
-  const avD2 = p.avD2 || 0;
-  const hasPea = peaD1 > 0 || peaD2 > 0;
-  const hasAv  = avD1 > 0 || avD2 > 0;
-
-  return (
-    <SectionBox title="PEA & Assurance-vie" num="07">
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-gray-200 p-4">
-          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Plan d'épargne en actions (PEA)</p>
-          {hasPea ? (
-            <>
-              <p className="text-sm font-semibold text-teal-700 mb-2">PEA ouvert ✓</p>
-              {peaD1 > 0 && <p className="text-xs text-gray-600">D1 : <span className="font-semibold tabular-nums">{e0(peaD1)}</span></p>}
-              {isCouple && peaD2 > 0 && <p className="text-xs text-gray-600">D2 : <span className="font-semibold tabular-nums">{e0(peaD2)}</span></p>}
-              {peaD1 > 0 && <p className="text-xs text-gray-500 mt-1">Plafond restant D1 : {e0(150000 - peaD1)}</p>}
-              <p className="text-[11px] text-teal-600 mt-2 leading-snug">Exonéré IR sur plus-values après 5 ans.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-semibold text-amber-600 mb-2">PEA non ouvert ⚠</p>
-              <p className="text-xs text-gray-600 mb-1">Action : ouvrir avec 1 € pour démarrer l'horloge fiscale.</p>
-              <p className="text-xs text-gray-500">Plafond disponible : 150 000 € {isCouple ? '(× 2 pour couple)' : ''}</p>
-            </>
-          )}
-        </div>
-        <div className="rounded-xl border border-gray-200 p-4">
-          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Assurance-vie</p>
-          {hasAv ? (
-            <>
-              <p className="text-sm font-semibold text-teal-700 mb-2">Assurance-vie ouverte ✓</p>
-              {avD1 > 0 && <p className="text-xs text-gray-600">D1 : <span className="font-semibold tabular-nums">{e0(avD1)}</span></p>}
-              {isCouple && avD2 > 0 && <p className="text-xs text-gray-600">D2 : <span className="font-semibold tabular-nums">{e0(avD2)}</span></p>}
-              <p className="text-[11px] text-teal-600 mt-2 leading-snug">Abattement 4 600 €/an (9 200 € couple) sur les gains après 8 ans.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-semibold text-amber-600 mb-2">Assurance-vie non ouverte ⚠</p>
-              <p className="text-xs text-gray-600">Action : ouvrir sans versement pour déclencher l'antériorité fiscale.</p>
-            </>
-          )}
-        </div>
-      </div>
-    </SectionBox>
-  );
-}
-
-// ─── Module 08 : Feuille de route ────────────────────────────────────────────
-
-function FeuilleRouteModule({ p, d }) {
-  const isCouple = d.isCouple;
-  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
-  const peaD1 = p.peaD1 || 0;
-  const peaD2 = p.peaD2 || 0;
-  const epargneLiquide = p.epargneLiquide || 0;
-
-  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
-  const irApres = calcIR(
-    Math.max(0, d.rniFoyer - totalVersionable),
-    p.parts || (isCouple ? 2 : 1),
-    isCouple
-  );
-  const economie = Math.max(0, d.irNetFoyer - irApres);
-
-  const priorities = [];
-
-  if (plafondPerTotal > 0 && d.tmi >= 30) {
-    priorities.push({
-      title: 'Versement PER avant 31/12/2025',
-      levier: 'Déduction sur revenu imposable',
-      gain: `${e0(economie)} d'économie IR`,
-      deadline: '31 décembre 2025',
-      color: 'teal',
-    });
-  }
-  if (peaD1 === 0 && peaD2 === 0) {
-    priorities.push({
-      title: 'Ouvrir un PEA',
-      levier: 'Démarrer l\'horloge fiscale 5 ans',
-      gain: 'Exonération IR future',
-      deadline: 'Dès que possible',
-      color: 'teal',
-    });
-  }
-  if (d.solde < -500) {
-    priorities.push({
-      title: 'Ajuster le taux PAS',
-      levier: 'Éviter le complément en septembre',
-      gain: `${e0(Math.abs(d.solde))} de solde prévisible`,
-      deadline: 'Avant le 1er juillet',
-      color: 'amber',
-    });
-  }
-  if (epargneLiquide > 10000) {
-    priorities.push({
-      title: 'Réallouer l\'épargne liquide dormante',
-      levier: 'Investir le surplus (PEA, AV)',
-      gain: `${e0(epargneLiquide)} disponibles`,
-      deadline: 'Avant fin d\'année',
-      color: 'gray',
-    });
-  }
-
-  const displayed = priorities.slice(0, 4);
-
-  const colorMap = {
-    teal:  { border: 'border-teal-200',  bg: 'bg-teal-50',  num: 'bg-teal-600',  text: 'text-teal-800',  sub: 'text-teal-600' },
-    amber: { border: 'border-amber-200', bg: 'bg-amber-50', num: 'bg-amber-500', text: 'text-amber-800', sub: 'text-amber-600' },
-    gray:  { border: 'border-gray-200',  bg: 'bg-gray-50',  num: 'bg-gray-500',  text: 'text-gray-800',  sub: 'text-gray-600' },
-  };
-
-  return (
-    <SectionBox title="Feuille de route 2026 — 3 priorités" num="08">
-      <div className="p-4 flex flex-col gap-3">
-        {displayed.length === 0 ? (
-          <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
-        ) : displayed.map((pr, i) => {
-          const c = colorMap[pr.color] || colorMap.gray;
-          return (
-            <div key={i} className={`rounded-xl border ${c.border} ${c.bg} p-4 flex gap-3 items-start`}>
-              <div className={`shrink-0 w-8 h-8 rounded-full ${c.num} text-white text-xs font-bold flex items-center justify-center`}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-              <div className="flex-1">
-                <p className={`text-sm font-bold ${c.text}`}>{pr.title}</p>
-                <p className={`text-xs ${c.sub} mt-0.5`}>{pr.levier}</p>
-                <div className="flex flex-wrap gap-4 mt-2">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Gain estimé</p>
-                    <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Deadline</p>
-                    <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </SectionBox>
-  );
-}
-
-// ─── Module 09 : Revenus fonciers détaillés ───────────────────────────────────
-
-function FoncierModule({ d }) {
-  const { foncierBrut, foncierAbt, foncierNet, isMicro, psFoncier } = d;
-  const total = foncierNet + psFoncier;
-
-  return (
-    <SectionBox title="Revenus fonciers — détail" num="09a">
-      <Tbl>
-        <thead>
-          <tr>
-            <Th wide>Élément</Th>
-            <Th right>Montant</Th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><Td>Revenus fonciers bruts</Td><Td right>{e0(foncierBrut)}</Td></tr>
-          {isMicro && <tr><Td className="pl-8">− Abattement 30 % micro-foncier</Td><Td right minus>− {e0(foncierAbt)}</Td></tr>}
-          <tr className="bg-gray-50/60"><Td bold>Net imposable</Td><Td right bold>{e0(foncierNet)}</Td></tr>
-          <tr><Td className="pl-8">Prélèvements sociaux 17,2 %</Td><Td right plus>+ {e0(psFoncier)}</Td></tr>
-          <tr className="bg-amber-50 border-t-2 border-amber-200">
-            <td className="px-4 py-3 text-xs font-bold text-amber-900">Total foncier (IR + PS)</td>
-            <td className="px-4 py-3 text-xs font-bold text-amber-900 text-right tabular-nums">{e0(total)}</td>
-          </tr>
-        </tbody>
-      </Tbl>
-      <p className="px-4 py-2.5 text-[11px] text-gray-500 border-t border-gray-50">
-        Régime : {isMicro ? 'Micro-foncier (abattement 30 %)' : 'Régime réel'}
-        {isMicro && foncierBrut > 15000 && (
-          <span className="ml-2 text-amber-600 font-medium">⚠ Au-dessus du seuil micro-foncier (15 000 €) — option régime réel à étudier.</span>
-        )}
-      </p>
-    </SectionBox>
-  );
-}
-
-// ─── Module 10 : Récapitulatif chiffres clés ─────────────────────────────────
-
-function RecapModule({ p, d }) {
-  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
-  const patrimoineTotal = p.patrimoineTotal || 0;
-  const epargneLiquide = p.epargneLiquide || 0;
-
-  const rows = [
-    { label: 'RNI foyer 2025',                      value: e0(d.rniFoyer) },
-    { label: 'TMI',                                  value: `${d.tmi} %` },
-    { label: 'IR net foyer',                         value: e0(d.irNetFoyer) },
-    { label: 'PAS prélevé 2025',                     value: e0(d.pasTotal) },
-    { label: 'Solde (rembours. / complément)',        value: (d.solde >= 0 ? '+ ' : '− ') + e0(Math.abs(d.solde)) },
-    { label: 'Plafonds PER disponibles',             value: e0(plafondPerTotal) },
-    { label: 'Patrimoine financier total',           value: patrimoineTotal > 0 ? e0(patrimoineTotal) : '—' },
-    { label: 'Épargne liquide',                      value: epargneLiquide > 0 ? e0(epargneLiquide) : '—' },
-  ];
-
-  return (
-    <SectionBox title="Récapitulatif chiffres clés" num="10">
-      <Tbl>
-        <thead>
-          <tr>
-            <Th wide>Indicateur</Th>
-            <Th right>Valeur</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <Td>{r.label}</Td>
-              <Td right bold>{r.value}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Tbl>
-    </SectionBox>
-  );
-}
-
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Rapport() {
@@ -1222,34 +1521,46 @@ export default function Rapport() {
   const isCouple   = d.isCouple;
   const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
 
+  // Pré-calculer l'économie PER pour le prose KPI
+  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
+  const irApresPerTotal = totalVersionable > 0
+    ? calcIR(Math.max(0, d.rniFoyer - totalVersionable), p.parts || (isCouple ? 2 : 1), isCouple)
+    : d.irNetFoyer;
+  const perEconomie = Math.max(0, d.irNetFoyer - irApresPerTotal);
+
   return (
     <>
       <style>{`
         @media print {
           @page { size: A4; margin: 2cm 1.5cm; }
-          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-size: 11px; }
 
           .print\\:hidden, nav, header, footer, .no-print { display: none !important; }
 
           .rp-section-header { background-color: #0F2A44 !important; color: white !important; }
           .rp-section-header * { color: white !important; }
-
           .rp-module-num { color: #0E7C7B !important; }
 
           .rp-table-head th { background-color: #0F2A44 !important; color: white !important; }
 
-          .rp-kpi { border: 1.5px solid #0F2A44 !important; }
+          .rp-kpi { border: 2px solid #0F2A44 !important; }
 
           .rp-gain { color: #2E8B57 !important; }
 
           .rp-alert-amber { background-color: #FEF6E4 !important; border-left-color: #D68910 !important; }
-
           .rp-alert-red { background-color: #FDECEA !important; border-left-color: #C0392B !important; }
 
           table { page-break-inside: avoid; }
-          .rp-module { page-break-inside: avoid; margin-bottom: 1cm; }
+          .rp-module { page-break-inside: avoid; margin-bottom: 0.8cm; }
 
-          .rp-header { display: flex !important; justify-content: space-between; border-bottom: 2px solid #0F2A44; padding-bottom: 8px; margin-bottom: 16px; }
+          .rp-header { display: flex !important; justify-content: space-between; align-items: flex-end;
+            border-bottom: 3px solid #0F2A44; padding-bottom: 10px; margin-bottom: 20px; }
+          .rp-header-title { font-size: 18px; font-weight: 800; color: #0F2A44; }
+          .rp-header-meta { font-size: 10px; color: #6b7280; }
+
+          .rp-section-sep { border-bottom: 2px solid #0F2A44; margin-bottom: 12px; padding-bottom: 6px; }
+          .rp-section-sep-num { color: #0E7C7B; font-weight: 700; font-size: 16px; margin-right: 8px; }
+          .rp-section-sep-label { color: #0F2A44; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
         }
       `}</style>
 
@@ -1258,10 +1569,10 @@ export default function Rapport() {
         {/* ── Header print ── */}
         <div className="rp-header hidden">
           <div>
-            <p className="text-base font-bold text-gray-900">Rapport fiscal — Déclaration 2025</p>
-            <p className="text-xs text-gray-500">Coach Fiscal · {new Date().toLocaleDateString('fr-FR')}</p>
+            <p className="rp-header-title">Rapport Fiscal — Déclaration 2025 · Feuille de route 2026</p>
+            <p className="rp-header-meta">Coach Fiscal · Généré le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · Confidentiel</p>
           </div>
-          <p className="text-xs text-gray-400">Confidentiel</p>
+          <p className="rp-header-meta">Document personnel — ne pas diffuser</p>
         </div>
 
         {/* ── Header écran ── */}
@@ -1305,13 +1616,14 @@ export default function Rapport() {
           </Button>
         </div>
 
-        {/* ── Module 01 : KPI cards ── */}
+        {/* ── Section 01 : Essentiel en un coup d'œil ── */}
         {d.rniFoyer > 0 && (
           <>
-            <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
-              <span className="rp-module-num text-teal-600 font-mono font-bold text-sm">01</span>
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Essentiel en un coup d'œil</h2>
+            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3">
+              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">01</span>
+              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Essentiel en un coup d'œil</h2>
             </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <KpiCard
                 label="IR foyer 2025 dû"
@@ -1332,60 +1644,104 @@ export default function Rapport() {
                 color="violet"
               />
             </div>
+
+            {/* Prose KPI */}
+            <ProseCard color="navy">
+              Le foyer {isCouple ? '(D1 + D2)' : ''} déclare un revenu net imposable de{' '}
+              <strong>{e0(d.rniFoyer)}</strong> pour 2025{d.parts > 1 ? `, avec ${d.parts} parts fiscales (quotient familial ${e0(d.quotient)}/part)` : ''}.{' '}
+              La tranche marginale d'imposition est de <strong>{d.tmi}&nbsp;%</strong>.{' '}
+              {isRemb
+                ? `Un remboursement de ${e0(d.solde)} est attendu après la déclaration (PAS excédentaire).`
+                : `Un complément de ${e0(Math.abs(d.solde))} sera dû à l'automne 2026 (PAS insuffisant).`
+              }
+              {plafondPerTotal > 0 && perEconomie > 0 && (
+                <> Le principal levier fiscal disponible est le PER : <strong>{e0(plafondPerTotal)}</strong> déductibles avant le 31/12, soit une économie IR réelle estimée à <strong>{e0(perEconomie)}</strong>.</>
+              )}
+            </ProseCard>
           </>
         )}
 
-        {/* ── Module 02 : Synthèse du foyer ── */}
+        {/* ── Section 02 : Synthèse du foyer ── */}
         {d.rniFoyer > 0 && (
           <>
-            <div className="flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
-              <span className="rp-module-num text-teal-600 font-mono font-bold text-sm">02</span>
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Synthèse du foyer</h2>
+            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
+              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">02</span>
+              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Synthèse du foyer</h2>
             </div>
             <RevenusTable d={d} p={p} />
             <EpargneTable p={p} />
+            <PatrimoineDesequilibreBlock p={p} />
           </>
         )}
 
-        {/* ── Module 03 : Calcul de l'impôt ── */}
+        {/* ── Section 03 : Calcul de l'impôt ── */}
         {d.rniFoyer > 0 && (
           <>
-            <div className="flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
-              <span className="rp-module-num text-teal-600 font-mono font-bold text-sm">03</span>
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Calcul de l'impôt</h2>
+            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
+              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">03</span>
+              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Calcul de l'impôt — Revenus 2025</h2>
             </div>
+
+            <ProseCard color="gray">
+              Le calcul de l'IR se déroule en trois étapes : <strong>(1)</strong> abattement forfaitaire de {ABT.taux * 100}&nbsp;% sur les salaires nets imposables
+              (plancher {e0(ABT.minimum)}, plafond {e0(ABT.maximum)} — art. 83 3° CGI),{' '}
+              <strong>(2)</strong> application du barème progressif sur le quotient familial,{' '}
+              <strong>(3)</strong> décote si l'IR brut est inférieur à{' '}
+              {isCouple ? `${DECOTE.seuil_couple.toLocaleString('fr-FR')} € (couple)` : `${DECOTE.seuil_celibataire.toLocaleString('fr-FR')} € (célibataire)`}.
+            </ProseCard>
+
             <RniTable d={d} />
             {d.steps.length > 0 && <BaremeTable d={d} />}
+            {d.tmi > 0 && <TmiProseBlock d={d} />}
             <SoldeTable d={d} />
             {isCouple && d.gainPacs > 0 && <GainPacsTable d={d} />}
+            {isCouple && d.gainPacs > 0 && <AccordCoupleProseBlock d={d} />}
           </>
         )}
 
-        {/* ── Module 04 : Plafonds PER ── */}
+        {/* ── Section 04 : Stratégie PER ── */}
         {(plafondPerTotal > 0 || (p.plafondPerD1 || 0) > 0 || (p.plafondPerD2 || 0) > 0) && (
-          <PerPlafondsModule p={p} d={d} />
+          <>
+            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
+              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">04</span>
+              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Stratégie PER — Plafonds & scénarios</h2>
+            </div>
+
+            <ProseCard color="teal">
+              Le Plan d'Épargne Retraite (PER) individuel est le principal levier de déduction fiscale disponible
+              pour ce foyer (art. 163 quatervicies CGI). Chaque euro versé réduit directement le revenu net imposable.{' '}
+              L'économie réelle dépend des tranches traversées — elle est souvent <em>inférieure</em> à TMI&nbsp;×&nbsp;versement
+              lorsque la déduction empiète sur une tranche moins taxée. La comparaison de scénarios ci-dessous utilise le barème progressif exact.
+            </ProseCard>
+
+            <PerPlafondsModule p={p} d={d} />
+            <PerScenariosTable p={p} d={d} />
+            <PerCalendarBlock p={p} d={d} />
+          </>
         )}
 
-        {/* ── Module 05 : Cases déclaratives ── */}
+        {/* ── Section 05 : Cases déclaratives ── */}
         <CasesModule p={p} d={d} />
 
-        {/* ── Module 06 : Vigilances ── */}
+        {/* ── Section 06 : Vigilances ── */}
         <VigilancesModule p={p} d={d} />
 
-        {/* ── Module 07 : PEA & AV ── */}
+        {/* ── Section 07 : PEA & AV ── */}
         <PeaAvModule p={p} />
 
-        {/* ── Module 08 : Feuille de route ── */}
-        <FeuilleRouteModule p={p} d={d} />
+        {/* ── Section 08 : Réallocation D2 (couples seulement) ── */}
+        <ReallocationModule p={p} />
 
-        {/* ── Module 09 : Conditionnels ── */}
+        {/* ── Section 09 : Conditionnels ── */}
         {d.foncierBrut > 0 && <FoncierModule d={d} />}
 
         {p.hasCrypto && (
           <div className="rp-alert-red rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-            <p className="text-sm font-bold text-red-800 mb-1">🔴 Crypto — formulaire 2086 requis</p>
+            <p className="text-sm font-bold text-red-800 mb-1">🔴 Crypto — obligations déclaratives 2025</p>
             <p className="text-xs text-red-700 leading-relaxed">
-              Déclarer chaque cession avec prix acquisition et cession. Formulaire 3916 bis pour chaque exchange étranger.
+              <strong>Formulaire 2086 :</strong> déclarer chaque cession avec prix d'acquisition et de cession (FIFO obligatoire).
+              <br /><strong>Formulaire 3916 bis :</strong> un formulaire par exchange étranger (Binance, Kraken, Coinbase, etc.), même sans cession.
+              Amende : 1 500 € par compte non déclaré.
             </p>
           </div>
         )}
@@ -1394,7 +1750,8 @@ export default function Rapport() {
           <div className="rp-alert-red rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
             <p className="text-sm font-bold text-red-800 mb-1">🔴 Compte étranger — formulaire 3916</p>
             <p className="text-xs text-red-700 leading-relaxed">
-              Déclarer chaque compte étranger même à solde zéro.
+              Déclarer chaque compte bancaire étranger via le formulaire 3916, même à solde zéro ou clôturé en cours d'année.
+              Amende : 1 500 € par compte (10 000 € si pays non coopératif — art. 1649 A CGI).
             </p>
           </div>
         )}
@@ -1410,7 +1767,10 @@ export default function Rapport() {
           </div>
         )}
 
-        {/* ── Module 10 : Récapitulatif ── */}
+        {/* ── Section 09 : Feuille de route ── */}
+        <FeuilleRouteModule p={p} d={d} />
+
+        {/* ── Section 12 : Récapitulatif ── */}
         <RecapModule p={p} d={d} />
 
         {/* ── CTA Conseil IA ── */}

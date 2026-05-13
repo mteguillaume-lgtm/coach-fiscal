@@ -10,6 +10,7 @@ import { chatWithClaude, detectComplexity }           from '../lib/claudeApi';
 import { detectRelevantSkills, buildSystemPrompt }   from '../lib/skillRouter';
 import { MASTER_PROMPT }                             from '../data/masterPrompt';
 import Button                                        from '../components/Button';
+import PERBandeau                                    from '../components/PERBandeau';
 
 // ─── Suggestions ──────────────────────────────────────────────────────────────
 
@@ -326,6 +327,11 @@ export default function Chat() {
               <Trash2 size={15} />
             </button>
           </div>
+        </div>
+
+        {/* ── PER bandeau ───────────────────────────────────────── */}
+        <div className="shrink-0 px-4 pt-3">
+          <PERBandeau />
         </div>
 
         {/* ── Messages ──────────────────────────────────────────── */}

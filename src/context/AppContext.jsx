@@ -15,6 +15,7 @@ const initialState = {
   profile: '',           // profil fiscal généré (texte brut)
   parsedProfile: {},     // résultat de parseProfile(profile) — toujours synchronisé
   chatHistory: [],       // [{ role: "user"|"assistant", content: "" }]
+  perSimulation: { versementD1: 0, versementD2: 0 },
 };
 
 function reducer(state, action) {
@@ -43,6 +44,8 @@ function reducer(state, action) {
       return { ...state, chatHistory: [...state.chatHistory, action.payload] };
     case 'CLEAR_CHAT':
       return { ...state, chatHistory: [] };
+    case 'SET_PER_SIMULATION':
+      return { ...state, perSimulation: action.payload };
     case 'RESET':
     case 'RESET_ALL':
       return initialState;
