@@ -9,7 +9,7 @@ import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, 
 
 import { useApp }  from '../context/AppContext';
 import Button      from '../components/Button';
-import { calcIR, getTMI, calcPlafondPer, baseIRFoyer, baseIRSolo, MIN_PLAFOND_PER } from '../lib/taxCalculator';
+import { getTMI, baseIRFoyer, MIN_PLAFOND_PER } from '../lib/taxCalculator';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
 const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
@@ -585,6 +585,7 @@ export default function Simulator() {
   const { state } = useApp();
   const [tab,  setTab]  = useState('per');
   const [mode, setMode] = useState('profile');
+  const [perDeclarant, setPerDeclarant] = useState('d1');
 
   // Champs saisie manuelle
   const [manualTMI,        setManualTMI]        = useState(30);
@@ -607,26 +608,43 @@ export default function Simulator() {
   const profileData = useMemo(() => {
     if (mode === 'manual') {
       return {
-        rni:       perCalc.rni || 65_000,
-        tmi:       manualTMI,
-        plafond:   perCalc.plafondTotal || 10_000,
-        isDefault: false,
+        rni: perCalc.rni || 65_000, tmi: manualTMI,
+        plafond: perCalc.plafondTotal || 10_000, isDefault: false,
+        isCouple: false, perCalcD1: null, perCalcD2: null, selectedCalc: null,
       };
     }
-    const pp      = state.parsedProfile ?? {};
-    const hasData = !!(pp.salaireNetImposableD1 || pp.rniFoyer);
-    // Plafond PER D1 : base = salaire net imposable D1 après abattement 10%
-    const plafond = calcPlafondPer(pp.salaireNetImposableD1 || 0, pp.peroD1 || 0);
-    // TMI foyer : calculé depuis la vraie base IR (abattement + barème 2025)
+    const pp       = state.parsedProfile ?? {};
+    const hasData  = !!(pp.salaireNetImposableD1 || pp.rniFoyer);
+    const isCouple = pp.mode === 'couple';
+
+    // Plafond PER D1 — rniD1 est déjà post-abattement 10%
+    const rniD1        = pp.rniD1 || 0;
+    const peroD1       = pp.peroD1 || 0;
+    const brut10D1     = Math.round(rniD1 * 0.1);
+    const plafondBrutD1 = Math.max(brut10D1, MIN_PLAFOND);
+    const plafondNetD1  = Math.max(0, plafondBrutD1 - peroD1);
+    const perCalcD1 = { rni: rniD1, pero: peroD1, brut10: brut10D1, plafondBrut: plafondBrutD1, plafondNet: plafondNetD1 };
+
+    // Plafond PER D2 (couple uniquement)
+    const rniD2        = pp.rniD2 || 0;
+    const peroD2       = pp.peroD2 || 0;
+    const brut10D2     = Math.round(rniD2 * 0.1);
+    const plafondBrutD2 = Math.max(brut10D2, MIN_PLAFOND);
+    const plafondNetD2  = Math.max(0, plafondBrutD2 - peroD2);
+    const perCalcD2 = isCouple ? { rni: rniD2, pero: peroD2, brut10: brut10D2, plafondBrut: plafondBrutD2, plafondNet: plafondNetD2 } : null;
+
+    const selectedCalc = (isCouple && perDeclarant === 'd2') ? perCalcD2 : perCalcD1;
+
     const baseFoyer = baseIRFoyer(pp);
-    const tmi       = hasData ? getTMI(baseFoyer, pp.parts || (pp.mode === 'couple' ? 2 : 1)) : 30;
+    const tmi       = hasData ? getTMI(baseFoyer, pp.parts || (isCouple ? 2 : 1)) : 30;
+
     return {
-      rni:       pp.rniFoyer || 65_000,
-      tmi,
-      plafond:   plafond || MIN_PLAFOND,
-      isDefault: !hasData,
+      rni: pp.rniFoyer || 65_000, tmi,
+      plafond:     hasData ? selectedCalc.plafondNet : MIN_PLAFOND,
+      isDefault:   !hasData,
+      isCouple,    perCalcD1, perCalcD2, selectedCalc,
     };
-  }, [mode, manualTMI, perCalc, state.parsedProfile]);
+  }, [mode, manualTMI, perCalc, state.parsedProfile, perDeclarant]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -742,6 +760,53 @@ export default function Simulator() {
                 placeholder="0"
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profil auto — détail plafond PER */}
+      {mode === 'profile' && tab === 'per' && !profileData.isDefault && (
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Plafond PER — données du profil</p>
+
+          {/* Toggle D1 / D2 pour couple */}
+          {profileData.isCouple && (
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+              {[{ id: 'd1', label: 'Déclarant 1' }, { id: 'd2', label: 'Déclarant 2' }].map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPerDeclarant(id)}
+                  className={[
+                    'flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
+                    perDeclarant === id ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Calcul étape par étape */}
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 flex flex-col gap-1.5 text-xs">
+            <p className="font-bold text-blue-600 flex items-center gap-1.5">💡 Plafond PER calculé automatiquement</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-gray-600 mt-0.5">
+              <span>RNI {profileData.isCouple ? (perDeclarant === 'd1' ? 'D1' : 'D2') : 'foyer'}</span>
+              <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.selectedCalc.rni)} €</span>
+              <span>10 % × RNI</span>
+              <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.selectedCalc.brut10)} €</span>
+              <span>Minimum légal (10 % PASS)</span>
+              <span className="font-mono font-semibold text-gray-800 text-right">{fmt(MIN_PLAFOND)} €</span>
+              <span className="font-semibold text-blue-700">→ Plafond brut retenu</span>
+              <span className="font-mono font-bold text-blue-700 text-right">{fmt(profileData.selectedCalc.plafondBrut)} €</span>
+              {profileData.selectedCalc.pero > 0 && <>
+                <span className="text-amber-600">− PERO employeur</span>
+                <span className="font-mono font-semibold text-amber-600 text-right">− {fmt(profileData.selectedCalc.pero)} €</span>
+              </>}
+              <span className="font-bold text-teal-700 border-t border-blue-200 pt-1">→ Plafond disponible net</span>
+              <span className="font-mono font-bold text-teal-700 border-t border-blue-200 pt-1 text-right">{fmt(profileData.selectedCalc.plafondNet)} €</span>
             </div>
           </div>
         </div>
