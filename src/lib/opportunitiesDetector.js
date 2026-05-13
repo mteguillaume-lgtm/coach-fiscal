@@ -63,16 +63,24 @@ export function detectOpportunities(parsedProfile) {
   // PER optimal : plafond disponible + TMI >= 30 %
   if (perPlafond > 0 && tmi >= 30) {
     const economie = Math.round(perPlafond * (tmi / 100));
+    const perD1 = plafondPerD1 || 0;
+    const perD2 = plafondPerD2 || 0;
     opps.push({
       id: 'per_optimal',
       type: 'gain',
       urgence: 'avant_decembre',
       titre: '💡 Versement PER optimal détecté',
-      description: `Plafond PER disponible de ${fmt(perPlafond)} € inutilisé. À votre TMI de ${tmi} %, ce versement est directement déductible de votre revenu imposable.`,
+      description: isCouple
+        ? `Plafonds PER mutualisables — D1 : ${fmt(perD1)} €, D2 : ${fmt(perD2)} € (total ${fmt(perPlafond)} €). À votre TMI de ${tmi} %, ces versements sont directement déductibles du revenu imposable de chaque déclarant.`
+        : `Plafond PER disponible de ${fmt(perPlafond)} € inutilisé. À votre TMI de ${tmi} %, ce versement est directement déductible de votre revenu imposable.`,
       impact: `Économie estimée : ${fmt(economie)} €`,
       impactEuros: economie,
-      action: `Verser ${fmt(perPlafond)} € sur votre PER avant le 31/12`,
-      questionChat: `J'ai un plafond PER disponible de ${fmt(perPlafond)} € et une TMI de ${tmi} %. Quel PER individuel choisir et comment optimiser ce versement avant le 31/12 pour maximiser mon économie d'impôt ?`,
+      action: isCouple
+        ? `Verser sur vos PER individuels : jusqu'à ${fmt(perD1)} € pour D1 et ${fmt(perD2)} € pour D2 avant le 31/12`
+        : `Verser ${fmt(perPlafond)} € sur votre PER avant le 31/12`,
+      questionChat: isCouple
+        ? `Mon foyer est marié/pacsé, TMI ${tmi} %. Plafond PER D1 : ${fmt(perD1)} €, D2 : ${fmt(perD2)} € (total mutualisable : ${fmt(perPlafond)} €). Comment optimiser nos versements PER individuels avant le 31/12 ? Économie estimée : ${fmt(economie)} €. Quels PER individuels recommander pour chacun ?`
+        : `J'ai un plafond PER disponible de ${fmt(perPlafond)} € et une TMI de ${tmi} %. Quel PER individuel choisir et comment optimiser ce versement avant le 31/12 pour maximiser mon économie d'impôt (économie estimée : ${fmt(economie)} €) ?`,
     });
   }
 
@@ -96,7 +104,9 @@ export function detectOpportunities(parsedProfile) {
       impact: 'Gain potentiel annuel selon l\'allocation choisie',
       impactEuros: Math.round(livretTotal * 0.02),
       action: 'Identifier le surplus au-delà de 3-6 mois de charges, puis alimenter PEA ou AV',
-      questionChat: `J'ai ${fmt(livretTotal)} € d'épargne liquide répartie ainsi : ${detail || 'sur plusieurs livrets'}. Quelle part garder en épargne de précaution et comment investir le surplus sur PEA ou assurance-vie ?`,
+      questionChat: isCouple
+        ? `Mon foyer (couple marié/pacsé) a ${fmt(livretTotal)} € d'épargne liquide répartie ainsi : ${detail || 'sur plusieurs livrets'}. Quelle part garder en épargne de précaution pour un couple et comment investir le surplus — PEA (un chacun), assurance-vie, répartition optimale ?`
+        : `J'ai ${fmt(livretTotal)} € d'épargne liquide répartie ainsi : ${detail || 'sur plusieurs livrets'}. Quelle part garder en épargne de précaution et comment investir le surplus sur PEA ou assurance-vie ?`,
     });
   }
 
@@ -107,11 +117,19 @@ export function detectOpportunities(parsedProfile) {
       type: 'gain',
       urgence: 'long_terme',
       titre: '💡 PEA non ouvert — horloge fiscale non démarrée',
-      description: 'Le PEA offre une exonération totale d\'IR sur les plus-values après 5 ans. Chaque jour sans PEA retarde votre date d\'exonération.',
-      impact: 'Exonération IR sur toutes les plus-values après 5 ans',
+      description: isCouple
+        ? 'Aucun PEA détecté pour votre foyer. Chacun peut ouvrir son propre PEA (plafond 150 000 €/personne, soit 300 000 € pour votre couple). Exonération totale d\'IR sur les plus-values après 5 ans.'
+        : 'Le PEA offre une exonération totale d\'IR sur les plus-values après 5 ans. Chaque jour sans PEA retarde votre date d\'exonération.',
+      impact: isCouple
+        ? 'Exonération IR sur les plus-values, plafond 300 000 € (150 000 € × 2)'
+        : 'Exonération IR sur toutes les plus-values après 5 ans',
       impactEuros: 500,
-      action: 'Ouvrir un PEA même avec 1 € pour faire partir le délai de 5 ans',
-      questionChat: 'Je n\'ai pas encore de PEA. Quelle banque ou quel courtier recommander pour ouvrir un PEA en 2025, et quels points de vigilance lors de l\'ouverture ?',
+      action: isCouple
+        ? 'Ouvrir un PEA chacun (même avec 1 €) pour faire partir le délai de 5 ans dès maintenant'
+        : 'Ouvrir un PEA même avec 1 € pour faire partir le délai de 5 ans',
+      questionChat: isCouple
+        ? 'Mon couple n\'a pas encore de PEA. Peut-on ouvrir un PEA chacun et cumuler les plafonds (150 000 € × 2 = 300 000 €) ? Quels courtiers recommander pour un couple en 2025 et comment organiser nos placements entre les deux PEA ?'
+        : 'Je n\'ai pas encore de PEA. Quelle banque ou quel courtier recommander pour ouvrir un PEA en 2025, et quels points de vigilance lors de l\'ouverture ?',
     });
   }
 
@@ -124,11 +142,19 @@ export function detectOpportunities(parsedProfile) {
         type: 'gain',
         urgence: 'avant_decembre',
         titre: '💡 LEP accessible — meilleur taux garanti de France',
-        description: `Avec un RFR de ${fmt(rfr)} €, vous êtes éligible au Livret d'Épargne Populaire (taux 5 % vs Livret A à 3 %). Plafond de dépôt : 10 000 €.`,
-        impact: 'Gain : taux 5 % vs Livret A 3 % — soit +200 €/an pour 10 000 €',
-        impactEuros: 200,
-        action: 'Ouvrir un LEP à La Banque Postale, Caisse d\'Épargne ou votre banque',
-        questionChat: `Mon RFR est de ${fmt(rfr)} €. Suis-je éligible au LEP et comment l'ouvrir pour bénéficier du taux de 5 % ?`,
+        description: isCouple
+          ? `Avec un RFR de ${fmt(rfr)} €, votre foyer est éligible au LEP (taux 5 % vs Livret A 3 %). Chacun peut ouvrir son propre LEP (plafond 10 000 €/personne, soit 20 000 € pour votre couple).`
+          : `Avec un RFR de ${fmt(rfr)} €, vous êtes éligible au Livret d'Épargne Populaire (taux 5 % vs Livret A à 3 %). Plafond de dépôt : 10 000 €.`,
+        impact: isCouple
+          ? 'Gain : taux 5 % vs 3 % — soit +400 €/an pour 20 000 € (2 LEP)'
+          : 'Gain : taux 5 % vs Livret A 3 % — soit +200 €/an pour 10 000 €',
+        impactEuros: isCouple ? 400 : 200,
+        action: isCouple
+          ? 'Ouvrir un LEP chacun (La Banque Postale, Caisse d\'Épargne…) — plafond 10 000 €/personne'
+          : 'Ouvrir un LEP à La Banque Postale, Caisse d\'Épargne ou votre banque',
+        questionChat: isCouple
+          ? `Notre foyer (RFR ${fmt(rfr)} €) est éligible au LEP. Peut-on ouvrir un LEP chacun pour cumuler 20 000 € au taux de 5 % ? Comment vérifier l'éligibilité de chaque membre du couple et où ouvrir nos LEP ?`
+          : `Mon RFR est de ${fmt(rfr)} €. Suis-je éligible au LEP et comment l'ouvrir pour bénéficier du taux de 5 % ?`,
       });
     }
   }
@@ -194,7 +220,9 @@ export function detectOpportunities(parsedProfile) {
       impact: `Risque de solde à payer en septembre : ~${fmt(complementEstime)} €`,
       impactEuros: complementEstime,
       action: 'Augmenter votre taux PAS sur impots.gouv → Gérer mon prélèvement à la source',
-      questionChat: `Mon taux effectif d'imposition est de ${tauxEffectif} % mais mon PAS verse seulement ${fmt(pasTot)} € contre un IR estimé à ${fmt(totalDuEstime)} €. Comment ajuster mon prélèvement pour éviter ${fmt(complementEstime)} € de complément en septembre ?`,
+      questionChat: isCouple
+        ? `Mon foyer (couple) a un taux effectif d'imposition de ${tauxEffectif} %. PAS versé au total : ${fmt(pasTot)} €${pasD1 && pasD2 ? ` (D1 : ${fmt(pasD1)} €, D2 : ${fmt(pasD2)} €)` : ''}, IR estimé : ${fmt(totalDuEstime)} €. Complément à payer en septembre : ~${fmt(complementEstime)} €. Comment ajuster nos taux PAS individuels pour chaque déclarant ?`
+        : `Mon taux effectif d'imposition est de ${tauxEffectif} % mais mon PAS verse seulement ${fmt(pasTot)} € contre un IR estimé à ${fmt(totalDuEstime)} €. Comment ajuster mon prélèvement pour éviter ${fmt(complementEstime)} € de complément en septembre ?`,
     });
   }
 
