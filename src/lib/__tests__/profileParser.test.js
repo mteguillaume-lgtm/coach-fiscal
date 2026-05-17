@@ -302,3 +302,21 @@ describe('round-trip parse → generate → parse (profil de référence)', () =
     expect(pp2.acompte8IX).toBe(18);
   });
 });
+
+// ─── Tests d'intégration PR4 — réconciliation impots.gouv ────────────────────
+describe('intégration PR4 — réconciliation impots.gouv (profil de référence)', () => {
+  const pp = parseProfile(REF);
+
+  it('rniFoyer = 73 067 €', () => {
+    expect(pp.rniFoyer).toBe(73067);
+  });
+
+  it('irBrut ≈ 8 128 € (± 5)', () => {
+    expect(pp.irBrut).toBeGreaterThan(0);
+    expect(Math.abs(pp.irBrut - 8128)).toBeLessThanOrEqual(5);
+  });
+
+  it('solde = −1 786 € (± 5) depuis MONTANT RESTANT À PAYER', () => {
+    expect(Math.abs(pp.solde - (-1786))).toBeLessThanOrEqual(5);
+  });
+});

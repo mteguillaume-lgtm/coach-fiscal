@@ -32,6 +32,15 @@ function s(src, rx) {
   return src.match(rx)?.[1]?.trim() ?? '';
 }
 
+/** Entier signé — gère le moins Unicode U+2212 (−) en plus du tiret ASCII. */
+function signed(src, rx) {
+  const m = (src || '').match(rx);
+  if (!m?.[1]) return null;
+  const str = m[1].replace(/−/g, '-').replace(/[\s ]/g, '').replace(',', '.');
+  const v = parseFloat(str);
+  return isNaN(v) ? null : Math.round(v);
+}
+
 /** Format "OUI ~1 014,77 €" → 1014. parseInt s'arrête à la virgule. */
 function oui(src, rx) {
   const m = src.match(rx);
@@ -226,18 +235,24 @@ export function parseProfile(text) {
            || n(text, /TMI foyer[^:\n]*:\s*(\d{1,2})\s*%/i)
            || getTMI(rniFoyer, parts || 1);
 
-  // IR net, total dû, remboursement — présents après enrichissement IA
+  // IR net, IR brut, total dû, remboursement — présents après enrichissement IA
   const irNet         = n(text, /IR net[^:\n]*:\s*([\d\s,]+)\s*€/i)
                      || n(text, /Impôt net[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  // IR brut : "IR brut foyer : 4 064,19 × 2 = 8 128,38 €" → dernière valeur avant €
+  const irBrut        = n(text, /IR brut foyer[^€\n]*=\s*([\d\s,]+)\s*€/i)
+                     || n(text, /IR brut foyer[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const totalDu       = n(text, /TOTAL DÛ[^:\n]*:\s*([\d\s,]+)\s*€/i);
   const remboursement = n(text, /REMBOURSEMENT[^:\n]*:\s*\+?\s*([\d\s,]+)\s*€/i)
                      || n(text, /[Rr]emboursement[^:\n]*:\s*\+?\s*([\d\s,]+)\s*€/);
   const gainPacs      = n(text, /GAIN DU PACS[^:\n]*:\s*([\d\s,]+)\s*€/i)
                      || n(text, /gain.*?quotient[^:\n]*:\s*([\d\s,]+)\s*€/i);
 
-  const solde = totalDu > 0 && pasTotal > 0
-    ? pasTotal - totalDu
-    : remboursement > 0 ? remboursement : 0;
+  // Solde réconcilié depuis "MONTANT RESTANT À PAYER" (signé : négatif = remboursement)
+  // Priorité sur la formule pasTotal − totalDu qui omet acomptes et crédit 2CK
+  const montantPayer = signed(text, /MONTANT RESTANT (?:À|A) PAYER[^:\n]*:\s*([-−]?[\d\s,]+)\s*€/i);
+  const solde = montantPayer !== null ? montantPayer
+              : totalDu > 0 && pasTotal > 0 ? pasTotal - totalDu
+              : remboursement > 0 ? remboursement : 0;
 
   // RFR : depuis texte ou fallback RNI foyer
   const rfr = n(text, /RFR[^:\n]*:\s*([\d\s,]+)\s*€/i)
@@ -416,7 +431,7 @@ export function parseProfile(text) {
     salaireNetImposableD2, salairesBrutImposableD2, pasD2, tauxPasD2, peroD2,
 
     rniD1, rniD2, rniFoyer, rfr, foncierNet,
-    tmi, irNet, totalDu, pasTotal, solde, remboursement, gainPacs,
+    tmi, irNet, irBrut, totalDu, pasTotal, solde, remboursement, gainPacs,
     dividendes, revensFonciers, revenusLoc, revenusCrypto,
     intMob2TR, intMob2CK,
     acompte8HW, acompte8IW, acompte8HX, acompte8IX,
@@ -475,7 +490,7 @@ export function emptyProfile() {
     salaireNetImposableD1: 0, salairesBrutImposableD1: 0, pasD1: 0, tauxPasD1: 0, peroD1: 0,
     salaireNetImposableD2: 0, salairesBrutImposableD2: 0, pasD2: 0, tauxPasD2: 0, peroD2: 0,
     rniD1: 0, rniD2: 0, rniFoyer: 0, rfr: 0, foncierNet: 0,
-    tmi: 0, irNet: 0, totalDu: 0, pasTotal: 0, solde: 0, remboursement: 0, gainPacs: 0,
+    tmi: 0, irNet: 0, irBrut: 0, totalDu: 0, pasTotal: 0, solde: 0, remboursement: 0, gainPacs: 0,
     dividendes: 0, revensFonciers: 0, revenusLoc: 0, revenusCrypto: 0,
     ageD1: 0, retraiteD1: 0, horizonD1: 0, tmiRetraiteD1: null,
     typeRevenuD1: 'Salarié(e)', pensionNetImpD1: 0,
