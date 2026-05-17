@@ -11,6 +11,7 @@ import { analyzeDoc, mapExtracted } from '../lib/extractor';
 import { parseProfile }             from '../lib/profileParser';
 import { buildProfile }             from '../lib/profileGenerator';
 import { abattement10 }             from '../lib/taxCalculator';
+import { registry }                 from '../plugins/registry.js';
 import Button                       from '../components/Button';
 import Card                         from '../components/Card';
 
@@ -78,6 +79,43 @@ function computeCryptoPv(data, _value) {
 
 const TMI_RET_HINT = 'Estimez votre tranche d\'imposition à la retraite. 11% par défaut (pension < ~29 000 €/an). Crucial pour comparer PER vs PEA.';
 
+// ─── Plugin income UI metadata (ph / hint / dependsOn / opts / label overrides) ─
+
+const INCOME_UI = {
+  net_imp:              { label: 'Net imposable annuel (€)',           ph: '43 875' },
+  brut:                 { label: 'Brut imposable annuel (€)',          ph: '54 810' },
+  pas_tot:              { label: 'PAS prélevé 2025 (€)',               ph: '4 302'  },
+  taux_pas:             { label: 'Taux PAS (%)',                        ph: '11.80'  },
+  ij_cpam:              { label: 'IJ CPAM dans net imposable (€)',      ph: '0',
+    hint: "Indemnités journalières CPAM incluses dans 1AJ/1BJ. Déjà dans le net imposable — champ informatif uniquement." },
+  ij_cpam_org:          { label: 'IJ CPAM — attestation (CPAM)',        ph: 'ex: Maine-et-Loire',
+    dependsOn: { key: 'ij_cpam', check: v => parseFloat(v || 0) > 0 } },
+  rente_1bs_montant:    { label: 'Rente viagère — case 1BS (€)',        ph: '0',
+    hint: 'Montant net de CSG déductible déclaré en 1AS/1BS (retraite ou réversion). Abattement 10% appliqué (min 450 €/max 4 321 €).' },
+  rente_1bs_pas:        { label: 'PAS sur rente 1BS (€)',               ph: '0',
+    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+  rente_1bs_organisme:  { label: 'Rente 1BS — organisme',               ph: 'ex: Crédit Agricole Assurance',
+    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+  rente_1bs_recurrent:  { label: 'Rente 1BS — récurrente ?',            type: 'select', opts: ['Oui', 'Non'],
+    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+  foncier:              { label: 'Revenus fonciers (€)',                 ph: '0' },
+  int_mob_2tr:          { label: 'Intérêts Livret+/mobiliers — case 2TR (€)', ph: '0',
+    hint: "Intérêts d'un Livret bancaire, CTO ou produit hors Livret A/LDDS/LEP. Prérempli par la banque." },
+  int_mob_2ck:          { label: 'PFU 12,8% déjà prélevé — case 2CK (€)',    ph: '0',
+    dependsOn: { key: 'int_mob_2tr', check: v => parseFloat(v || 0) > 0 },
+    hint: "Crédit d'impôt = PFU 12,8% prélevé à la source. Figurera en case 2CK." },
+};
+
+function pluginFields(ids, excludeKeys = []) {
+  return ids.flatMap(id => {
+    const plugin = registry.getById(id);
+    if (!plugin) return [];
+    return plugin.fields
+      .filter(f => !excludeKeys.includes(f.key))
+      .map(f => ({ ...f, ...(INCOME_UI[f.key] || {}) }));
+  });
+}
+
 // ─── Section data (module-level — stable references) ──────────────────────────
 
 const SECTION_SIT = {
@@ -90,23 +128,8 @@ const SECTION_SIT = {
 };
 
 const REV_FIELDS = [
-  { key: 'brut',     label: 'Brut imposable annuel (€)', type: 'number', ph: '54 810' },
-  { key: 'net_imp',  label: 'Net imposable annuel (€)',  type: 'number', ph: '43 875' },
-  { key: 'taux_pas', label: 'Taux PAS (%)',              type: 'number', ph: '11.80'  },
-  { key: 'pas_tot',  label: 'PAS prélevé 2025 (€)',      type: 'number', ph: '4 302'  },
-  { key: 'frais_r',  label: 'Frais réels (€)',           type: 'number', ph: 'vide = forfait 10%' },
-  { key: 'ij_cpam',             label: 'IJ CPAM dans net imposable (€)', type: 'number', ph: '0',
-    hint: "Indemnités journalières CPAM incluses dans 1AJ/1BJ. Déjà dans le net imposable — champ informatif uniquement." },
-  { key: 'ij_cpam_org',         label: 'IJ CPAM — attestation (CPAM)',   type: 'text',   ph: 'ex: Maine-et-Loire',
-    dependsOn: { key: 'ij_cpam', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'rente_1bs_montant',   label: 'Rente viagère — case 1BS (€)',   type: 'number', ph: '0',
-    hint: 'Montant net de CSG déductible déclaré en 1AS/1BS (retraite ou réversion). Abattement 10% appliqué (min 450 €/max 4 321 €).' },
-  { key: 'rente_1bs_pas',       label: 'PAS sur rente 1BS (€)',          type: 'number', ph: '0',
-    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'rente_1bs_organisme', label: 'Rente 1BS — organisme',          type: 'text',   ph: 'ex: Crédit Agricole Assurance',
-    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'rente_1bs_recurrent', label: 'Rente 1BS — récurrente ?',       type: 'select', opts: ['Oui', 'Non'],
-    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+  ...pluginFields(['salaires', 'pensions-rentes'], ['pension_net_imp']),
+  { key: 'frais_r', label: 'Frais réels (€)', type: 'number', ph: 'vide = forfait 10%' },
 ];
 
 const EP_INDIV_FIELDS = [
@@ -149,30 +172,9 @@ const PROFIL_INDIV_FIELDS = [
 
 const SECTION_REV_SOLO = {
   id: 'rev', Icon: TrendingUp, label: 'Revenus 2025', fields: [
-    { key: 'brut',        label: 'Brut imposable annuel (€)',                     type: 'number', ph: '54 810' },
-    { key: 'net_imp',     label: 'Net imposable annuel (€)',                      type: 'number', ph: '43 875' },
-    { key: 'taux_pas',    label: 'Taux PAS (%)',                                  type: 'number', ph: '11.80'  },
-    { key: 'pas_tot',     label: 'PAS prélevé 2025 (€)',                          type: 'number', ph: '4 302'  },
-    { key: 'foncier',     label: 'Revenus fonciers (€)',                          type: 'number', ph: '0' },
-    { key: 'divid',       label: 'Dividendes/intérêts (€)',                       type: 'number', ph: '0' },
-    { key: 'crypto',      label: 'Revenus crypto (€)',                            type: 'number', ph: '0' },
-    { key: 'int_mob_2tr', label: 'Intérêts Livret+/mobiliers — case 2TR (€)',     type: 'number', ph: '0',
-      hint: "Intérêts d'un Livret bancaire, CTO ou produit hors Livret A/LDDS/LEP. Prérempli par la banque." },
-    { key: 'int_mob_2ck', label: 'PFU 12,8% déjà prélevé — case 2CK (€)',        type: 'number', ph: '0',
-      dependsOn: { key: 'int_mob_2tr', check: v => parseFloat(v || 0) > 0 },
-      hint: "Crédit d'impôt = PFU 12,8% prélevé à la source. Figurera en case 2CK." },
-    { key: 'ij_cpam',             label: 'IJ CPAM dans net imposable (€)', type: 'number', ph: '0',
-      hint: "Indemnités journalières CPAM incluses dans 1AJ. Déjà dans le net imposable — champ informatif uniquement." },
-    { key: 'ij_cpam_org',         label: 'IJ CPAM — attestation (CPAM)',   type: 'text',   ph: 'ex: Maine-et-Loire',
-      dependsOn: { key: 'ij_cpam', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'rente_1bs_montant',   label: 'Rente viagère — case 1BS (€)',   type: 'number', ph: '0',
-      hint: 'Montant net de CSG déductible déclaré en 1AS/1BS (retraite ou réversion). Abattement 10% appliqué (min 450 €/max 4 321 €).' },
-    { key: 'rente_1bs_pas',       label: 'PAS sur rente 1BS (€)',          type: 'number', ph: '0',
-      dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'rente_1bs_organisme', label: 'Rente 1BS — organisme',          type: 'text',   ph: 'ex: Crédit Agricole Assurance',
-      dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'rente_1bs_recurrent', label: 'Rente 1BS — récurrente ?',       type: 'select', opts: ['Oui', 'Non'],
-      dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+    ...pluginFields(['salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers'], ['pension_net_imp']),
+    { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0' },
+    { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0' },
   ],
 };
 
@@ -238,14 +240,9 @@ const SECTION_DED_SOLO = {
 
 const SECTION_REV_FOYER = {
   id: 'rev_foyer', Icon: TrendingUp, label: 'Revenus du foyer', fields: [
-    { key: 'foncier',      label: 'Revenus fonciers (€)',               type: 'number', ph: '0' },
-    { key: 'divid',        label: 'Dividendes/intérêts (€)',            type: 'number', ph: '0' },
-    { key: 'crypto',       label: 'Revenus crypto (€)',                 type: 'number', ph: '0' },
-    { key: 'int_mob_2tr',  label: 'Intérêts Livret+/mobiliers — case 2TR (€)', type: 'number', ph: '0',
-      hint: "Intérêts d'un Livret bancaire, compte-titres ou autre produit hors Livret A/LDDS/LEP. Prérempli par la banque sur impots.gouv." },
-    { key: 'int_mob_2ck',  label: 'PFU 12,8% déjà prélevé — case 2CK (€)',    type: 'number', ph: '0',
-      dependsOn: { key: 'int_mob_2tr', check: v => parseFloat(v || 0) > 0 },
-      hint: "Crédit d'impôt correspondant au PFU 12,8% déjà retenu à la source. Figurera en case 2CK (prérempli)." },
+    ...pluginFields(['foncier-micro', 'mobiliers']),
+    { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0' },
+    { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0' },
   ],
 };
 

@@ -9,7 +9,7 @@ const fmtN   = v => Math.round(v || 0).toLocaleString('fr-FR') + ' €';
 // Micro-foncier : abattement 30% automatique si total brut < 15 000 €
 function calcFoncier(brut) {
   if (!brut || brut <= 0) return { brut: 0, net: 0, regime: null, ps: 0 };
-  const isMicro = brut <= 15000; // art. 32 CGI : "n'excède pas 15 000 €" = inclusif
+  const isMicro = brut <= 15000;
   const net  = isMicro ? Math.round(brut * 0.70) : brut;
   const ps   = Math.round(net * 0.172);
   return { brut, net, regime: isMicro ? 'micro-foncier (abat. 30%)' : 'régime réel', ps };
@@ -21,40 +21,41 @@ function fmtPlafondPer(netImp, pero) {
   const peroN    = parseFloat(pero    || 0);
   const base     = abattement10(netImpN);
   const brut10   = base > 0 ? Math.round(base * 0.10) : 0;
-  const plafond  = Math.min(Math.max(brut10, MIN_PLAFOND_PER), MAX_PLAFOND_PER); // cap 37 680 €
+  const plafond  = Math.min(Math.max(brut10, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
   const dispo    = Math.max(0, plafond - peroN);
   return { brut10, plafond, dispo };
 }
 
-export function buildProfile(formData, d1Data, d2Data, docs, isCouple) {
-  const d = formData;
-  const docSums = docs
-    .filter(x => x.status === 'done' && x.extracted)
-    .map(x => `• ${x.name} (${x.target === 'd1' ? 'D1' : x.target === 'd2' ? 'D2' : '—'}) :\n${x.extracted}`)
-    .join('\n\n');
+function _perReportables(d) {
+  const n1 = parseInt(d.per_n1 || 0); const n2 = parseInt(d.per_n2 || 0); const n3 = parseInt(d.per_n3 || 0);
+  const tot = n1 + n2 + n3;
+  if (!tot) return '';
+  return `\n${n1 > 0 ? `Plafond reportable N-1 : ${n1.toLocaleString('fr-FR')} €\n` : ''}${n2 > 0 ? `Plafond reportable N-2 : ${n2.toLocaleString('fr-FR')} €\n` : ''}${n3 > 0 ? `Plafond reportable N-3 : ${n3.toLocaleString('fr-FR')} €\n` : ''}Plafond reportable total (3 ans) : ${tot.toLocaleString('fr-FR')} €`;
+}
 
-  // ─── MODE SOLO ───────────────────────────────────────────────────────────────
-  if (!isCouple) {
-    const net1AJ   = parseFloat(d.net_imp  || 0);
-    const rni      = abattement10(net1AJ);
-    const foncier  = calcFoncier(parseFloat(d.foncier || 0));
-    const rniTotal = rni + foncier.net;
-    const parts    = parseFloat(d.parts || 1);
-    const pero     = parseFloat(d.pero_d1 || 0);
-    const pas      = parseFloat(d.pas_tot || 0);
-    const per      = fmtPlafondPer(d.net_imp, d.pero_d1);
+// ─── Solo branch ──────────────────────────────────────────────────────────────
 
-    const ijCpam   = parseFloat(d.ij_cpam || 0);
-    const rente1Bs = parseFloat(d.rente_1bs_montant || 0);
-    const pasRente = parseFloat(d.rente_1bs_pas || 0);
+function _buildSolo(d, docSums) {
+  const net1AJ   = parseFloat(d.net_imp  || 0);
+  const rni      = abattement10(net1AJ);
+  const foncier  = calcFoncier(parseFloat(d.foncier || 0));
+  const rniTotal = rni + foncier.net;
+  const parts    = parseFloat(d.parts || 1);
+  const pero     = parseFloat(d.pero_d1 || 0);
+  const pas      = parseFloat(d.pas_tot || 0);
+  const per      = fmtPlafondPer(d.net_imp, d.pero_d1);
 
-    const ageD1       = parseInt(d.age_d1 || 0);
-    const retraiteD1  = parseInt(d.retraite_d1 || 0);
-    const horizonD1   = ageD1 > 0 && retraiteD1 > ageD1 ? retraiteD1 - ageD1 : null;
-    const typeRevD1   = d.type_revenu_d1 || 'Salarié(e)';
-    const pensionD1   = parseFloat(d.pension_net_imp_d1 || 0);
+  const ijCpam   = parseFloat(d.ij_cpam || 0);
+  const rente1Bs = parseFloat(d.rente_1bs_montant || 0);
+  const pasRente = parseFloat(d.rente_1bs_pas || 0);
 
-    return `== PROFIL FISCAL PERSONNEL 2025 ==
+  const ageD1      = parseInt(d.age_d1 || 0);
+  const retraiteD1 = parseInt(d.retraite_d1 || 0);
+  const horizonD1  = ageD1 > 0 && retraiteD1 > ageD1 ? retraiteD1 - ageD1 : null;
+  const typeRevD1  = d.type_revenu_d1 || 'Salarié(e)';
+  const pensionD1  = parseFloat(d.pension_net_imp_d1 || 0);
+
+  return `== PROFIL FISCAL PERSONNEL 2025 ==
 Généré le ${new Date().toLocaleDateString('fr-FR')} — Outil ${APP_VERSION}
 
 == SITUATION PERSONNELLE ==
@@ -107,12 +108,7 @@ ${parseFloat(d.acompte_8hx || 0) > 0 ? `Acompte PS D1 (8HX) : ${fmtN(parseFloat(
 Plancher PASS (10% × 47 100 €) : ${fmtN(MIN_PLAFOND_PER)}
 Plafond retenu : ${fmtN(per.plafond)}
 PERO obligatoire déduit : ${pero > 0 ? fmtN(pero) : 'Néant'}
-PLAFOND DISPONIBLE : ${fmtN(per.dispo)}${(() => {
-  const n1 = parseInt(d.per_n1 || 0); const n2 = parseInt(d.per_n2 || 0); const n3 = parseInt(d.per_n3 || 0);
-  const tot = n1 + n2 + n3;
-  if (!tot) return '';
-  return `\n${n1 > 0 ? `Plafond reportable N-1 : ${n1.toLocaleString('fr-FR')} €\n` : ''}${n2 > 0 ? `Plafond reportable N-2 : ${n2.toLocaleString('fr-FR')} €\n` : ''}${n3 > 0 ? `Plafond reportable N-3 : ${n3.toLocaleString('fr-FR')} €\n` : ''}Plafond reportable total (3 ans) : ${tot.toLocaleString('fr-FR')} €`;
-})()}
+PLAFOND DISPONIBLE : ${fmtN(per.dispo)}${_perReportables(d)}
 
 == ÉPARGNE ET PLACEMENTS ==
 Livret A : ${fmtOui(d.livret_a)}
@@ -159,12 +155,11 @@ ${d.proprio === 'Oui' && d.taxe_fonciere ? `Taxe foncière : ${Number(d.taxe_fon
 Bien locatif : ${d.locatif || 'Non renseigné'}
 Revenus locatifs 2025 : ${fmt(d.rev_loc)}
 ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}`;
-  }
+}
 
-  // ─── MODE COUPLE ─────────────────────────────────────────────────────────────
-  const d1 = d1Data;
-  const d2 = d2Data;
+// ─── Couple branch ────────────────────────────────────────────────────────────
 
+function _buildCouple(d, d1, d2, docSums) {
   const ageD1c      = parseInt(d1.age || 0);
   const retraiteD1c = parseInt(d1.retraite || 0);
   const horizonD1c  = ageD1c > 0 && retraiteD1c > ageD1c ? retraiteD1c - ageD1c : null;
@@ -186,7 +181,6 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}`
 
   const net1AJd1 = parseFloat(d1.net_imp || 0);
   const net1AJd2 = parseFloat(d2.net_imp || 0);
-  // Abattement selon le type de revenu (art. 158-5-a CGI)
   const rniD1 = typeRevD1c === 'Retraité(e)' ? abattement10Pension(net1AJd1)
               : typeRevD1c === 'Mixte'        ? abattement10(net1AJd1) + abattement10Pension(pensionD1c)
               :                                  abattement10(net1AJd1);
@@ -195,7 +189,6 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}`
               :                                  abattement10(net1AJd2);
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
   const parts    = parseFloat(d.parts || 2);
-
   const rniFoyer = rniD1 + rniD2 + foncier.net;
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
@@ -298,12 +291,7 @@ D2 :
   PERO D2 déduit : ${peroD2 > 0 ? fmtN(peroD2) : 'Néant'}
   PLAFOND DISPONIBLE D2 : ${fmtN(perD2.dispo)}
 
-Plafond cumulé mutualisable : ${fmtN(perD1.dispo + perD2.dispo)}${(() => {
-  const n1 = parseInt(d.per_n1 || 0); const n2 = parseInt(d.per_n2 || 0); const n3 = parseInt(d.per_n3 || 0);
-  const tot = n1 + n2 + n3;
-  if (!tot) return '';
-  return `\n${n1 > 0 ? `Plafond reportable N-1 : ${n1.toLocaleString('fr-FR')} €\n` : ''}${n2 > 0 ? `Plafond reportable N-2 : ${n2.toLocaleString('fr-FR')} €\n` : ''}${n3 > 0 ? `Plafond reportable N-3 : ${n3.toLocaleString('fr-FR')} €\n` : ''}Plafond reportable total (3 ans) : ${tot.toLocaleString('fr-FR')} €`;
-})()}
+Plafond cumulé mutualisable : ${fmtN(perD1.dispo + perD2.dispo)}${_perReportables(d)}
 
 == ÉPARGNE — DÉCLARANT 1 ==
 Livret A : ${fmtOui(d1.livret_a)}
@@ -375,4 +363,17 @@ ${d.proprio === 'Oui' && d.taxe_fonciere ? `Taxe foncière : ${Number(d.taxe_fon
 Bien locatif : ${d.locatif || 'Non renseigné'}
 Revenus locatifs 2025 : ${fmt(d.rev_loc)}
 ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}`;
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export function buildProfile(formData, d1Data, d2Data, docs, isCouple) {
+  const d = formData;
+  const docSums = docs
+    .filter(x => x.status === 'done' && x.extracted)
+    .map(x => `• ${x.name} (${x.target === 'd1' ? 'D1' : x.target === 'd2' ? 'D2' : '—'}) :\n${x.extracted}`)
+    .join('\n\n');
+  return isCouple
+    ? _buildCouple(d, d1Data, d2Data, docSums)
+    : _buildSolo(d, docSums);
 }
