@@ -44,6 +44,10 @@ export function buildProfile(formData, d1Data, d2Data, docs, isCouple) {
     const pas      = parseFloat(d.pas_tot || 0);
     const per      = fmtPlafondPer(d.net_imp, d.pero_d1);
 
+    const ijCpam   = parseFloat(d.ij_cpam || 0);
+    const rente1Bs = parseFloat(d.rente_1bs_montant || 0);
+    const pasRente = parseFloat(d.rente_1bs_pas || 0);
+
     const ageD1       = parseInt(d.age_d1 || 0);
     const retraiteD1  = parseInt(d.retraite_d1 || 0);
     const horizonD1   = ageD1 > 0 && retraiteD1 > ageD1 ? retraiteD1 - ageD1 : null;
@@ -69,11 +73,16 @@ ${pensionD1 > 0 ? `Pension nette imposable 1AS : ${Number(pensionD1).toLocaleStr
 
 == REVENUS 2025 ==
 Brut imposable annuel : ${d.brut ? Number(d.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
-Net imposable annuel (1AJ — case déclaration) : ${net1AJ > 0 ? fmtN(net1AJ) : 'Non renseigné'}
+Net imposable annuel (1AJ — case déclaration) : ${net1AJ > 0 ? fmtN(net1AJ) : 'Non renseigné'}${ijCpam > 0 ? ` (dont ${fmtN(ijCpam)} IJ CPAM — attestation ${d.ij_cpam_org || 'CPAM'})` : ''}
 RNI après abattement 10% salaires : ${rni > 0 ? fmtN(rni) : 'Non calculable'}
 Taux PAS : ${d.taux_pas ? d.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${pas > 0 ? fmtN(pas) : 'Non renseigné'}
 Frais réels : ${d.frais_r && d.frais_r !== '0' ? Number(d.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
+${rente1Bs > 0 ? `Rente viagère — case 1BS (D1) :
+  Organisme : ${d.rente_1bs_organisme || 'Non renseigné'}
+  Montant 1BS déclaré : ${fmtN(rente1Bs)}
+  PAS rente 1BS : ${pasRente > 0 ? fmtN(pasRente) : '0 €'}
+  Récurrent : ${d.rente_1bs_recurrent || 'Oui'}` : ''}
 ${foncier.brut > 0 ? `
 Revenus fonciers bruts : ${fmtN(foncier.brut)}
 Régime foncier : ${foncier.regime}
@@ -167,6 +176,13 @@ ${docSums ? '\n== DONNÉES BRUTES EXTRAITES PAR IA ==\n' + docSums + '\n' : ''}`
   const typeRevD2c  = d2.type_revenu || 'Salarié(e)';
   const pensionD2c  = parseFloat(d2.pension_net_imp || 0);
 
+  const ijCpamD1c   = parseFloat(d1.ij_cpam || 0);
+  const rente1BsD1c = parseFloat(d1.rente_1bs_montant || 0);
+  const pasRenteD1c = parseFloat(d1.rente_1bs_pas || 0);
+  const ijCpamD2c   = parseFloat(d2.ij_cpam || 0);
+  const rente1BsD2c = parseFloat(d2.rente_1bs_montant || 0);
+  const pasRenteD2c = parseFloat(d2.rente_1bs_pas || 0);
+
   const net1AJd1 = parseFloat(d1.net_imp || 0);
   const net1AJd2 = parseFloat(d2.net_imp || 0);
   // Abattement selon le type de revenu (art. 158-5-a CGI)
@@ -216,19 +232,28 @@ ${pensionD2c > 0 ? `Pension nette imposable 1AS D2 : ${Number(pensionD2c).toLoca
 
 == REVENUS 2025 — DÉCLARANT 1 ==
 Brut imposable annuel : ${d1.brut ? Number(d1.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
-Net imposable annuel (1AJ — case déclaration) : ${net1AJd1 > 0 ? fmtN(net1AJd1) : 'Non renseigné'}
+Net imposable annuel (1AJ — case déclaration) : ${net1AJd1 > 0 ? fmtN(net1AJd1) : 'Non renseigné'}${ijCpamD1c > 0 ? ` (dont ${fmtN(ijCpamD1c)} IJ CPAM — attestation ${d1.ij_cpam_org || 'CPAM'})` : ''}
 RNI D1 après abattement 10% salaires : ${fmtN(rniD1)}
 Taux PAS : ${d1.taux_pas ? d1.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${pasD1 > 0 ? fmtN(pasD1) : 'Non renseigné'}
 Frais réels : ${d1.frais_r && d1.frais_r !== '0' ? Number(d1.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
-
+${rente1BsD1c > 0 ? `Rente viagère — case 1BS (D1) :
+  Organisme : ${d1.rente_1bs_organisme || 'Non renseigné'}
+  Montant 1BS déclaré : ${fmtN(rente1BsD1c)}
+  PAS rente 1BS : ${pasRenteD1c > 0 ? fmtN(pasRenteD1c) : '0 €'}
+  Récurrent : ${d1.rente_1bs_recurrent || 'Oui'}` : ''}
 == REVENUS 2025 — DÉCLARANT 2 ==
 Brut imposable annuel : ${d2.brut ? Number(d2.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
-Net imposable annuel (1AJ — case déclaration) : ${net1AJd2 > 0 ? fmtN(net1AJd2) : 'Non renseigné'}
+Net imposable annuel (1BJ — case déclaration) : ${net1AJd2 > 0 ? fmtN(net1AJd2) : 'Non renseigné'}${ijCpamD2c > 0 ? ` (dont ${fmtN(ijCpamD2c)} IJ CPAM — attestation ${d2.ij_cpam_org || 'CPAM'})` : ''}
 RNI D2 après abattement 10% salaires : ${fmtN(rniD2)}
 Taux PAS : ${d2.taux_pas ? d2.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${pasD2 > 0 ? fmtN(pasD2) : 'Non renseigné'}
 Frais réels : ${d2.frais_r && d2.frais_r !== '0' ? Number(d2.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
+${rente1BsD2c > 0 ? `Rente viagère — case 1BS (D2) :
+  Organisme : ${d2.rente_1bs_organisme || 'Non renseigné'}
+  Montant 1BS déclaré : ${fmtN(rente1BsD2c)}
+  PAS rente 1BS : ${pasRenteD2c > 0 ? fmtN(pasRenteD2c) : '0 €'}
+  Récurrent : ${d2.rente_1bs_recurrent || 'Oui'}` : ''}
 
 == REVENUS DU FOYER ==
 ${foncier.brut > 0 ? `Revenus fonciers bruts : ${fmtN(foncier.brut)}

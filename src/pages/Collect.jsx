@@ -95,6 +95,18 @@ const REV_FIELDS = [
   { key: 'taux_pas', label: 'Taux PAS (%)',              type: 'number', ph: '11.80'  },
   { key: 'pas_tot',  label: 'PAS prélevé 2025 (€)',      type: 'number', ph: '4 302'  },
   { key: 'frais_r',  label: 'Frais réels (€)',           type: 'number', ph: 'vide = forfait 10%' },
+  { key: 'ij_cpam',             label: 'IJ CPAM dans net imposable (€)', type: 'number', ph: '0',
+    hint: "Indemnités journalières CPAM incluses dans 1AJ/1BJ. Déjà dans le net imposable — champ informatif uniquement." },
+  { key: 'ij_cpam_org',         label: 'IJ CPAM — attestation (CPAM)',   type: 'text',   ph: 'ex: Maine-et-Loire',
+    dependsOn: { key: 'ij_cpam', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'rente_1bs_montant',   label: 'Rente viagère — case 1BS (€)',   type: 'number', ph: '0',
+    hint: 'Montant net de CSG déductible déclaré en 1AS/1BS (retraite ou réversion). Abattement 10% appliqué (min 450 €/max 4 321 €).' },
+  { key: 'rente_1bs_pas',       label: 'PAS sur rente 1BS (€)',          type: 'number', ph: '0',
+    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'rente_1bs_organisme', label: 'Rente 1BS — organisme',          type: 'text',   ph: 'ex: Crédit Agricole Assurance',
+    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'rente_1bs_recurrent', label: 'Rente 1BS — récurrente ?',       type: 'select', opts: ['Oui', 'Non'],
+    dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
 ];
 
 const EP_INDIV_FIELDS = [
@@ -149,6 +161,18 @@ const SECTION_REV_SOLO = {
     { key: 'int_mob_2ck', label: 'PFU 12,8% déjà prélevé — case 2CK (€)',        type: 'number', ph: '0',
       dependsOn: { key: 'int_mob_2tr', check: v => parseFloat(v || 0) > 0 },
       hint: "Crédit d'impôt = PFU 12,8% prélevé à la source. Figurera en case 2CK." },
+    { key: 'ij_cpam',             label: 'IJ CPAM dans net imposable (€)', type: 'number', ph: '0',
+      hint: "Indemnités journalières CPAM incluses dans 1AJ. Déjà dans le net imposable — champ informatif uniquement." },
+    { key: 'ij_cpam_org',         label: 'IJ CPAM — attestation (CPAM)',   type: 'text',   ph: 'ex: Maine-et-Loire',
+      dependsOn: { key: 'ij_cpam', check: v => parseFloat(v || 0) > 0 } },
+    { key: 'rente_1bs_montant',   label: 'Rente viagère — case 1BS (€)',   type: 'number', ph: '0',
+      hint: 'Montant net de CSG déductible déclaré en 1AS/1BS (retraite ou réversion). Abattement 10% appliqué (min 450 €/max 4 321 €).' },
+    { key: 'rente_1bs_pas',       label: 'PAS sur rente 1BS (€)',          type: 'number', ph: '0',
+      dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+    { key: 'rente_1bs_organisme', label: 'Rente 1BS — organisme',          type: 'text',   ph: 'ex: Crédit Agricole Assurance',
+      dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
+    { key: 'rente_1bs_recurrent', label: 'Rente 1BS — récurrente ?',       type: 'select', opts: ['Oui', 'Non'],
+      dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
   ],
 };
 
@@ -950,6 +974,12 @@ export default function Collect() {
             retraite_d1:       str(pp.retraiteD1),
             tmi_retraite_d1:   pp.tmiRetraiteD1 != null ? String(pp.tmiRetraiteD1) : '',
             type_revenu_d1:    pp.typeRevenuD1 || '',
+            ij_cpam:              str(pp.ijCpamD1),
+            ij_cpam_org:          pp.ijCpamOrgD1 || '',
+            rente_1bs_montant:    str(pp.rente1BsD1),
+            rente_1bs_pas:        str(pp.pasRente1BsD1),
+            rente_1bs_organisme:  pp.orgRente1BsD1 || '',
+            rente_1bs_recurrent:  pp.recurrentRente1BsD1 === false ? 'Non' : pp.recurrentRente1BsD1 === true ? 'Oui' : '',
           } : {}),
         };
 
@@ -979,6 +1009,12 @@ export default function Collect() {
           retraite:          str(pp.retraiteD1),
           tmi_retraite:      pp.tmiRetraiteD1 != null ? String(pp.tmiRetraiteD1) : '',
           type_revenu:       pp.typeRevenuD1 || '',
+          ij_cpam:              str(pp.ijCpamD1),
+          ij_cpam_org:          pp.ijCpamOrgD1 || '',
+          rente_1bs_montant:    str(pp.rente1BsD1),
+          rente_1bs_pas:        str(pp.pasRente1BsD1),
+          rente_1bs_organisme:  pp.orgRente1BsD1 || '',
+          rente_1bs_recurrent:  pp.recurrentRente1BsD1 === false ? 'Non' : pp.recurrentRente1BsD1 === true ? 'Oui' : '',
         } : null;
 
         const newD2 = pp.mode === 'couple' ? {
@@ -1006,6 +1042,12 @@ export default function Collect() {
           retraite:          str(pp.retraiteD2),
           tmi_retraite:      pp.tmiRetraiteD2 != null ? String(pp.tmiRetraiteD2) : '',
           type_revenu:       pp.typeRevenuD2 || '',
+          ij_cpam:              str(pp.ijCpamD2),
+          ij_cpam_org:          pp.ijCpamOrgD2 || '',
+          rente_1bs_montant:    str(pp.rente1BsD2),
+          rente_1bs_pas:        str(pp.pasRente1BsD2),
+          rente_1bs_organisme:  pp.orgRente1BsD2 || '',
+          rente_1bs_recurrent:  pp.recurrentRente1BsD2 === false ? 'Non' : pp.recurrentRente1BsD2 === true ? 'Oui' : '',
         } : null;
 
         dispatch({ type: 'SET_MODE',      payload: pp.mode });

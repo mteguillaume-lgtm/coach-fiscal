@@ -139,6 +139,36 @@ desc('parseProfile — profil de référence v4', () => {
     expect(pp.plafondPerD2).toBe(4710);
   });
 
+  it('ijCpamD2 ≈ 1 599 € (dont 1 598,80 IJ CPAM)', () => {
+    pp = pp || parseProfile(REF);
+    expect(pp.ijCpamD2).toBe(1599);
+  });
+
+  it('ijCpamOrgD2 = Maine-et-Loire', () => {
+    pp = pp || parseProfile(REF);
+    expect(pp.ijCpamOrgD2).toMatch(/Maine-et-Loire/i);
+  });
+
+  it('rente1BsD2 = 6 192 €', () => {
+    pp = pp || parseProfile(REF);
+    expect(pp.rente1BsD2).toBe(6192);
+  });
+
+  it('pasRente1BsD2 = 0 €', () => {
+    pp = pp || parseProfile(REF);
+    expect(pp.pasRente1BsD2).toBe(0);
+  });
+
+  it('orgRente1BsD2 contient Crédit Agricole', () => {
+    pp = pp || parseProfile(REF);
+    expect(pp.orgRente1BsD2).toMatch(/Crédit Agricole/i);
+  });
+
+  it('recurrentRente1BsD2 = false (NON RÉCURRENT)', () => {
+    pp = pp || parseProfile(REF);
+    expect(pp.recurrentRente1BsD2).toBe(false);
+  });
+
   // Test 3 — Calcul IR (tolérance ± 5 €)
   it('calcul IR : irNet ≈ 8 202 € (± 5)', () => {
     pp = pp || parseProfile(REF);

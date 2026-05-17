@@ -145,14 +145,39 @@ export function parseProfile(text) {
   const tauxPasD2 = f(secRevD2, /Taux PAS\s*:\s*([\d,\.]+)\s*%/);
   const peroD2    = n(text, /PERO D2[^:\n]*:\s*([\d\s,]+)\s*€/);
 
+  // ── IJ CPAM (montant inclus dans net_imp — informatif) ──────────────────────
+  const ijCpamD1    = n(secRevD1, /\(dont\s+([\d\s,]+)\s*€\s*IJ\s*CPAM/i);
+  const ijCpamOrgD1 = s(secRevD1, /IJ\s*CPAM[^—\n]*—\s*attestation\s+([^\)\n]+)/i);
+  const ijCpamD2    = n(secRevD2, /\(dont\s+([\d\s,]+)\s*€\s*IJ\s*CPAM/i);
+  const ijCpamOrgD2 = s(secRevD2, /IJ\s*CPAM[^—\n]*—\s*attestation\s+([^\)\n]+)/i);
+
+  // ── RENTE VIAGÈRE 1BS ────────────────────────────────────────────────────────
+  const rente1BsD1    = n(secRevD1, /Montant (?:déclaré en 1[AB]S|1BS)[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const pasRente1BsD1 = n(secRevD1, /PAS rente[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                     || n(secRevD1, /PAS prélevé par[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const orgRente1BsD1 = s(secRevD1, /Organisme\s*:\s*([^\n]+)/i);
+  const recurrentRente1BsD1 = /Récurrent\s*:\s*Non|NON RÉCURRENT/i.test(secRevD1) ? false
+                             : /Récurrent\s*:\s*Oui/i.test(secRevD1) ? true : null;
+
+  const rente1BsD2    = n(secRevD2, /Montant (?:déclaré en 1[AB]S|1BS)[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const pasRente1BsD2 = n(secRevD2, /PAS rente[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                     || n(secRevD2, /PAS prélevé par[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const orgRente1BsD2 = s(secRevD2, /Organisme\s*:\s*([^\n]+)/i);
+  const recurrentRente1BsD2 = /Récurrent\s*:\s*Non|NON RÉCURRENT/i.test(secRevD2) ? false
+                              : /Récurrent\s*:\s*Oui/i.test(secRevD2) ? true : null;
+
   // ── RNI (post-abattement 10%) ─────────────────────────────────────────────
   // Cherche "RNI D1 après abattement..." ou "RNI D1 (après abat. salaires) :"
-  // Sinon calcul type-aware (salaire/pension/mixte) — art. 158-5-a CGI
+  // Sinon calcul type-aware (salaire/pension/mixte) + rente 1BS à 90% — art. 158-5-a CGI
   const rniD1 = n(text, /RNI D1[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || abattement10Auto(salaireNetImposableD1, typeRevenuD1, pensionNetImpD1);
+             || abattement10Auto(salaireNetImposableD1, typeRevenuD1, pensionNetImpD1)
+                + Math.round((rente1BsD1 || 0) * 0.9);
 
-  const rniD2 = n(text, /RNI D2[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || abattement10Auto(salaireNetImposableD2, typeRevenuD2, pensionNetImpD2);
+  // Préférer "RNI D2 TOTAL" (inclut rente 1BS) sinon "RNI D2 (après abat.)" puis calcul
+  const rniD2 = n(text, /RNI D2 TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
+             || n(text, /RNI D2 (?:après|[(])[^:\n]*:\s*([\d\s,]+)\s*€/i)
+             || abattement10Auto(salaireNetImposableD2, typeRevenuD2, pensionNetImpD2)
+                + Math.round((rente1BsD2 || 0) * 0.9);
 
   // ── REVENUS FOYER ────────────────────────────────────────────────────────────
   // "Revenus fonciers bruts :" (nouveau générateur) ou "Revenus fonciers :" (ancien/V5)
@@ -395,6 +420,9 @@ export function parseProfile(text) {
     dividendes, revensFonciers, revenusLoc, revenusCrypto,
     intMob2TR, intMob2CK,
     acompte8HW, acompte8IW, acompte8HX, acompte8IX,
+    ijCpamD1, ijCpamOrgD1, ijCpamD2, ijCpamOrgD2,
+    rente1BsD1, pasRente1BsD1, orgRente1BsD1, recurrentRente1BsD1,
+    rente1BsD2, pasRente1BsD2, orgRente1BsD2, recurrentRente1BsD2,
 
     ageD1, retraiteD1, horizonD1, tmiRetraiteD1, typeRevenuD1, pensionNetImpD1,
     ageD2, retraiteD2, horizonD2, tmiRetraiteD2, typeRevenuD2, pensionNetImpD2,
@@ -470,6 +498,9 @@ export function emptyProfile() {
     perReportableN1: 0, perReportableN2: 0, perReportableN3: 0, perReportableTotal: 0,
     intMob2TR: 0, intMob2CK: 0,
     acompte8HW: 0, acompte8IW: 0, acompte8HX: 0, acompte8IX: 0,
+    ijCpamD1: 0, ijCpamOrgD1: '', ijCpamD2: 0, ijCpamOrgD2: '',
+    rente1BsD1: 0, pasRente1BsD1: 0, orgRente1BsD1: '', recurrentRente1BsD1: null,
+    rente1BsD2: 0, pasRente1BsD2: 0, orgRente1BsD2: '', recurrentRente1BsD2: null,
     hasCrypto: false, hasCompteEtranger: false, hasIndivision: false,
     hasTestamentManquant: false, hasPelAncien: false,
     hasChangementEmployeur: false, hasMultipleEmployeurs: false,
