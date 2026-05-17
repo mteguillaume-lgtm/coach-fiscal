@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "update-bareme": "node scripts/update-bareme.js",
-    "update-bareme:dry": "node scripts/update-bareme.js --dry-run"
+    "update-bareme:dry": "node scripts/update-bareme.js --dry-run",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "jszip": "^3.10.1",
@@ -36,6 +38,7 @@
     "globals": "^17.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vitest": "^4.1.6"
   }
 }

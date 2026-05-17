@@ -81,11 +81,15 @@ Revenus fonciers nets imposables : ${fmtN(foncier.net)}
 Prélèvements sociaux fonciers (17,2%) : ${fmtN(foncier.ps)}` : 'Revenus fonciers : Néant'}
 Dividendes/intérêts : ${fmt(d.divid)}
 Revenus crypto : ${fmt(d.crypto)}
+${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
+${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}` : ''}
 
 == DONNÉES POUR CALCUL IR ==
 RNI total (salaires + foncier net) : ${fmtN(rniTotal)}
 Parts fiscales : ${parts}
 PAS prélevé 2025 : ${pas > 0 ? fmtN(pas) : 'Non renseigné'}
+${parseFloat(d.acompte_8hw || 0) > 0 ? `Acompte IR D1 (8HW) : ${fmtN(parseFloat(d.acompte_8hw))}` : ''}
+${parseFloat(d.acompte_8hx || 0) > 0 ? `Acompte PS D1 (8HX) : ${fmtN(parseFloat(d.acompte_8hx))}` : ''}
 → IR net, TMI, régularisation PAS : à calculer lors de l'enrichissement IA
 
 == PLAFOND PER 2026 ==
@@ -234,6 +238,8 @@ Prélèvements sociaux fonciers (17,2%) : ${fmtN(foncier.ps)}` : 'Revenus foncie
 Dividendes/intérêts : ${fmt(d.divid)}
 Revenus crypto : ${fmt(d.crypto)}
 Revenus locatifs 2025 : ${fmt(d.rev_loc)}
+${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
+${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}` : ''}
 
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniD1)}
@@ -244,6 +250,10 @@ Quotient familial (${parts} parts) : ${fmtN(rniFoyer / parts)} par part
 PAS D1 prélevé 2025 : ${pasD1 > 0 ? fmtN(pasD1) : 'Non renseigné'}
 PAS D2 prélevé 2025 : ${pasD2 > 0 ? fmtN(pasD2) : 'Non renseigné'}
 PAS total foyer 2025 : ${pasFoyer > 0 ? fmtN(pasFoyer) : 'Non renseigné'}
+${parseFloat(d.acompte_8hw || 0) > 0 ? `Acompte IR D1 (8HW) : ${fmtN(parseFloat(d.acompte_8hw))}` : ''}
+${parseFloat(d.acompte_8iw || 0) > 0 ? `Acompte IR D2 (8IW) : ${fmtN(parseFloat(d.acompte_8iw))}` : ''}
+${parseFloat(d.acompte_8hx || 0) > 0 ? `Acompte PS D1 (8HX) : ${fmtN(parseFloat(d.acompte_8hx))}` : ''}
+${parseFloat(d.acompte_8ix || 0) > 0 ? `Acompte PS D2 (8IX) : ${fmtN(parseFloat(d.acompte_8ix))}` : ''}
 → IR foyer, TMI, TOTAL DÛ, régularisation, méthode célibataire : à calculer lors de l'enrichissement IA
 
 == PLAFONDS PER 2026 ==

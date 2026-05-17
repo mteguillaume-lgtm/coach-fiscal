@@ -102,6 +102,10 @@ export function parseProfile(text) {
   // ── SITUATION ───────────────────────────────────────────────────────────────
   const parts       = f(text, /Parts fiscales\s*:\s*([\d,\.]+)/);
   const departement = s(text, /Département\s*:\s*(\w{2,3})/);
+  // Statut : extrait depuis "Statut : Pacsé(e)" ou fallback depuis la ligne Mode
+  const statut = s(text, /^Statut\s*:\s*([^\n]+)/im)
+              || s(text, /Mode\s*:.*?Déclaration commune \(([^)]+)\)/i)
+              || '';
 
   // ── PROFIL & RETRAITE ────────────────────────────────────────────────────────
   const secProfil = section(text, '== PROFIL & RETRAITE ==');
@@ -159,6 +163,27 @@ export function parseProfile(text) {
   const revenusCrypto  = n(text, /Revenus crypto\s*:\s*([\d\s,]+)\s*€/);
   const foncierNet     = n(text, /fonciers nets imposables\s*:\s*([\d\s,]+)\s*€/i);
 
+  // ── INTÉRÊTS MOBILIERS (case 2TR / 2CK) ──────────────────────────────────────
+  // Deux formats : ligne du générateur "Intérêts mobiliers bruts (case 2TR) : X €"
+  // et ligne du profil enrichi "Intérêts Livret+ D2 (case 2TR) : X €"
+  const intMob2TR = n(text, /Intérêts mobiliers bruts[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                 || n(text, /Intérêts[^(\n]*\(case 2TR\)[^:\n]*:\s*([\d\s,]+)\s*€/i);
+  const intMob2CK = n(text, /PFU[^(]*\(case 2CK\)[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                 || n(text, /Intérêts mobiliers.*?PFU[^:\n]*:\s*([\d\s,]+)\s*€/is)
+                 || n(text, /2CK[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i);
+
+  // ── ACOMPTES IR/PS (cases 8HW / 8IW / 8HX / 8IX) ────────────────────────────
+  // Deux formats : générateur "Acompte IR D1 (8HW) : X €"
+  // et analyse IA "- Case **8HW** (acompte IR D1) : **12 €**"
+  const acompte8HW = n(text, /Acompte IR D1[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i)
+                  || n(text, /\b8HW\b[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i);
+  const acompte8IW = n(text, /Acompte IR D2[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i)
+                  || n(text, /\b8IW\b[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i);
+  const acompte8HX = n(text, /Acompte PS D1[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i)
+                  || n(text, /\b8HX\b[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i);
+  const acompte8IX = n(text, /Acompte PS D2[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i)
+                  || n(text, /\b8IX\b[^:\n]*:\s*\*{0,2}\s*([\d\s,]+)\s*€/i);
+
   // ── RNI FOYER ───────────────────────────────────────────────────────────────
   const rniFoyer = n(text, /RNI FOYER TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
                 || n(text, /RNI total[^:\n]*:\s*([\d\s,]+)\s*€/i)
@@ -171,8 +196,9 @@ export function parseProfile(text) {
                 || (pasD1 + pasD2)
                 || n(text, /PAS prélevé 2025\s*:\s*([\d\s,]+)\s*€/);
 
-  // TMI depuis le texte (profil V5 ou enrichissement IA) ou calculé
-  const tmi = n(text, /TMI[^\n%]*?:\s*(\d{1,2})\s*%/i)
+  // TMI depuis le texte — ligne "TMI : 30%" (ne pas capturer "TMI retraite D1 : 11%")
+  const tmi = n(text, /^\s*TMI\s*:\s*(\d{1,2})\s*%/im)
+           || n(text, /TMI foyer[^:\n]*:\s*(\d{1,2})\s*%/i)
            || getTMI(rniFoyer, parts || 1);
 
   // IR net, total dû, remboursement — présents après enrichissement IA
@@ -359,6 +385,7 @@ export function parseProfile(text) {
     mode,
     parts:       parts || 1,
     departement,
+    statut,
 
     salaireNetImposableD1, salairesBrutImposableD1, pasD1, tauxPasD1, peroD1,
     salaireNetImposableD2, salairesBrutImposableD2, pasD2, tauxPasD2, peroD2,
@@ -366,6 +393,8 @@ export function parseProfile(text) {
     rniD1, rniD2, rniFoyer, rfr, foncierNet,
     tmi, irNet, totalDu, pasTotal, solde, remboursement, gainPacs,
     dividendes, revensFonciers, revenusLoc, revenusCrypto,
+    intMob2TR, intMob2CK,
+    acompte8HW, acompte8IW, acompte8HX, acompte8IX,
 
     ageD1, retraiteD1, horizonD1, tmiRetraiteD1, typeRevenuD1, pensionNetImpD1,
     ageD2, retraiteD2, horizonD2, tmiRetraiteD2, typeRevenuD2, pensionNetImpD2,
@@ -414,7 +443,7 @@ export function parseProfile(text) {
 
 export function emptyProfile() {
   return {
-    mode: 'solo', parts: 1, departement: '',
+    mode: 'solo', parts: 1, departement: '', statut: '',
     salaireNetImposableD1: 0, salairesBrutImposableD1: 0, pasD1: 0, tauxPasD1: 0, peroD1: 0,
     salaireNetImposableD2: 0, salairesBrutImposableD2: 0, pasD2: 0, tauxPasD2: 0, peroD2: 0,
     rniD1: 0, rniD2: 0, rniFoyer: 0, rfr: 0, foncierNet: 0,
@@ -439,6 +468,8 @@ export function emptyProfile() {
     regimeFoncier: null,
     plafondPerD1: 0, plafondPerD2: 0, plafondPerTotal: 0, plafondsPrecedents: 0,
     perReportableN1: 0, perReportableN2: 0, perReportableN3: 0, perReportableTotal: 0,
+    intMob2TR: 0, intMob2CK: 0,
+    acompte8HW: 0, acompte8IW: 0, acompte8HX: 0, acompte8IX: 0,
     hasCrypto: false, hasCompteEtranger: false, hasIndivision: false,
     hasTestamentManquant: false, hasPelAncien: false,
     hasChangementEmployeur: false, hasMultipleEmployeurs: false,
