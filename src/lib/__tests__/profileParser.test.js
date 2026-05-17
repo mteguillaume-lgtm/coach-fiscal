@@ -3,19 +3,15 @@ import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parseProfile } from '../profileParser.js';
+import { buildProfile } from '../profileGenerator.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 
 // Profil de référence — foyer pacsé multi-revenus (IJ CPAM, rente, Livret+, acomptes)
-const REF_PATH = resolve(__dir, '../../../../../Downloads/profil-fiscal-2026-05-17 v4.txt');
-let REF;
-try {
-  REF = readFileSync(REF_PATH, 'utf-8');
-} catch {
-  REF = null;
-}
+const REF_PATH = resolve(__dir, './fixtures/profil-fiscal-ref.txt');
+const REF = readFileSync(REF_PATH, 'utf-8');
 
-const desc = REF ? describe : describe.skip;
+const desc = describe;
 
 desc('parseProfile — profil de référence v4', () => {
   let pp;
@@ -238,5 +234,71 @@ Acompte PS D1 (8HX) : 15 €`;
 
   it('acompte8HX = 15', () => {
     expect(parseProfile(SOLO).acompte8HX).toBe(15);
+  });
+});
+
+// ─── Round-trip : parse → generate → parse ──────────────────────────────────
+describe('round-trip parse → generate → parse (profil de référence)', () => {
+  const pp = parseProfile(REF);
+
+  const str = v => (v && v !== 0) ? String(v) : '';
+
+  const formData = {
+    statut:      pp.statut,
+    parts:       str(pp.parts),
+    dept:        pp.departement,
+    foncier:     str(pp.revensFonciers),
+    divid:       str(pp.dividendes),
+    crypto:      str(pp.revenusCrypto),
+    pero_d1:     str(pp.peroD1),
+    pero_d2:     str(pp.peroD2),
+    int_mob_2tr: str(pp.intMob2TR),
+    int_mob_2ck: str(pp.intMob2CK),
+    acompte_8hw: str(pp.acompte8HW),
+    acompte_8iw: str(pp.acompte8IW),
+    acompte_8hx: str(pp.acompte8HX),
+    acompte_8ix: str(pp.acompte8IX),
+  };
+
+  const d1 = {
+    brut:    str(pp.salairesBrutImposableD1),
+    net_imp: str(pp.salaireNetImposableD1),
+    pas_tot: str(pp.pasD1),
+    taux_pas: str(pp.tauxPasD1),
+  };
+
+  const d2 = {
+    brut:    str(pp.salairesBrutImposableD2),
+    net_imp: str(pp.salaireNetImposableD2),
+    pas_tot: str(pp.pasD2),
+    taux_pas: str(pp.tauxPasD2),
+    rente_1bs_montant: str(pp.rente1BsD2),
+  };
+
+  const generated = buildProfile(formData, d1, d2, [], true);
+  const pp2 = parseProfile(generated);
+
+  it('2TR = 527 (round-trip)', () => {
+    expect(pp2.intMob2TR).toBe(527);
+  });
+
+  it('2CK = 68 (round-trip)', () => {
+    expect(pp2.intMob2CK).toBe(68);
+  });
+
+  it('8HW = 12 (round-trip)', () => {
+    expect(pp2.acompte8HW).toBe(12);
+  });
+
+  it('8IW = 12 (round-trip)', () => {
+    expect(pp2.acompte8IW).toBe(12);
+  });
+
+  it('8HX = 24 (round-trip)', () => {
+    expect(pp2.acompte8HX).toBe(24);
+  });
+
+  it('8IX = 18 (round-trip)', () => {
+    expect(pp2.acompte8IX).toBe(18);
   });
 });

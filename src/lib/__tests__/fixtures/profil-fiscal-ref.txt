@@ -1,0 +1,640 @@
+== PROFIL FISCAL FOYER 2025 ==
+Généré le 17/05/2026 — Outil v4.1.0
+Mis à jour le 17/05/2026 — ajout IJ CPAM D2 (attestation CPAM Maine-et-Loire, 1 598,80 €)
+Mode : Déclaration commune (Pacsé(e))
+
+== SITUATION DU FOYER ==
+Statut : Pacsé(e)
+Parts fiscales : 2
+Enfants à charge : 0
+Département : 33
+
+== PROFIL & RETRAITE ==
+Âge D1 : 30 ans
+Âge retraite D1 : 67 ans
+Horizon retraite D1 : 37 ans
+TMI retraite D1 : 11%
+Type de revenu D1 : Salarié(e)
+
+Âge D2 : 30 ans
+Âge retraite D2 : 67 ans
+Horizon retraite D2 : 37 ans
+TMI retraite D2 : 11%
+Type de revenu D2 : Salarié(e)
+
+
+== REVENUS 2025 — DÉCLARANT 1 ==
+Brut imposable annuel : 55 910 €
+Net imposable annuel (1AJ — case déclaration) : 45 162 €
+RNI D1 après abattement 10% salaires : 40 646 €
+Taux PAS : 11.8%
+PAS prélevé 2025 : 4 609 €
+Frais réels : Forfait 10% retenu
+
+== REVENUS 2025 — DÉCLARANT 2 ==
+Brut imposable annuel : 33 848 €
+Net imposable annuel (1BJ — case déclaration) : 29 283 € (dont 1 598,80 € IJ CPAM — attestation Maine-et-Loire)
+RNI D2 après abattement 10% salaires : 26 355 €
+Taux PAS : 7.3%
+PAS prélevé 2025 : 1 741 €
+Frais réels : Forfait 10% retenu
+
+Rente viagère de réversion — case 1BS (D2) :
+  Organisme : Crédit Agricole Assurance — contrat PrédiAgri (père de D2, décédé)
+  Brut initial rente : 6 711,30 €
+  − Frais sur arrérages (2%) : −134,23 €
+  − CSG 8,30% (dont 5,90% déductible / 2,40% non déductible) : −545,90 €
+  − CASA 0,30% : −19,73 €
+  − CRDS 0,50% : −32,89 €
+  Net reçu par D2 le 27/01/2025 : 5 980,95 €
+  Montant déclaré en 1BS (net de CSG déductible) : 6 192,00 €
+  PAS prélevé par Crédit Agricole : 0 € (non prélevé — solde à régulariser en sept. 2026)
+  ⚠️ VIREMENT UNIQUE — liquidation définitive du contrat du père
+     Ce revenu est NON RÉCURRENT : case 1BS vide en 2026 et années suivantes
+
+== REVENUS DU FOYER ==
+Revenus fonciers bruts : 705 €
+Régime foncier : micro-foncier (abat. 30%)
+Revenus fonciers nets imposables : 493 €
+Prélèvements sociaux fonciers (17,2%) : 85 €
+Intérêts Livret+ D2 (case 2TR) : 527 € (fiscalisés — Livret+ bancaire non réglementé)
+  PFU 12,8% déjà prélevé à la source (case 2CK) : 68 €
+  PS 17,2% sur intérêts : 90 €
+  ⚠️ Ces intérêts seraient EXONÉRÉS sur Livret A / LDDS / AV → arbitrage prioritaire
+Dividendes/intérêts autres : Néant
+Revenus crypto : Néant
+Revenus locatifs 2025 : Néant
+
+== DONNÉES POUR CALCUL IR FOYER ==
+RNI D1 (après abat. salaires) : 40 646 €
+RNI D2 salaires (après abat. 10%) : 26 355 €
+RNI D2 rente 1BS (après abat. 10%) : 5 573 € (6 192 × 90%)
+RNI D2 TOTAL : 31 928 €
+Foncier net imposable : 493 €
+RNI FOYER TOTAL : 73 067 €
+Quotient familial (2 parts) : 36 534 € par part
+PAS D1 prélevé 2025 : 4 609 €
+PAS D2 prélevé 2025 : 1 741 € (PAS Crédit Agricole : 0 € — non prélevé)
+PAS total foyer 2025 : 6 350 €
+
+IR FOYER CALCULÉ (confirmé impots.gouv) :
+  Tranche 0% : 11 600 × 0% = 0 €
+  Tranche 11% : 17 979 × 11% = 1 977,69 €
+  Tranche 30% : (36 534 − 29 579) × 30% = 2 086,50 €
+  Total / part : 4 064,19 €
+  IR brut foyer : 4 064,19 × 2 = 8 128,38 €
+  IR net après crédits d'impôt (impots.gouv) : 8 202 €
+  + PS foncier + PS revenus mobiliers : inclus
+  TOTAL DÛ FOYER : 8 202 €
+  − PAS prélevé (8HV + 8IV) : 6 350 €
+  − Acomptes IR (8HW D1 + 8IW D2) : 24 €
+  − Acomptes PS (8HX D1 + 8IX D2) : 42 €
+  − Crédit PFU 2CK (intérêts Livret+) : 68 €
+  MONTANT RESTANT À PAYER : −1 786 € (confirmé impots.gouv)
+  TMI : 30%
+
+== PLAFONDS PER 2026 ==
+D1 :
+  10% × RNI D1 (40 646 €) : 4 065 €
+  Plancher PASS (10% × 47 100 €) : 4 710 €
+  Plafond retenu : 4 710 €
+  PERO D1 déduit : 1 260 €
+  PLAFOND DISPONIBLE D1 : 3 450 €
+
+D2 :
+  10% × RNI D2 (26 355 €) : 2 636 €
+  Plancher PASS (10% × 47 100 €) : 4 710 €
+  Plafond retenu : 4 710 €
+  PERO D2 déduit : Néant
+  PLAFOND DISPONIBLE D2 : 4 710 €
+
+Plafond cumulé mutualisable : 8 160 €
+
+== ÉPARGNE — DÉCLARANT 1 ==
+Livret A : OUI ~1 014 €
+LDDS : OUI ~146 €
+LEP : OUI ~482 €
+Livret+ / Livret bancaire : OUI ~50 €
+PEL : Néant
+PEA : OUI ~9 609 €
+PEA date ouverture : 05/2023
+PEA total versé : 7 912 €
+PER versements 2025 : Néant
+Assurance-vie : OUI ~302 €
+AV date souscription : 09/2025
+AV versements nets cumulés : 300 €
+Crypto (valeur wallet) : OUI ~990 €
+Crypto plateforme : Binance
+
+== ÉPARGNE — DÉCLARANT 2 ==
+Livret A : OUI ~23 447 €
+LDDS : Néant
+LEP : Néant
+Livret+ / Livret bancaire : OUI ~96 651 €
+PEL : OUI ~62 460 €
+PEL date ouverture : 01/2015
+PEA : Néant
+PER versements 2025 : Néant
+Assurance-vie : OUI ~300 €
+AV date souscription : 03/2026
+AV versements nets cumulés : 300 €
+Crypto (valeur wallet) : Néant
+
+== DÉDUCTIONS DU FOYER ==
+Dons associations : Néant
+Frais garde enfants : Néant
+Emploi à domicile : Néant
+Rénov. énergétique / MaPrimeRénov : Néant
+PERO D1 — cotisations 2025 : 1 260 € → case 6QS/6QT/6QU (déjà inclus dans 1AJ)
+PERO D2 — cotisations 2025 : Néant
+Pension alimentaire versée : Néant
+Cotisations syndicales : Néant
+
+== CAPACITÉ D'ÉPARGNE ==
+Charges communes : Non renseignées
+
+
+
+
+
+
+
+== IMMOBILIER ==
+Propriétaire RP : Oui
+
+Crédit immobilier en cours : Oui
+
+
+Mensualité crédit : 1 177 €/mois
+
+Bien locatif : Non
+Revenus locatifs 2025 : Néant
+
+# ANALYSE FISCALE COMPLÈTE — FOYER 2025
+
+---
+
+## 📋 DÉCLARATION — CASES FORMULAIRE 2042
+
+### Formulaire principal 2042
+
+**Page 1 — État civil et situation**
+- Cases déclarants : noms, prénoms, date naissance (D1: 30 ans, D2: 30 ans)
+- Case O : PACSÉ (cocher)
+- Nombre de parts fiscales : **2 parts** (aucune case enfant)
+
+**Page 2 — Traitements et salaires**
+- Case **1AJ** (D1) : **45 162 €** (net imposable bulletin décembre)
+- Case **1BJ** (D2) : **29 283 €** (net imposable bulletins décembre + attestation CPAM IJ 1 598,80 €)
+- Case abattement 10% : **pré-coché par défaut** (aucune action si frais réels non choisis)
+
+**Page 2 — Pensions, retraites et rentes**
+- Case **1BS** (D2) : **6 192 €** (rente viagère de réversion PrédiAgri — Crédit Agricole Assurance)
+  → Prérempli automatiquement par Crédit Agricole — NE PAS MODIFIER
+  → Abattement 10% appliqué automatiquement → 5 573 € net imposable
+  → Virement unique du 27/01/2025 — revenu NON RÉCURRENT (liquidation définitive du contrat)
+
+**Page 3 — Cotisations retraite obligatoire**
+- Case **6QS/6QT/6QU** (D1) : **1 260 €** (PERO obligatoire)  
+  ⚠️ **ATTENTION CRITIQUE** : cette case sert UNIQUEMENT à réduire le plafond PER 2026. Ce montant est DÉJÀ déduit du 1AJ → ne PAS le déduire une seconde fois en case 6NS.
+
+**Page 3bis — Revenus de capitaux mobiliers**
+- Case **2TR** : **527 €** (intérêts Livret+ D2 — prérempli par la banque)
+- Case **2BH** : **527 €** (revenus déjà soumis PS avec CSG déductible si option barème)
+- Case **2CK** : **68 €** (PFU 12,8% déjà prélevé à la source → crédit d'impôt)
+  → Régime par défaut : PFU 30% (12,8% IR + 17,2% PS) — ne rien modifier
+  → Impact net quasi nul sur l'IR (68 € prélevé = 68 € crédité)
+  → PS 17,2% × 527 € = 90 € de prélèvements sociaux dus
+
+**Page 4 — Revenus fonciers**
+- Case **4BE** : **705 €** (revenus fonciers bruts — micro-foncier)  
+  Abattement 30% appliqué automatiquement → **493 €** net imposable
+
+**Page 5 — Charges déductibles**
+- Cases **6NS/6NT** (versements PER volontaires) : **NÉANT** (aucun versement 2025)
+- ⚠️ Ne PAS confondre avec le PERO case 6QS (déjà traité)
+
+**Prélèvement à la source et acomptes (préremplis)**
+- Case **8HV** (PAS D1) : **4 609 €**
+- Case **8IV** (PAS D2) : **1 741 €** (PAS Crédit Agricole : 0 € non prélevé)
+- Case **8HW** (acompte IR D1) : **12 €**
+- Case **8IW** (acompte IR D2) : **12 €**
+- Case **8HX** (acompte PS D1) : **24 €**
+- Case **8IX** (acompte PS D2) : **18 €**
+  → Ces acomptes sont prélevés automatiquement par impots.gouv en cours d'année
+  → Réduisent d'autant le solde à payer en septembre 2026
+
+### Formulaires annexes déclenchés
+
+**AUCUN formulaire annexe obligatoire pour ce profil.**
+
+Vérifications :
+- ❌ **2044** : non (micro-foncier ≤ 15 000 €)
+- ❌ **2074** : non (aucune cession de titres déclarée)
+- ❌ **2086** : non (aucune cession crypto > 305 €)
+- ❌ **3916 bis** : non (pas de comptes étrangers mentionnés)
+- ❌ **2047** : non (pas de revenus étrangers)
+- ❌ **2042-IFI** : non (patrimoine immobilier << 1,3 M€)
+- ❌ **2042-RICI** : non (aucun don/crédit d'impôt déclaré)
+
+---
+
+## 🔍 ANALYSE DES SITUATIONS PARTICULIÈRES
+
+### 1. PERO obligatoire D1 — déduction déjà prise à la source
+
+**Situation détectée** : cotisations PERO 1 260 € prélevées sur le brut de D1.
+
+**Régime applicable** :
+- Article **163 quatervicies III CGI** — régime retraite supplémentaire obligatoire d'entreprise (ex-art. 83)
+- Les cotisations PERO sont prélevées **avant** le calcul du net imposable (1AJ)
+- Le 1AJ déclaré (45 162 €) est déjà **net de PERO**
+
+**Conséquences fiscales** :
+1. ✅ **Aucune déduction supplémentaire** à porter en case 6NS — ce serait déduire deux fois
+2. ⚠️ **Case 6QS/6QT/6QU obligatoire** : informe la DGFIP pour réduire le plafond PER 2026 disponible
+3. Impact plafond 2026 : plafond théorique D1 (10% × 40 646 €) = 4 065 € → **ramené à plancher 4 710 €** car < plancher PASS → **moins 1 260 € PERO** → **plafond disponible 3 450 €**
+
+**Piège à éviter** :
+- ❌ Déclarer les 1 260 € en case 6NS (versements volontaires) → **double déduction → redressement automatique**
+- ✅ Uniquement remplir 6QS/6QT/6QU pour traçabilité
+
+**Référence** : BOI-RSA-ES-40-10-20 (retraite supplémentaire obligatoire)
+
+---
+
+### 2. PEA D1 — moins de 5 ans (ouvert 05/2023)
+
+**Situation détectée** : PEA ouvert mai 2023, valorisé 9 609 €, versements 7 912 €.
+
+**Régime applicable** :
+- Ancienneté au 31/12/2025 : **2 ans 7 mois** → **avant le seuil critique de 5 ans**
+- Article **157-5° bis CGI** — tout retrait avant 5 ans **entraîne la clôture du plan**
+- Imposition des gains au **PFU 30%** (ou barème sur option)
+
+**Conséquences pratiques** :
+1. **Blocage de facto** : tout retrait avant mai 2028 = clôture + imposition immédiate des gains (estimés : 9 609 − 7 912 = **1 697 €** de gains latents)
+2. **Coût fiscal si clôture anticipée** : 1 697 × 30% = **509 €** (IR 12,8% + PS 17,2%)
+3. **Exonération IR si attente jusqu'à mai 2028** : seuls PS 17,2% resteront dus (292 € au lieu de 509 €)
+
+**Recommandation** :
+- Ne PAS clôturer avant mai 2028 sauf cas de déblocage anticipé (licenciement, invalidité, création entreprise)
+- Continuer les versements si capacité d'épargne disponible
+
+**Référence** : BOI-RPPM-RCM-40-50-10
+
+---
+
+### 3. Assurances-vie jeunes (< 8 ans)
+
+**Situation détectée** :
+- AV D1 : ouverte 09/2025 (3 mois d'ancienneté), 302 € valorisés, 300 € versés
+- AV D2 : ouverte 03/2026 (dans le futur → erreur de saisie probable), 300 € valorisés/versés
+
+⚠️ **ANOMALIE DATE D2** : l'AV D2 indique une ouverture en mars 2026, soit **après** la période fiscale 2025. Deux hypothèses :
+1. Erreur de saisie → à corriger (probablement 03/2025)
+2. Contrat réellement ouvert en 2026 → non déclarable sur 2025
+
+**Régime applicable** (si AV D2 ouverte avant 31/12/2025) :
+- Ancienneté < 8 ans → **aucun abattement annuel** (4 600 € célib / 9 200 € couple)
+- Rachats imposés au **PFU 30%** (versements post-27/09/2017)
+- Article **125-0 A CGI**
+
+**Conséquences** :
+- Les AV ne génèrent aucun revenu imposable en 2025 (pas de rachat)
+- **Aucune déclaration** à faire en 2042 pour 2025
+- Prendre date : l'abattement annuel sera disponible en **2033** (D1) et 2033 ou 2034 (D2 selon correction)
+
+**Point d'attention** : 
+- 🟡 **Corriger la date d'ouverture AV D2** avant toute simulation patrimoniale (si erreur)
+
+**Référence** : BOI-RPPM-RCM-20-10-20-50
+
+---
+
+### 4. Crypto D1 — valorisation 990 €, plateforme Binance
+
+**Situation détectée** : wallet crypto 990 € (D1), aucune cession déclarée en 2025.
+
+**Régime applicable** :
+- Article **150 VH bis CGI** — régime PAMC (prix acquisition moyen pondéré)
+- Seuil d'exonération : cessions annuelles ≤ **305 €** (montant **brut** de cession, pas la PV)
+- Au-delà de 305 € : imposition **PFU 30%** sur TOUTE la PV (pas seulement l'excédent)
+- Formulaire **2086** obligatoire dès 1 € de cession > 305 €
+
+**Conséquences pour 2025** :
+- Aucune cession → **aucune déclaration** à faire en 2042 ni 2086
+- Valorisation actuelle (990 €) non imposable tant qu'elle n'est pas convertie en fiat/bien/service
+
+**Obligations déclaratives si cession future** :
+1. Si cessions 2026 ≤ 305 € → exonération totale
+2. Si cessions 2026 > 305 € → **formulaire 2086 obligatoire** + report 2042 C cases 3AN (gain) / 3BN (perte)
+3. ⚠️ Tracer l'historique complet des achats pour calculer le PAMC (méthode obligatoire)
+
+**Piège à éviter** :
+- ❌ Vendre pour 400 € avec 50 € de PV et croire qu'on est exonéré car PV < 305 € → **FAUX**, c'est le montant brut de cession (400 €) qui compte
+- ❌ Oublier le 2086 même si PV nulle (cessions > 305 €) → pénalité 10% minimum
+
+**Outils recommandés** : Koinly, Waltio, Cryptio (vérifier méthode PAMC française).
+
+**Référence** : BOI-RPPM-PVBMC-30
+
+---
+
+### 5. PEL D2 — ouvert 01/2015 (ancien régime)
+
+**Situation détecté** : PEL 62 460 €, ouvert janvier 2015 (10 ans d'ancienneté).
+
+**Régime applicable** :
+- PEL **ouvert avant le 01/03/2011** : exonération IR totale (seuls PS dus)
+- PEL **ouvert entre 01/03/2011 et 31/12/2017** : 
+  - Intérêts exonérés IR **jusqu'à 12 ans** (soit jusqu'en janvier 2027 pour ce PEL)
+  - PS au taux historique (**17,2%** pour 2015, à vérifier selon date exacte ouverture)
+  - Après 12 ans : intérêts soumis au PFU 30%
+
+**Conséquences pour 2025** :
+- Les intérêts 2025 sont **exonérés IR** (PEL < 12 ans)
+- PS prélevés à la source par la banque (17,2%)
+- Aucune déclaration en 2042 (prélèvement libératoire)
+
+**Stratégie à anticiper** :
+- En **janvier 2027** (12 ans révolus) : 
+  - Option 1 : clôturer le PEL avant 12 ans pour conserver l'exonération IR
+  - Option 2 : conserver le PEL mais intérêts futurs soumis PFU 30%
+  - Arbitrage : comparer taux PEL (probablement 2-2,5% brut) vs alternatives (Livret A 3%, LDDS, etc.)
+
+**Référence** : art. 125-0 A-III-3° bis CGI — BOI-RPPM-RCM-20-10-20-40
+
+---
+
+### 6. Crédit immobilier en cours — 1 177 €/mois
+
+**Situation détectée** : propriétaires résidence principale, crédit 1 177 €/mois.
+
+**Régime applicable — résidence principale** :
+- Intérêts d'emprunt RP : **NON déductibles** du revenu global (suppression en 2011)
+- Exception : prêts souscrits **avant 01/01/2011** → déduction maintenue jusqu'à échéance (peu probable ici, D1/D2 ont 30 ans)
+
+**Conséquences fiscales** :
+- ❌ Aucune déduction possible en 2042
+- Les mensualités (capital + intérêts + assurance) sont une charge personnelle non déductible
+
+**Exception à vérifier** :
+- 🟡 Si le bien était loué avant d'être occupé comme RP → les intérêts de la période locative pourraient avoir généré un **déficit foncier reportable** (à vérifier sur avis N-1 à N-3)
+- 🟡 Si PTZ (Prêt à Taux Zéro) dans le crédit → aucun impact fiscal mais éligibilité MaPrimeRénov/CEE à vérifier selon ancienneté logement
+
+**Référence** : art. 163 quatervicies CGI (suppression déduction intérêts RP)
+
+---
+
+## ⚠️ POINTS D'ATTENTION
+
+### 🔴 CRITIQUE — Risques de redressement ou omissions obligatoires
+
+#### 1. **PERO case 6QS — omission = pénalité indirecte (plafond PER 2026 surévalué)**
+
+**Risque** : si la case 6QS (1 260 € PERO D1) n'est PAS remplie :
+- Le plafond PER 2026 sera calculé à **4 710 €** au lieu de **3 450 €**
+- Si D1 verse 4 710 € en PER 2026, la fraction au-delà de 3 450 € (soit 1 260 €) sera **refusée en déduction**
+- Redressement N+1 : réintégration + intérêts de retard 0,2%/mois
+
+**Montant de la perte** : si versement PER 2026 au max du plafond erroné → sur-déduction 1 260 € → redressement ≈ **378 €** (1 260 × TMI 30%) + intérêts ≈ **9 €** (6 mois) = **~387 €**.
+
+**Action** : ✅ **Vérifier case 6QS remplie** avant dépôt 2042.
+
+---
+
+#### 2. **PEA retrait avant 5 ans = clôture automatique**
+
+**Risque** : si D1 retire ne serait-ce que 100 € du PEA avant mai 2028 :
+- Clôture automatique du plan
+- Imposition immédiate des gains (1 697 €) au PFU 30% = **509 €**
+- Perte de l'exonération IR définitive (exo à partir de 5 ans)
+
+**Coût de l'erreur** : **509 €** immédiat + perte exonération future (gain latent potentiel sur 30+ ans).
+
+**Action** : 🔴 **NE PAS clôturer le PEA avant mai 2028** (bloquer mentalement ce compte).
+
+---
+
+#### 3. **Crypto cessions > 305 € sans formulaire 2086**
+
+**Risque futur** (si cessions 2026+) : 
+- Oubli du formulaire 2086 alors que cessions > 305 € → **pénalité 10%** minimum du montant non déclaré
+- Pénalité doublée (80%) en cas de manquement délibéré (compte non déclaré à l'étranger)
+
+**Exemple chiffré** : si vente 1 000 € crypto 2026 avec 200 € de PV, oubli 2086 :
+- Redressement : 200 € × 30% = 60 € IR + 10% pénalité = **6 €** (minime MAIS stigmatise le dossier)
+- Si compte Binance non signalé et cessions régulières → soupçon activité occulte → **majoration 80%** possible
+
+**Action préventive** : 🟡 **Documenter dès maintenant** l'historique complet des achats crypto (exports CSV Binance) pour calculer le PAMC en cas de cession future.
+
+---
+
+### 🟡 À CONFIRMER — Documents à récupérer avant dépôt
+
+#### 1. **Attestation PERO employeur D1**
+
+**Document requis** : attestation annuelle ventilant les 1 260 € entre cases 6QS/6QT/6QU selon la nature des cotisations.
+
+**Où le trouver** : bulletin décembre 2025 ou espace RH entreprise.
+
+**Délai** : avant dépôt déclaration (avril-juin 2026).
+
+---
+
+#### 2. **Relevé fiscal assurance-vie D1 et D2**
+
+**Document requis** : attestation annuelle 2025 (IFU pour AV) indiquant :
+- Versements 2025
+- Gains éventuels (intérêts fonds €, plus-values UC)
+- Rachats éventuels (aucun attendu ici)
+
+**Utilité** : 
+- Vérifier cohérence 300 € vs 302 € (D1) → écart de 2 € = gains 2025 probables
+- Confirmer date exacte ouverture AV D2 (03/2026 semble erroné)
+
+**Délai** : reçu automatiquement en mars-avril 2026 si produits imposables (sinon pas d'envoi).
+
+---
+
+#### 3. **Date exacte ouverture AV D2 (anomalie 03/2026)**
+
+**Anomalie détectée** : une AV ne peut pas être ouverte en mars 2026 pour la déclaration 2025 (revenus année civile antérieure).
+
+**Hypothèses** :
+1. Erreur de saisie → probablement **03/2025** (cohérent avec valorisation 300 € inchangée)
+2. AV réellement ouverte en 2026 → non déclarable en 2025
+
+**Action** : 🟡 **Vérifier contrat AV D2** et corriger la date dans les outils de suivi patrimonial.
+
+---
+
+#### 4. **Historique complet achats crypto (si cession future)**
+
+**Document requis** : exports CSV Binance depuis le premier achat, incluant :
+- Date et heure de chaque achat
+- Montant en € (ou devise fiat)
+- Quantité crypto acquise
+- Frais de transaction
+
+**Utilité** : calcul PAMC obligatoire dès première cession > 305 €.
+
+**Délai** : à préparer AVANT toute cession (irréversible après vente).
+
+---
+
+### 🟢 OPTIMISATION — Actions avant le 31/12/2026
+
+#### 1. **Saturer le plafond PER 2026 disponible (8 160 € mutualisé)**
+
+**Plafonds disponibles 2026** :
+- D1 : 3 450 € (après PERO)
+- D2 : 4 710 €
+- **Total mutualisable : 8 160 €**
+
+**Gain fiscal par euro versé** :
+- TMI foyer estimé 2026 : **30%** (quotient ≈ 33 747 €, tranche 29 579-84 577 €)
+- Économie IR : **8 160 € × 30% = 2 448 €**
+- Coût net : 8 160 − 2 448 = **5 712 €** sortis de poche pour 8 160 € épargnés
+- Rendement fiscal immédiat : **+42,8%**
+
+**Stratégie optimale** :
+1. Prioriser D2 (4 710 € plafond plein, pas de PERO concurrent)
+2. Compléter D1 (3 450 € restants)
+3. ✅ Mutualiser : case à cocher sur 2042-2026 (permet à D1 d'utiliser plafond D2 et vice-versa)
+
+**Condition d'optimalité** :
+- ✅ TMI sortie retraite estimé : **11%** (selon profil) < TMI entrée 30% → **gain net garanti**
+- Horizon : 37 ans → effet capitalisation significatif
+- Liquidité : vérifier capacité à bloquer 8 160 € jusqu'à 2063 (déblocages anticipés possibles sous conditions)
+
+**Priorité** : 🟢 **Action #1** (gain estimé **2 448 €**)
+
+---
+
+#### 2. **Versements PEA D1 — profiter du tunnel 3-5 ans**
+
+**Situation** : PEA valorisé 9 609 €, gains latents 1 697 €, ouverture mai 2023 → seuil 5 ans en **mai 2028**.
+
+**Opportunité fiscale** :
+- Les versements entre mai 2025 et mai 2028 bénéficieront de l'**exonération IR** dès mai 2028 (date unique = ouverture du plan)
+- PS 17,2% resteront dus mais IR 12,8% exonéré = **économie 12,8%** sur tous les gains futurs
+
+**Stratégie** :
+- Verser le maximum possible AVANT mai 2028 (plafond 150 000 € — actuellement 7 912 € versés → marge 142 088 €)
+- Priorité : actions européennes à fort potentiel (croissance, dividendes réinvestis)
+
+**Gain estimé** (exemple : versement 10 000 € supplémentaires, +5%/an, gains sur 3 ans) :
+- Gains estimés à mai 2028 : 10 000 € × [(1,05)^3 − 1] ≈ **1 576 €**
+- Économie IR exo PEA : 1 576 × 12,8% = **202 €** (vs compte-titres ordinaire)
+
+**Priorité** : 🟢 **Action #2** (gain proportionnel aux versements, 12,8% sur gains futurs)
+
+---
+
+#### 3. **Réduire l'épargne de précaution pléthorique D2 (96 651 € Livret+ 0%)**
+
+**Situation détectée** : D2 possède **96 651 €** sur un livret bancaire classique (Livret+), probablement rémunéré **0,5-1%** brut → après impôt ≈ **0,35-0,7%** net (TMI 30% + PS 17,2%).
+
+**Benchmark alternatives** :
+| Enveloppe | Rendement brut 2025 | Fiscalité | Rendement net |
+|-----------|---------------------|-----------|---------------|
+| Livret+ (actuel) | 0,5-1% | IR 30% + PS 17,2% | **0,24-0,48%** |
+| Livret A | 3% | Exonéré | **3%** |
+| LDDS | 3% | Exonéré | **3%** |
+| LEP (D1 éligible) | 3,5% | Exonéré | **3,5%** |
+| Fonds € AV (nets) | 2,5-3,5% | Exo IR < 8 ans si pas rachat | **2,5-3,5%** |
+
+**Opportunité d'arbitrage** :
+1. **Saturer Livret A D2** (plafond 22 950 € — actuellement 23 447 € → déjà saturé ✅)
+2. **Ouvrir LDDS D2** (plafond 12 000 €) → transfert 12 000 € depuis Livret+
+3. **Réduire Livret+ à 30 000 € max** (épargne de précaution 3-6 mois charges) → **libère 66 651 €**
+4. **Répartir** :
+   - 12 000 € → LDDS D2 (gain +2,5% net vs Livret+)
+   - 40 000 € → fonds € AV D2 (gain +2% net vs Livret+, disponible, < 8 ans)
+   - 14 651 € → PEA D1 ou PER 2026 selon tolérance risque
+
+**Gain estimé** (scénario prudent : 66 651 € @ +2% net additionnel) :
+- Année 1 : **1 333 € de gains supplémentaires**
+- Sur 5 ans (capitalisation 2%) : **6 963 €**
+
+**Priorité** : 🟢 **Action #3** (gain annuel estimé **1 333 €**)
+
+---
+
+#### 4. **Ouvrir un LDDS D2 (12 000 € @ 3% défiscalisé)**
+
+**Constat** : D2 ne possède pas de LDDS (absent du profil).
+
+**Plafond disponible** : 12 000 € (plafond national).
+
+**Gain vs Livret+ actuel (0,5%)** :
+- Rendement différentiel : 3% − 0,5% = +2,5% brut
+- Sur 12 000 € : **300 €/an** de gains supplémentaires
+- Fiscalité : **0 €** (exonération totale)
+
+**Gain net annuel** : **300 €** garanti (vs 60 € sur Livret+ après impôt).
+
+**Action** : 🟢 Ouvrir LDDS D2 en janvier 2026, transférer 12 000 € depuis Livret+.
+
+**Priorité** : 🟢 **Action #4** (gain annuel **300 €**, risque 0)
+
+---
+
+#### 5. **Anticiper la revente PEL D2 en janvier 2027 (avant 12 ans)**
+
+**Situation** : PEL ouvert 01/2015, valorisé 62 460 €, exonération IR jusqu'en **janvier 2027** (12 ans).
+
+**Bascule fiscale janvier 2027** :
+- Avant 12 ans : intérêts exonérés IR (seuls PS 17,2%)
+- Après 12 ans : intérêts soumis **PFU 30%** (IR 12,8% + PS 17,2%)
+
+**Taux PEL probable** (ouverture 2015) : **2-2,5%** brut.
+
+**Arbitrage net** (hypothèse 2,5% brut, 62 460 €) :
+- Intérêts annuels : 62 460 × 2,5% = **1 561 €/an** brut
+- **Avant 12 ans** : 1 561 × (1 − 17,2%) = **1 293 €/an** net
+- **Après 12 ans** : 1 561 × (1 − 30%) = **1 093 €/an** net
+- **Perte nette post-12 ans** : 200 €/an
+
+**Alternatives** (si clôture PEL en 12/2026) :
+1. **Livret A + LDDS** (déjà saturés → non extensible)
+2. **Fonds € AV** (2,5-3,5% net, disponible, exo IR si pas rachat < 8 ans)
+3. **PER** (si capacité plafond restant 2026 après saturation 8 160 €)
+
+**Stratégie** :
+- Si taux PEL ≤ 2,5% ET alternatives ≥ 3% net → clôturer en **décembre 2026** (avant 12 ans)
+- Si taux PEL ≥ 3% → conserver malgré fiscalité (PEL rare à ce taux)
+
+**Gain estimé** (si clôture + réallocation fonds € 3% net) :
+- Delta rendement : 3% − 2,08% (PEL post-12 ans) = **+0,92%**
+- Sur 62 460 € : **575 €/an** supplémentaires
+
+**Action** : 🟡 **Vérifier taux exact PEL D2** → décider clôture ou maintien avant janvier 2027.
+
+**Priorité** : 🟢 **Action #5** (gain potentiel **575 €/an** si arbitrage favorable)
+
+---
+
+## 🎯 OBJECTIFS PRIORITAIRES
+
+### 🥇 **Action #1 — Saturer le plafond PER 2026 (8 160 € mutualisé)**
+**Quoi** : Verser 8 160 € en PER 2026 (4 710 € D2 + 3 450 € D1)  
+**Quand** : Avant le **31/12/2026** (date limite versements PER année N)  
+**Gain estimé** : **2 448 €** d'économie IR immédiate (8 160 × 30%)  
+**Pourquoi prioritaire** :  
+- TMI actuel 30% > TMI retraite estimé 11% → gain net garanti 19 points
+- Horizon 37 ans → effet capitalisation puissant (doublement probable du capital)
+- Plafond 2026 connu, pas de risque de saturation involontaire (PERO D1 déjà déduit)
+- Rendement fiscal immédiat **+42,8%** (le plus élevé de toutes les actions sans risque)
+
+---
+
+### 🥈 **Action #2 — Réduire l'épargne de précaution D2 (66 651 € @ 0,5% → 3%+)**
+**Quoi** : Transférer 66 651 € du Livret+ (0,5% brut) vers LDDS (12 000 €) + fonds € AV (40 000 €) + PEA/PER (14 651 €)  
+**Quand** : **Janvier 2026** (optimiser date de valeur)  
+**Gain estimé** : **1 333 €/an** (66 651 × +2% net moyen)  
+**Pourquoi prioritaire** :  
+- 96 651 € sur Livret+ = **sur-thésaurisation** massive (30 000 € suffisent pour 6 mois charges)
+- Différentiel rend

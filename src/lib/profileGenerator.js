@@ -91,7 +91,8 @@ Prélèvements sociaux fonciers (17,2%) : ${fmtN(foncier.ps)}` : 'Revenus foncie
 Dividendes/intérêts : ${fmt(d.divid)}
 Revenus crypto : ${fmt(d.crypto)}
 ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
-${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}` : ''}
+${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
+Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 
 == DONNÉES POUR CALCUL IR ==
 RNI total (salaires + foncier net) : ${fmtN(rniTotal)}
@@ -264,7 +265,8 @@ Dividendes/intérêts : ${fmt(d.divid)}
 Revenus crypto : ${fmt(d.crypto)}
 Revenus locatifs 2025 : ${fmt(d.rev_loc)}
 ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
-${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}` : ''}
+${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
+Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniD1)}
