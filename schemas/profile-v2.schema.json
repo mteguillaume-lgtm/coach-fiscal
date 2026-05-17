@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coach-fiscal/schemas/profile-v2.schema.json",
+  "title": "Profil fiscal coach-fiscal v2",
+  "description": "Schéma versionné du profil fiscal — format structuré issu de la migration v1.",
+  "type": "object",
+  "required": ["$version", "mode", "foyer", "declarants", "revenus", "calculs"],
+  "additionalProperties": false,
+  "properties": {
+    "$version": {
+      "const": 2,
+      "description": "Numéro de version du schéma — toujours 2 pour ce format."
+    },
+    "mode": {
+      "enum": ["solo", "couple"],
+      "description": "Mode déclaration : solo (1 déclarant) ou couple (2 déclarants)."
+    },
+    "foyer": {
+      "type": "object",
+      "required": ["statut", "parts"],
+      "additionalProperties": false,
+      "properties": {
+        "statut":      { "type": "string",  "description": "Texte brut extrait du profil." },
+        "statutNorm":  { "enum": ["celibataire", "marie", "pacse", "divorce", "veuf", ""], "description": "Statut normalisé." },
+        "parts":       { "type": "number",  "minimum": 1, "description": "Parts fiscales (quotient familial)." },
+        "departement": { "type": "string",  "description": "Département (2 ou 3 caractères)." }
+      }
+    },
+    "declarants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/Declarant" }
+    },
+    "revenus": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Revenu" },
+      "description": "Liste des sources de revenus typées."
+    },
+    "mobilier": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Revenus de capitaux mobiliers (cases 2TR, 2CK, 2BH).",
+      "properties": {
+        "case2TR": { "type": "integer", "minimum": 0, "description": "Intérêts mobiliers bruts." },
+        "case2CK": { "type": "integer", "minimum": 0, "description": "PFU 12,8% prélevé à la source." },
+        "case2BH": { "type": "integer", "minimum": 0, "description": "Intérêts soumis aux PS (= 2TR)." }
+      }
+    },
+    "acomptes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Acomptes IR et PS versés en cours d'année.",
+      "properties": {
+        "irD1_8HW": { "type": "integer", "minimum": 0 },
+        "irD2_8IW": { "type": "integer", "minimum": 0 },
+        "psD1_8HX": { "type": "integer", "minimum": 0 },
+        "psD2_8IX": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "foncier": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "brut":   { "type": "integer", "minimum": 0 },
+        "net":    { "type": "integer", "minimum": 0 },
+        "regime": { "enum": ["micro-foncier", "reel", null] }
+      }
+    },
+    "calculs": {
+      "type": "object",
+      "required": ["rniFoyer"],
+      "additionalProperties": false,
+      "description": "Résultats fiscaux calculés (présents après enrichissement IA).",
+      "properties": {
+        "rniFoyer":     { "type": "integer", "description": "Revenu net imposable foyer total." },
+        "tmi":          { "type": "integer", "minimum": 0, "maximum": 45 },
+        "irBrut":       { "type": "integer", "minimum": 0 },
+        "irNet":        { "type": "integer", "minimum": 0 },
+        "totalDu":      { "type": "integer", "minimum": 0 },
+        "acomptes":     { "type": "integer", "minimum": 0, "description": "Somme 8HW + 8IW + 8HX + 8IX." },
+        "creditsImpot": { "type": "integer", "minimum": 0, "description": "Crédit PFU 2CK." },
+        "pasTotal":     { "type": "integer", "minimum": 0 },
+        "solde":        { "type": "integer",  "description": "Positif = à payer ; négatif = remboursement." },
+        "rfr":          { "type": "integer", "minimum": 0 }
+      }
+    },
+    "patrimoine": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "epargneD1": { "$ref": "#/$defs/EpargneDeclarant" },
+        "epargneD2": { "$ref": "#/$defs/EpargneDeclarant" }
+      }
+    }
+  },
+  "$defs": {
+    "Declarant": {
+      "type": "object",
+      "required": ["id", "salaires"],
+      "additionalProperties": false,
+      "properties": {
+        "id":         { "enum": ["D1", "D2"] },
+        "salaires": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "netImposable":  { "type": "integer", "minimum": 0 },
+            "brutImposable": { "type": "integer", "minimum": 0 },
+            "pas":           { "type": "integer", "minimum": 0 },
+            "tauxPas":       { "type": "number",  "minimum": 0 }
+          }
+        },
+        "rni":        { "type": "integer", "minimum": 0 },
+        "pero":       { "type": "integer", "minimum": 0 },
+        "age":        { "type": "integer", "minimum": 0 },
+        "typeRevenu": { "type": "string" }
+      }
+    },
+    "Revenu": {
+      "type": "object",
+      "required": ["id", "type", "declarant", "montant"],
+      "additionalProperties": false,
+      "properties": {
+        "id":        { "type": "string" },
+        "type":      { "enum": ["salaire", "ijCpam", "rente1bs", "foncier", "mobilier", "crypto", "dividendes", "autre"] },
+        "declarant": { "enum": ["D1", "D2", "foyer"] },
+        "montant":   { "type": "integer", "minimum": 0 },
+        "meta":      { "type": "object" }
+      }
+    },
+    "EpargneDeclarant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "livretA":    { "type": "integer", "minimum": 0 },
+        "ldds":       { "type": "integer", "minimum": 0 },
+        "lep":        { "type": "integer", "minimum": 0 },
+        "livretPlus": { "type": "integer", "minimum": 0 },
+        "pel":        { "type": "integer", "minimum": 0 },
+        "pea":        { "type": "integer", "minimum": 0 },
+        "av":         { "type": "integer", "minimum": 0 },
+        "perco":      { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
