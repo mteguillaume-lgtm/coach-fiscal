@@ -1,5 +1,9 @@
 # Coach Fiscal
 
+![Tests](https://img.shields.io/badge/tests-150%20✅-brightgreen)
+![Plugins](https://img.shields.io/badge/plugins-16%20(4%20actifs)-blue)
+![Version](https://img.shields.io/badge/phase-3--C-informational)
+
 Votre bilan fiscal personnalisé en 30 minutes, 100 % privé.
 
 Un assistant fiscal personnel qui tourne entièrement dans votre navigateur.
@@ -8,6 +12,22 @@ est transmis à l'API Claude (Anthropic) lors du conseil expert.
 
 > **Captures d'écran**
 > *(à ajouter après déploiement)*
+
+---
+
+## Architecture
+
+Coach Fiscal repose sur une architecture en pipeline avec un registre de plugins de revenus :
+
+```
+Collect.jsx → profileGenerator → TXT → profileParser → v1 → migrateur → v2 → Claude
+```
+
+Les plugins de revenus (`src/plugins/income/`) sont découverts automatiquement — ajouter un fichier `*.plugin.js` suffit.
+
+- [Architecture complète](docs/architecture.md) — flux de données, schéma v2, décisions techniques
+- [Contribuer un plugin](docs/adding-a-plugin.md) — guide pas-à-pas avec exemple complet
+- [Couverture fiscale](docs/coverage.md) — revenus couverts par les 16 plugins
 
 ---
 
