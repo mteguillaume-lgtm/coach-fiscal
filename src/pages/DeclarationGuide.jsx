@@ -20,36 +20,22 @@ const IMPOTS    = 'https://www.impots.gouv.fr';
 
 const fmtEur = n => n != null ? n.toLocaleString('fr-FR') + ' €' : null;
 
-function parseProfile(p) {
-  if (!p) return { hasCrypto: false, hasFoncier: false, hasPER: false };
-  const num = rx => {
-    const m = p.match(rx);
-    if (!m) return null;
-    const n = parseInt(m[1].replace(/[\s.]/g, ''), 10);
-    return isNaN(n) ? null : n;
-  };
-  const flt = rx => {
-    const m = p.match(rx);
-    return m ? parseFloat(m[1].replace(',', '.')) : null;
-  };
+function adaptParsedProfile(pp) {
+  if (!pp) return { hasCrypto: false, hasFoncier: false, hasPER: false };
+  const orNull = v => (v > 0 ? v : null);
   return {
-    // Cases fiscales
-    sal1AJ:     num(/(?:case\s*1aj|1aj\s*:|\b1aj\b)[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i)
-             || num(/net imposable[^€]{0,40}(\d[\d\s.]{1,10})\s*€/i),
-    sal1BJ:     num(/(?:case\s*1bj|1bj\s*:|d[eé]clarant\s*2.*net imposable)[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i),
-    pas8HV:     num(/(?:8hv|pas\s+d1|pas\s+pr[eé]lev)[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i)
-             || num(/pr[eé]l[eè]vement[^€]{0,40}(\d[\d\s.]{1,10})\s*€/i),
-    pas8IV:     num(/(?:8iv|pas\s+d2|pr[eé]l[eè]vement.*d2)[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i),
-    foncier4BE: num(/(?:4be|loyers?\s+bruts?)[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i),
-    per6QS:     num(/(?:6qs|pero|cotisations?\s+retraite\s+oblig)[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i),
-    rni:        num(/rni[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i)
-             || num(/revenu\s+net\s+imposable[^€]{0,30}(\d[\d\s.]{1,10})\s*€/i),
-    tmi:        num(/tmi[^%\d]{0,20}(\d{1,2})\s*%/i),
-    tauxPAS:    flt(/taux.*?pas[^%\d]{0,20}(\d+[,.]?\d*)\s*%/i),
-    // Flags
-    hasCrypto:  /crypto|bitcoin|ethereum|binance|kraken|coinbase|bybit|okx/i.test(p),
-    hasFoncier: /loyer|foncier|4be|sci\b|fermage|indivision/i.test(p),
-    hasPER:     /\bper[^s]|pero\b|6qs\b/i.test(p),
+    sal1AJ:     orNull(pp.salaireNetImposableD1),
+    sal1BJ:     orNull(pp.salaireNetImposableD2),
+    pas8HV:     orNull(pp.pasD1),
+    pas8IV:     orNull(pp.pasD2),
+    foncier4BE: orNull(pp.revensFonciers),
+    per6QS:     orNull(pp.peroD1),
+    rni:        orNull(pp.rniFoyer) ?? orNull(pp.rniD1),
+    tmi:        orNull(pp.tmi),
+    tauxPAS:    pp.tauxPasD1 > 0 ? pp.tauxPasD1 : null,
+    hasCrypto:  pp.hasCrypto,
+    hasFoncier: pp.revensFonciers > 0 || pp.hasIndivision,
+    hasPER:     pp.peroD1 > 0 || pp.peroD2 > 0 || pp.percoD1 > 0,
   };
 }
 
@@ -661,7 +647,7 @@ export default function DeclarationGuide() {
   const { state }  = useApp();
   const navigate   = useNavigate();
 
-  const parsed = useMemo(() => parseProfile(state.profile), [state.profile]);
+  const parsed = useMemo(() => adaptParsedProfile(state.parsedProfile), [state.parsedProfile]);
   const mode   = state.mode || 'solo';
 
   const steps  = useMemo(() => makeSteps(parsed, mode), [parsed, mode]);
