@@ -13,10 +13,10 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Salaires simple-employeur | 1AJ/1BJ | ✅ | Initial |
 | Multi-employeurs cumul sur l'année | 1AJ/1BJ | ✅ | A — PR A1 |
 | IJ CPAM maladie | 1AJ/1BJ | ✅ | PR1 |
-| IJ CPAM maternité/paternité | 1AJ/1BJ | 🟡 | A |
+| IJ CPAM maternité/paternité | 1AJ/1BJ | 🟡 | B |
 | Allocations chômage France Travail | 1AP/1BP | ✅ | A — PR A2 |
 | Apprentissage (abattement spécifique) | 1AJ/1BJ | ✅ | A — PR A3 |
-| Stage gratification | 1AJ/1BJ | ❌ | A |
+| Stage gratification | 1AJ/1BJ | ❌ | B |
 | Heures supplémentaires défiscalisées | 1GH/1HH | ✅ | A — PR A4 |
 | Frais réels assistant calcul | 1AK/1BK | ✅ | A — PR A5 |
 | Indemnité de licenciement | 1AJ/1BJ + 1AD/1BD | ✅ | A — PR A6 |
