@@ -1,4 +1,5 @@
 import { n } from '../../lib/profileParserUtils.js';
+import { TAUX_PS_CAPITAL } from '../../lib/taxCalculator.js';
 
 const fmtN = v => Math.round(v || 0).toLocaleString('fr-FR') + ' €';
 
@@ -54,7 +55,7 @@ export default {
   calculator(v1) {
     const base = v1.intMob2TR || 0;
     return {
-      psMobilier: Math.round(base * 0.172),
+      psMobilier: Math.round(base * TAUX_PS_CAPITAL),
     };
   },
 

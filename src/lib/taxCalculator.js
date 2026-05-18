@@ -10,7 +10,9 @@
  * Le chat Claude utilise les mêmes JSON via skillsLoader.js.
  */
 
-import perRaw from '../data/paperasse/fiscaliste/data/per-plafonds.json';
+import perRaw    from '../data/paperasse/fiscaliste/data/per-plafonds.json';
+import pfuRaw    from '../data/paperasse/fiscaliste/data/pfu-prelevements-sociaux.json';
+import fonciersRaw from '../data/paperasse/fiscaliste/data/regimes-fonciers-lmnp.json';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -66,6 +68,12 @@ export { TRANCHES, DECOTE, ABT };
 export const PASS_2025       = perRaw._meta.pass_2025;
 export const MIN_PLAFOND_PER = perRaw.per_individuel.plancher_euros;
 export const MAX_PLAFOND_PER = perRaw.per_individuel.plafond_absolu_euros;
+
+// ─── Prélèvements sociaux et régimes fonciers (depuis les JSON) ───────────────
+
+export const TAUX_PS_CAPITAL          = pfuRaw.prelevements_sociaux.taux_revenus_capital;
+export const SEUIL_MICRO_FONCIER      = fonciersRaw.micro_foncier.seuil_recettes_brutes;
+export const ABATTEMENT_MICRO_FONCIER = fonciersRaw.micro_foncier.abattement;
 
 // ─── Abattement 10% sur salaires ──────────────────────────────────────────────
 
