@@ -10,9 +10,12 @@
  * Le chat Claude utilise les mêmes JSON via skillsLoader.js.
  */
 
-import perRaw    from '../data/paperasse/fiscaliste/data/per-plafonds.json';
-import pfuRaw    from '../data/paperasse/fiscaliste/data/pfu-prelevements-sociaux.json';
-import fonciersRaw from '../data/paperasse/fiscaliste/data/regimes-fonciers-lmnp.json';
+import perRaw            from '../data/paperasse/fiscaliste/data/per-plafonds.json';
+import pfuRaw            from '../data/paperasse/fiscaliste/data/pfu-prelevements-sociaux.json';
+import fonciersRaw       from '../data/paperasse/fiscaliste/data/regimes-fonciers-lmnp.json';
+import hsSuppRaw         from '../data/paperasse/fiscaliste/data/heures-supplementaires-ppv.json';
+import apprentissageRaw  from '../data/paperasse/fiscaliste/data/apprentissage.json';
+import baremeKmRaw       from '../data/paperasse/fiscaliste/data/bareme-kilometrique-2025.json';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -74,6 +77,55 @@ export const MAX_PLAFOND_PER = perRaw.per_individuel.plafond_absolu_euros;
 export const TAUX_PS_CAPITAL          = pfuRaw.prelevements_sociaux.taux_revenus_capital;
 export const SEUIL_MICRO_FONCIER      = fonciersRaw.micro_foncier.seuil_recettes_brutes;
 export const ABATTEMENT_MICRO_FONCIER = fonciersRaw.micro_foncier.abattement;
+
+// ─── Heures supplémentaires défiscalisées + PPV (depuis le JSON) ──────────────
+
+export const PLAFOND_HEURES_SUPP      = hsSuppRaw.heures_supplementaires_defiscalisees.plafond_annuel_par_declarant;
+export const PLAFOND_PPV_SANS_ACCORD  = hsSuppRaw.prime_partage_valeur.plafond_sans_accord;
+export const PLAFOND_PPV_AVEC_ACCORD  = hsSuppRaw.prime_partage_valeur.plafond_avec_accord;
+export const SEUIL_3_SMIC_2025        = hsSuppRaw.prime_partage_valeur.seuil_remuneration_exoneration_IR.seuil_3_smic_2025;
+
+// ─── Apprentissage / Stage (depuis le JSON) ───────────────────────────────────
+
+export const PLAFOND_APPRENTISSAGE_IR = apprentissageRaw.apprentissage.exoneration_IR.plafond_2025;
+
+// ─── Licenciement — plafond exonération (5 × PASS) ───────────────────────────
+
+export const PLAFOND_LICENCIEMENT_MAX = 5 * perRaw._meta.pass_2025;
+
+// ─── Barème kilométrique (depuis le JSON BOFiP) ────────────────────────────────
+
+export const BAREME_KILOMETRIQUE     = baremeKmRaw.bareme_voitures_thermiques.tranches;
+export const MAJORATION_ELECTRIQUE_KM = baremeKmRaw.bareme_voitures_thermiques.majoration_electrique.taux;
+
+/**
+ * Calcule les frais kilométriques (voiture thermique ou électrique).
+ * Source : BOFiP BOI-BAREME-000001 + art. 6 B annexe IV CGI.
+ *
+ * @param {number}  distance   - Distance annuelle totale (aller + retour) en km
+ * @param {number}  cv         - Puissance fiscale (≤ 3 → 3CV, 4, 5, 6, ≥ 7)
+ * @param {boolean} [electrique=false] - Véhicule 100 % électrique → majoration +20 %
+ * @returns {number} Montant arrondi en €
+ */
+export function calculFraisKilometriques(distance, cv, electrique = false) {
+  if (!distance || distance <= 0 || !cv || cv <= 0) return 0;
+  const key = cv <= 3 ? '3_cv_et_moins'
+    : cv === 4 ? '4_cv'
+    : cv === 5 ? '5_cv'
+    : cv === 6 ? '6_cv'
+    : '7_cv_et_plus';
+  const t = BAREME_KILOMETRIQUE[key];
+  let montant;
+  if (distance <= 5000) {
+    montant = distance * t['0_a_5000_km'].coefficient;
+  } else if (distance <= 20000) {
+    montant = distance * t['5001_a_20000_km'].coefficient + t['5001_a_20000_km'].constante;
+  } else {
+    montant = distance * t['au_dela_20000_km'].coefficient;
+  }
+  if (electrique) montant *= (1 + MAJORATION_ELECTRIQUE_KM);
+  return Math.round(montant);
+}
 
 // ─── Abattement 10% sur salaires ──────────────────────────────────────────────
 
@@ -194,7 +246,15 @@ export function baseIRFoyer(p) {
   const salD1   = abattement10(p.salaireNetImposableD1 || 0);
   const salD2   = abattement10(p.salaireNetImposableD2 || 0);
   const foncier = (p.revensFonciers || 0) * (p.regimeFoncier === 'reel' ? 1 : 0.70);
-  return salD1 + salD2 + foncier;
+  const areD1   = p.rniAreD1           || 0;
+  const areD2   = p.rniAreD2           || 0;
+  const appD1   = p.rniApprentissageD1 || 0;
+  const appD2   = p.rniApprentissageD2 || 0;
+  const licD1   = p.rniLicenciementD1  || 0;
+  const licD2   = p.rniLicenciementD2  || 0;
+  const ppvD1   = p.rniPpvD1           || 0;
+  const ppvD2   = p.rniPpvD2           || 0;
+  return salD1 + salD2 + foncier + areD1 + areD2 + appD1 + appD2 + licD1 + licD2 + ppvD1 + ppvD2;
 }
 
 // ─── TMI ─────────────────────────────────────────────────────────────────────

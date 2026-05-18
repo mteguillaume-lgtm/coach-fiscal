@@ -290,6 +290,11 @@ export function parseProfile(text) {
 
   const sit      = _situation(text);
   const profil   = _profil(secs.secProfil);
+
+  // Run calculators with parser data + profil context (typeRevenuD1/D2 needed by salaires)
+  const calcCtx = { ...pluginData, ...profil };
+  for (const p of registry.getAll()) Object.assign(pluginData, p.calculator(calcCtx));
+
   const pero     = _pero(text);
   const rni      = _rni(pluginData, profil, text);
   const fiscal   = _fiscal(text, rni.rniFoyer, sit.parts, pluginData);
