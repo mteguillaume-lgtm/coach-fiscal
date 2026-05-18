@@ -11,7 +11,10 @@
     "update-bareme": "node scripts/update-bareme.js",
     "update-bareme:dry": "node scripts/update-bareme.js --dry-run",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sync:paperasse": "bash scripts/sync-paperasse.sh",
+    "sync:skills": "bash scripts/sync-skills.sh",
+    "sync:all": "npm run sync:paperasse && npm run sync:skills"
   },
   "dependencies": {
     "jszip": "^3.10.1",
