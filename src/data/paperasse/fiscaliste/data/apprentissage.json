@@ -1,0 +1,52 @@
+{
+  "last_updated": "2026-05-18",
+  "annee_fiscale": 2025,
+  "source": "Article 81 bis du CGI + impots.gouv.fr",
+  "apprentissage": {
+    "exoneration_IR": {
+      "plafond_2025": 21622,
+      "plafond_unite": "SMIC annuel brut",
+      "formule_plafond": "1820 × SMIC horaire brut",
+      "smic_horaire_2025": 11.88,
+      "regle": "Exonération IR sur la part de rémunération <= plafond. Excédent imposable en case 1AJ/1BJ.",
+      "proratisation": false,
+      "note_proratisation": "L'exonération s'applique en totalité même si le contrat débute ou prend fin en cours d'année — pas de proratisation"
+    },
+    "cases_declaratives": {
+      "declarant_1": "1AJ",
+      "declarant_2": "1BJ"
+    },
+    "exclusions": [
+      "Contrat de professionnalisation : aucune exonération",
+      "Contrat de qualification : aucune exonération",
+      "Contrat d'orientation : aucune exonération",
+      "Contrat d'adaptation : aucune exonération",
+      "Contrat unique d'insertion : aucune exonération"
+    ],
+    "exoneration_cotisations_salariales": {
+      "contrats_avant_2025-03-01": "Exonération totale jusqu'à 79% du SMIC",
+      "contrats_a_partir_2025-03-01": "Exonération sur la part <= 50% du SMIC, CSG/CRDS dues au-delà"
+    },
+    "notes": [
+      "Article 81 bis du CGI",
+      "Plafond 2026 prévisionnel : 21 876 € (à confirmer après revalorisation SMIC 01/01/2026)",
+      "L'exonération s'applique que l'apprenti soit en foyer fiscal propre ou rattaché"
+    ]
+  },
+  "stage_etudiant": {
+    "exoneration_IR": {
+      "plafond_2025": 21622,
+      "plafond_unite": "SMIC annuel brut",
+      "regle": "Mêmes règles que l'apprentissage"
+    }
+  },
+  "job_etudiant": {
+    "condition_age": "< 26 ans au 1er janvier de l'année",
+    "exoneration_IR": {
+      "plafond_2025": 5405,
+      "plafond_unite": "3 SMIC mensuels"
+    },
+    "regle": "Exonération optionnelle — souvent préremplie comme imposable, à corriger manuellement",
+    "cases_declaratives": "1AJ/1BJ (montant excédant le plafond uniquement, OU 0 si sous plafond)"
+  }
+}

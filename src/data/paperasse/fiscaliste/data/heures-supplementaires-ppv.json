@@ -1,0 +1,61 @@
+{
+  "last_updated": "2026-05-18",
+  "annee_fiscale": 2025,
+  "source": "BOFiP RSA-CHAMP-20-50-30 + URSSAF + service-public.fr",
+  "heures_supplementaires_defiscalisees": {
+    "plafond_annuel_par_declarant": 7500,
+    "type_plafond": "net_fiscal",
+    "cases_declaratives": {
+      "declarant_1": "1GH",
+      "declarant_2": "1HH"
+    },
+    "regle": "Montant <= 7500 € va en case 1GH/1HH (exonéré IR). Excédent bascule en 1AJ/1BJ (imposable).",
+    "champ_application": [
+      "salaries_privé",
+      "fonctionnaires",
+      "régimes_spéciaux",
+      "salariés_temps_partiel_heures_complémentaires",
+      "renonciation_RTT_avec_accord"
+    ],
+    "exonération_cotisations_salariales": {
+      "taux": 0.1131,
+      "assiette": "assurance_vieillesse_uniquement"
+    },
+    "notes": [
+      "Article 81 quater du CGI",
+      "Plafond inchangé en 2025 pour la déclaration 2026",
+      "Vérifier en 2026 : amendement PLF 2026 propose suppression du plafond — non promulgué à ce jour"
+    ]
+  },
+  "prime_partage_valeur": {
+    "plafond_sans_accord": 3000,
+    "plafond_avec_accord": 6000,
+    "conditions_plafond_majore": [
+      "Accord d'intéressement (entreprise >= 50 salariés)",
+      "Accord d'intéressement OU participation volontaire (entreprise < 50 salariés)",
+      "Association/fondation reconnue d'utilité publique",
+      "ESAT pour travailleurs handicapés"
+    ],
+    "seuil_remuneration_exoneration_IR": {
+      "valeur": "< 3 SMIC annuels",
+      "smic_annuel_2025_reference": 21622,
+      "seuil_3_smic_2025": 64866,
+      "periode_appreciation": "12 mois précédant le versement"
+    },
+    "regle_exoneration_IR": {
+      "moins_50_salaries": "Exonération IR si rémunération < 3 SMIC ET montant <= plafond, jusqu'au 31/12/2026",
+      "plus_50_salaries": "Pas d'exonération IR depuis le 1/1/2024 (sauf affectation PEE/PERECO)"
+    },
+    "regle_exoneration_PS": "Toujours exonérée de cotisations sociales (CSG/CRDS dues sauf cas spécifiques)",
+    "cases_declaratives_si_imposable": {
+      "declarant_1": "1AJ",
+      "declarant_2": "1BJ"
+    },
+    "notes": [
+      "Loi n° 2022-1158 du 16 août 2022",
+      "Article 1 modifié par LF 2024 et LF 2025",
+      "Dispositif applicable jusqu'au 31/12/2026 pour entreprises < 50 salariés",
+      "PPV affectée à PEE/PERECO : exonérée IR sans limite de salaire"
+    ]
+  }
+}
