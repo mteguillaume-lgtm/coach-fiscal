@@ -534,14 +534,14 @@ function StepCrypto({ doneItems, onToggle }) {
 
 function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
   const pasTotal = (parsed.pas8HV || 0) + (mode === 'couple' ? (parsed.pas8IV || 0) : 0);
-  const irBrut   = computeIR(parsed.rni);
-  const solde    = irBrut != null && pasTotal > 0 ? irBrut - pasTotal : null;
+  const irTotal  = computeIR(parsed.rni);
+  const solde    = irTotal != null ? irTotal - pasTotal : null;
   const rembours = solde != null && solde < 0;
 
-  const items = [
-    { label: 'RNI foyer (base de calcul)',        value: fmtEur(parsed.rni),   note: '1 part fiscale — indicatif' },
-    { label: 'IR brut calculé (estimation)',       value: fmtEur(irBrut),       note: 'Barème progressif simplifié' },
-    { label: 'PAS total prélevé en 2024',         value: fmtEur(pasTotal || null), note: '8HV' + (mode === 'couple' ? ' + 8IV' : '') },
+  const baseItems = [
+    { label: 'RNI foyer (base de calcul)',  value: fmtEur(parsed.rni),          note: '1 part fiscale — indicatif' },
+    { label: 'PAS prélevé en 2024',         value: fmtEur(pasTotal || null),     note: '8HV' + (mode === 'couple' ? ' + 8IV' : '') },
+    { label: 'IR total estimé',             value: fmtEur(irTotal),              note: 'Barème progressif simplifié' },
   ];
 
   return (
@@ -552,7 +552,7 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Récapitulatif estimé</p>
         </div>
         <div className="divide-y divide-gray-50">
-          {items.map(({ label, value, note }) => (
+          {baseItems.map(({ label, value, note }) => (
             <div key={label} className="flex items-center justify-between px-4 py-3 gap-3">
               <div>
                 <p className="text-sm text-gray-700">{label}</p>
@@ -563,10 +563,31 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
               </span>
             </div>
           ))}
+          {/* Ligne supplément — mise en évidence dans le tableau */}
+          {solde != null && (
+            <div className={`flex items-center justify-between px-4 py-3 gap-3 ${
+              rembours ? 'bg-teal-50/70' : 'bg-amber-50/70'
+            }`}>
+              <div>
+                <p className={`text-sm font-semibold ${rembours ? 'text-teal-700' : 'text-amber-700'}`}>
+                  {rembours ? 'Remboursement estimé' : 'Supplément estimé'}
+                </p>
+                <p className="text-[10px] text-gray-400">IR total − PAS prélevé</p>
+              </div>
+              <span className={`text-sm font-bold font-mono tabular-nums shrink-0 ${rembours ? 'text-teal-700' : 'text-amber-700'}`}>
+                {rembours ? `+ ${fmtEur(Math.abs(solde))}` : fmtEur(solde)}
+              </span>
+            </div>
+          )}
+          {solde == null && (
+            <div className="px-4 py-3 text-xs text-gray-400 italic">
+              Saisissez le RNI pour obtenir une estimation.
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Solde */}
+      {/* Bloc explicatif solde */}
       {solde != null && (
         <div className={`rounded-2xl border p-5 flex items-center gap-4 ${
           rembours ? 'border-teal-200 bg-teal-50/50' : 'border-amber-200 bg-amber-50/50'
@@ -588,13 +609,6 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
                 : 'Ce montant sera prélevé progressivement via votre PAS à partir de septembre 2025. Vérifiez votre taux de PAS.'}
             </p>
           </div>
-        </div>
-      )}
-
-      {solde == null && (
-        <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs text-blue-600 leading-relaxed">
-          <Info size={12} className="inline mr-1.5" />
-          Complétez les étapes précédentes pour obtenir une estimation du solde IR.
         </div>
       )}
 
