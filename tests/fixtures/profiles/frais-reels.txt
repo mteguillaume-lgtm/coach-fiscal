@@ -1,0 +1,38 @@
+== PROFIL FISCAL FOYER 2025 ==
+Profil test frais réels vs forfait 10% — Sprint A PR A5
+
+== SITUATION DU FOYER ==
+Statut : Marié(e)
+Parts fiscales : 2
+Enfants à charge : 0
+Département : 92
+
+== PROFIL & RETRAITE ==
+Âge D1 : 42 ans
+Type de revenu D1 : Salarié(e)
+Âge D2 : 38 ans
+Type de revenu D2 : Salarié(e)
+
+== REVENUS 2025 — DÉCLARANT 1 ==
+Net imposable annuel (1AJ — case déclaration) : 50 000 €
+PAS prélevé 2025 : 4 500 €
+
+== FRAIS RÉELS — DÉCLARANT 1 ==
+Distance aller (km) : 40
+Jours travaillés : 220
+Puissance fiscale (CV) : 5
+Véhicule électrique : NON
+Autres frais professionnels : 0 €
+Option frais réels : OUI
+
+== REVENUS 2025 — DÉCLARANT 2 ==
+Net imposable annuel (1BJ — case déclaration) : 40 000 €
+PAS prélevé 2025 : 2 800 €
+
+== FRAIS RÉELS — DÉCLARANT 2 ==
+Distance aller (km) : 5
+Jours travaillés : 210
+Puissance fiscale (CV) : 3
+Véhicule électrique : NON
+Autres frais professionnels : 0 €
+Option frais réels : NON

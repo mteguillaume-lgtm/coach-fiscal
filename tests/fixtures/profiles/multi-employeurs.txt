@@ -1,81 +1,64 @@
-================================================================================
-                  PROFIL FISCAL FOYER 2025 - PROFIL TEST SPRINT A
-================================================================================
-Profil fictif pour tester les revenus salariés étendus
+== PROFIL FISCAL FOYER 2025 ==
+Profil fictif pour tester les revenus salariés étendus — Sprint A
 
-----------------------------------------
-SITUATION DU FOYER
-----------------------------------------
+== SITUATION DU FOYER ==
 Statut : Célibataire
 Parts fiscales : 1
 Enfants à charge : 0
 Département : 75
 
-================================================================================
- REVENUS 2025 - DÉCLARANT 1
-================================================================================
+== PROFIL & RETRAITE ==
+Âge D1 : 35 ans
+Type de revenu D1 : Salarié(e)
 
-----------------------------------------
-EMPLOYEUR 1 (jan - mai 2025)
-----------------------------------------
-Brut imposable cumul : 18 500,00 €
-Net imposable cumul  : 14 800,00 €
-PAS prélevé cumul    :  1 332,00 €
-Taux PAS appliqué    :  9,00 %
+== REVENUS 2025 ==
+Brut imposable annuel : 40 500 €
+Net imposable annuel (1AJ — case déclaration) : 32 400 €
+PAS prélevé 2025 : 2 916 €
+Frais réels : Forfait 10% retenu
 
-----------------------------------------
-EMPLOYEUR 2 (juin - oct 2025)
-----------------------------------------
-Brut imposable cumul : 22 000,00 €
-Net imposable cumul  : 17 600,00 €
-PAS prélevé cumul    :  1 584,00 €
-Taux PAS appliqué    :  9,00 %
+  Source 1 — Employeur : Employeur A (jan-mai 2025)
+  Type source : employeur
+  Brut imposable : 18 500 €
+  Net imposable : 14 800 €
+  PAS prélevé : 1 332 €
+  Taux PAS : 9,00%
 
-----------------------------------------
-CHÔMAGE FRANCE TRAVAIL (nov - déc 2025)
-----------------------------------------
-Indemnités brutes ARE : 2 800,00 €
-Indemnités nettes ARE : 2 660,00 €
-PAS prélevé France Travail : 0,00 €
-Case déclarative : 1AP
+  Source 2 — Employeur : Employeur B (juin-oct 2025)
+  Type source : employeur
+  Brut imposable : 22 000 €
+  Net imposable : 17 600 €
+  PAS prélevé : 1 584 €
+  Taux PAS : 9,00%
 
-----------------------------------------
-HEURES SUPP DÉFISCALISÉES
-----------------------------------------
-Montant exonéré (employeur 2) : 1 200,00 €
-Case déclarative : 1GH
-Plafond annuel : 7 500 €
+== ALLOCATIONS CHÔMAGE FRANCE TRAVAIL ==
+Allocations brutes ARE : 2 800 €
+Allocations nettes ARE (1AP) : 2 660 €
+PAS prélevé France Travail : 0 €
+Case 1AP : 2 660 €
 
-----------------------------------------
-APPRENTISSAGE (néant pour ce profil)
-----------------------------------------
+== HEURES SUPPLÉMENTAIRES DÉFISCALISÉES ==
+Montant exonéré D1 (1GH) : 1 200 €
 
-----------------------------------------
-SYNTHÈSE D1 ANNUELLE
-----------------------------------------
-Brut salaires total : 40 500,00 €
-Net salaires total  : 32 400,00 €
-ARE total           :  2 660,00 €
-HS défiscalisées    :  1 200,00 € (non imposable)
-PAS total prélevé   :  2 916,00 €
+== APPRENTISSAGE ==
+Rémunération brute : 20 000 €
 
-Cases 2026 :
-  1AJ : 32 400 (net imposable salaires cumul 2 employeurs)
-  1AP : 2 660 (allocations chômage)
-  1GH : 1 200 (heures supp défiscalisées)
-  8HV : 2 916 (PAS total D1)
+== INDEMNITÉ DE LICENCIEMENT ==
+Indemnité totale : 100 000 €
+Indemnité légale ou conventionnelle : 20 000 €
+Rémunération annuelle de référence : 35 000 €
 
-================================================================================
- ÉPARGNE - DÉCLARANT 1
-================================================================================
-Livret A : 5 000 €
-LDDS     : 0 €
-LEP      : Non éligible
-PEA      : 0 €
-AV       : 0 €
-PER      : 0 €
+== PRIME DE PARTAGE DE LA VALEUR ==
+Montant PPV : 2 500 €
+Rémunération brute 12 mois précédents : 40 000 €
+Accord d'intéressement : NON
+Taille entreprise : < 50 salariés
+Affectation PEE/PERECO : NON
 
-================================================================================
- OBJECTIFS 2026
-================================================================================
-Vérifier le calcul d'IR avec cumul multi-sources de PAS
+== ÉPARGNE — DÉCLARANT 1 ==
+Livret A : OUI ~5 000 €
+LDDS : Néant
+LEP : Non éligible
+PEA : Néant
+Assurance-vie : Néant
+PER versements 2025 : Néant

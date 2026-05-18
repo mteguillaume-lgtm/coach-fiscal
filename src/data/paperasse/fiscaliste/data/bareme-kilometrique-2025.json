@@ -1,0 +1,172 @@
+{
+  "last_updated": "2026-05-18",
+  "annee_fiscale": 2025,
+  "annee_declaration": 2026,
+  "source": "BOFiP BOI-BAREME-000001 + article 6 B annexe IV CGI + brochure pratique DGFiP 2026",
+  "note_generale": "Barème inchangé depuis revenus 2022 (revalorisation +5,4%). Gelé pour revenus 2023, 2024 et 2025. À vérifier chaque année en avril/mai.",
+
+  "regle_eligibilite": {
+    "vehicule": "Voiture, moto/scooter ou cyclomoteur",
+    "proprietaire_du_vehicule": "Salarié, conjoint ou membre du foyer fiscal (voiture). Salarié ou non-propriétaire (deux-roues).",
+    "vehicule_loue": "Loyer couvert par le barème, non déductible en plus",
+    "limite_kilometrique": "Sauf exceptions (handicap, horaires décalés...), la déduction est plafonnée à 80 km aller-retour par jour pour les trajets domicile-travail",
+    "documents_a_conserver": "Carte grise, calcul de distance, justification professionnelle — 3 ans"
+  },
+
+  "calcul_principe": {
+    "formule_tranche_intermediaire": "(distance × coefficient) + constante",
+    "formule_tranche_courte_et_longue": "distance × coefficient",
+    "tranches": ["0 à 5 000 km", "5 001 à 20 000 km", "au-delà de 20 000 km"],
+    "puissance_fiscale_voiture": "Lue sur la carte grise case P.6 (chevaux fiscaux)"
+  },
+
+  "bareme_voitures_thermiques": {
+    "description": "Voitures essence, diesel, GPL, hybrides (non 100% électriques)",
+    "majoration_electrique": {
+      "applicable": true,
+      "taux": 0.20,
+      "regle": "Majoration de +20% du résultat final pour les véhicules 100% électriques (art. 6 B bis annexe IV CGI)"
+    },
+    "tranches": {
+      "3_cv_et_moins": {
+        "puissance_fiscale": "3 CV et moins",
+        "0_a_5000_km": {"coefficient": 0.529, "constante": 0},
+        "5001_a_20000_km": {"coefficient": 0.316, "constante": 1065},
+        "au_dela_20000_km": {"coefficient": 0.370, "constante": 0}
+      },
+      "4_cv": {
+        "puissance_fiscale": "4 CV",
+        "0_a_5000_km": {"coefficient": 0.606, "constante": 0},
+        "5001_a_20000_km": {"coefficient": 0.340, "constante": 1330},
+        "au_dela_20000_km": {"coefficient": 0.407, "constante": 0}
+      },
+      "5_cv": {
+        "puissance_fiscale": "5 CV",
+        "0_a_5000_km": {"coefficient": 0.636, "constante": 0},
+        "5001_a_20000_km": {"coefficient": 0.357, "constante": 1395},
+        "au_dela_20000_km": {"coefficient": 0.427, "constante": 0}
+      },
+      "6_cv": {
+        "puissance_fiscale": "6 CV",
+        "0_a_5000_km": {"coefficient": 0.665, "constante": 0},
+        "5001_a_20000_km": {"coefficient": 0.374, "constante": 1457},
+        "au_dela_20000_km": {"coefficient": 0.447, "constante": 0}
+      },
+      "7_cv_et_plus": {
+        "puissance_fiscale": "7 CV et plus",
+        "0_a_5000_km": {"coefficient": 0.697, "constante": 0},
+        "5001_a_20000_km": {"coefficient": 0.394, "constante": 1515},
+        "au_dela_20000_km": {"coefficient": 0.470, "constante": 0}
+      }
+    }
+  },
+
+  "bareme_motos": {
+    "description": "Motocyclettes de cylindrée > 50 cm³",
+    "tranches": {
+      "1_ou_2_cv": {
+        "puissance_fiscale": "1 ou 2 CV",
+        "0_a_3000_km": {"coefficient": 0.395, "constante": 0},
+        "3001_a_6000_km": {"coefficient": 0.099, "constante": 891},
+        "au_dela_6000_km": {"coefficient": 0.248, "constante": 0}
+      },
+      "3_4_ou_5_cv": {
+        "puissance_fiscale": "3, 4 ou 5 CV",
+        "0_a_3000_km": {"coefficient": 0.468, "constante": 0},
+        "3001_a_6000_km": {"coefficient": 0.082, "constante": 1158},
+        "au_dela_6000_km": {"coefficient": 0.275, "constante": 0}
+      },
+      "plus_de_5_cv": {
+        "puissance_fiscale": "Plus de 5 CV",
+        "0_a_3000_km": {"coefficient": 0.606, "constante": 0},
+        "3001_a_6000_km": {"coefficient": 0.079, "constante": 1583},
+        "au_dela_6000_km": {"coefficient": 0.343, "constante": 0}
+      }
+    }
+  },
+
+  "bareme_cyclomoteurs": {
+    "description": "Cyclomoteurs de cylindrée ≤ 50 cm³",
+    "tranches": {
+      "tarif_unique": {
+        "puissance_fiscale": "Tous (≤ 50 cm³)",
+        "0_a_3000_km": {"coefficient": 0.315, "constante": 0},
+        "3001_a_6000_km": {"coefficient": 0.079, "constante": 711},
+        "au_dela_6000_km": {"coefficient": 0.198, "constante": 0}
+      }
+    }
+  },
+
+  "exemples_officiels": [
+    {
+      "cas": "4 000 km en 5 CV (tranche 0-5000)",
+      "calcul": "4000 × 0,636 = 2 544 €",
+      "resultat": 2544,
+      "source": "service-public.fr"
+    },
+    {
+      "cas": "11 000 km en 5 CV (tranche 5001-20000)",
+      "calcul": "11000 × 0,357 + 1 395 = 5 322 €",
+      "resultat": 5322,
+      "source": "BOFiP"
+    },
+    {
+      "cas": "25 000 km en 6 CV (tranche > 20000)",
+      "calcul": "25000 × 0,447 = 11 175 €",
+      "resultat": 11175,
+      "source": "BOFiP"
+    },
+    {
+      "cas": "10 000 km en 5 CV électrique",
+      "calcul": "(10000 × 0,357 + 1 395) × 1,20 = 4 962 × 1,20 = 5 954,40 €",
+      "resultat": 5954.40,
+      "source": "BOFiP art. 6 B bis"
+    }
+  ],
+
+  "regle_changement_vehicule_en_cours_annee": {
+    "description": "Si changement de véhicule, calculer SÉPARÉMENT pour chaque véhicule (ne PAS additionner les kilomètres)",
+    "exemple": "3 000 km en 3 CV + 8 000 km en 5 CV → calcul = 3000 × 0,529 + (8000 × 0,357 + 1 395) = 1 587 + 4 251 = 5 838 €",
+    "source": "doctrine fiscale BOFiP"
+  },
+
+  "frais_deductibles_en_plus_du_bareme": {
+    "inclus_dans_bareme": [
+      "Dépréciation du véhicule (ou loyer si location)",
+      "Carburant (ou rechargement si électrique)",
+      "Location de batterie (électrique)",
+      "Réparations et entretien",
+      "Usure des pneumatiques",
+      "Assurance véhicule"
+    ],
+    "deductibles_en_supplement_sur_justificatifs": [
+      "Intérêts d'emprunt (au prorata d'usage professionnel) si achat à crédit",
+      "Frais de péage (autoroute)",
+      "Frais de stationnement (parking habituel ou occasionnel professionnel)"
+    ]
+  },
+
+  "cases_declaratives": {
+    "frais_reels_declarant_1": "1AK",
+    "frais_reels_declarant_2": "1BK",
+    "regle": "Saisir le total des frais réels (kilométriques + autres frais professionnels) — l'option frais réels écarte automatiquement le forfait 10%"
+  },
+
+  "arbitrage_forfait_vs_reel": {
+    "forfait_10_pourcent": {
+      "minimum_2025": 495,
+      "maximum_2025": 14171,
+      "source": "bareme-ir-2025.json"
+    },
+    "regle_arbitrage": "Frais réels intéressants uniquement si total justifié > forfait 10% du net imposable. Calcul automatique recommandé.",
+    "irreversible_dans_annee": false,
+    "note": "L'option est globale pour tous les revenus salariés du déclarant"
+  },
+
+  "notes_methodologie": [
+    "Le barème inclut le calcul kilométrique aller-retour domicile-travail",
+    "Plafond pratique : 80 km A/R par jour ou 40 km × 220 jours travaillés ≈ 17 600 km/an pour 1 trajet domicile-travail",
+    "Au-delà : justification professionnelle nécessaire (horaires décalés, double activité, handicap, etc.)",
+    "Le barème couvre aussi les déplacements professionnels (missions, clients, formations) en plus du trajet domicile-travail"
+  ]
+}

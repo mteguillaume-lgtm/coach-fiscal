@@ -44,3 +44,4 @@ _sources/
 
 # Claude Code
 .claude/
+memory/

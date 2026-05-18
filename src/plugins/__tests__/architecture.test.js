@@ -28,21 +28,24 @@ describe('architecture — interface IncomePlugin (8 propriétés)', () => {
 // ─── Unicité des IDs ──────────────────────────────────────────────────────────
 
 describe('architecture — unicité des IDs', () => {
-  it('aucun id en double parmi les 16 plugins', () => {
+  it('aucun id en double parmi les 20 plugins', () => {
     const ids = registry.getAll().map(p => p.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids.length).toBe(16);
+    expect(ids.length).toBe(20); // 9 actifs + 11 stubs
   });
 });
 
 // ─── Plugins actifs (version 1.0.0) ──────────────────────────────────────────
 
 describe('architecture — plugins actifs (v1.0.0)', () => {
-  const ACTIVE_IDS = ['salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers'];
+  const ACTIVE_IDS = [
+    'salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers', 'chomage-france-travail',
+    'apprentissage', 'heures-supp', 'licenciement', 'ppv',
+  ];
 
-  it('exactement 4 plugins actifs (version 1.0.0)', () => {
+  it('exactement 9 plugins actifs (version 1.0.0)', () => {
     const active = registry.getAll().filter(p => p.version === '1.0.0');
-    expect(active.length).toBe(4);
+    expect(active.length).toBe(9);
   });
 
   for (const id of ACTIVE_IDS) {
@@ -67,9 +70,9 @@ describe('architecture — plugins actifs (v1.0.0)', () => {
 // ─── Stubs (version 0.0.1) ───────────────────────────────────────────────────
 
 describe('architecture — stubs (v0.0.1)', () => {
-  it('exactement 12 stubs (version 0.0.1)', () => {
+  it('exactement 11 stubs (version 0.0.1)', () => {
     const stubs = registry.getAll().filter(p => p.version === '0.0.1');
-    expect(stubs.length).toBe(12);
+    expect(stubs.length).toBe(11);
   });
 
   it('stubs : parser() retourne un objet (pas null, pas undefined)', () => {
