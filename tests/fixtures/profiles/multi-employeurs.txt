@@ -1,0 +1,81 @@
+================================================================================
+                  PROFIL FISCAL FOYER 2025 - PROFIL TEST SPRINT A
+================================================================================
+Profil fictif pour tester les revenus salariés étendus
+
+----------------------------------------
+SITUATION DU FOYER
+----------------------------------------
+Statut : Célibataire
+Parts fiscales : 1
+Enfants à charge : 0
+Département : 75
+
+================================================================================
+ REVENUS 2025 - DÉCLARANT 1
+================================================================================
+
+----------------------------------------
+EMPLOYEUR 1 (jan - mai 2025)
+----------------------------------------
+Brut imposable cumul : 18 500,00 €
+Net imposable cumul  : 14 800,00 €
+PAS prélevé cumul    :  1 332,00 €
+Taux PAS appliqué    :  9,00 %
+
+----------------------------------------
+EMPLOYEUR 2 (juin - oct 2025)
+----------------------------------------
+Brut imposable cumul : 22 000,00 €
+Net imposable cumul  : 17 600,00 €
+PAS prélevé cumul    :  1 584,00 €
+Taux PAS appliqué    :  9,00 %
+
+----------------------------------------
+CHÔMAGE FRANCE TRAVAIL (nov - déc 2025)
+----------------------------------------
+Indemnités brutes ARE : 2 800,00 €
+Indemnités nettes ARE : 2 660,00 €
+PAS prélevé France Travail : 0,00 €
+Case déclarative : 1AP
+
+----------------------------------------
+HEURES SUPP DÉFISCALISÉES
+----------------------------------------
+Montant exonéré (employeur 2) : 1 200,00 €
+Case déclarative : 1GH
+Plafond annuel : 7 500 €
+
+----------------------------------------
+APPRENTISSAGE (néant pour ce profil)
+----------------------------------------
+
+----------------------------------------
+SYNTHÈSE D1 ANNUELLE
+----------------------------------------
+Brut salaires total : 40 500,00 €
+Net salaires total  : 32 400,00 €
+ARE total           :  2 660,00 €
+HS défiscalisées    :  1 200,00 € (non imposable)
+PAS total prélevé   :  2 916,00 €
+
+Cases 2026 :
+  1AJ : 32 400 (net imposable salaires cumul 2 employeurs)
+  1AP : 2 660 (allocations chômage)
+  1GH : 1 200 (heures supp défiscalisées)
+  8HV : 2 916 (PAS total D1)
+
+================================================================================
+ ÉPARGNE - DÉCLARANT 1
+================================================================================
+Livret A : 5 000 €
+LDDS     : 0 €
+LEP      : Non éligible
+PEA      : 0 €
+AV       : 0 €
+PER      : 0 €
+
+================================================================================
+ OBJECTIFS 2026
+================================================================================
+Vérifier le calcul d'IR avec cumul multi-sources de PAS
