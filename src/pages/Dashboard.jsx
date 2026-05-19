@@ -2,7 +2,7 @@ import { useState, useMemo }   from 'react';
 import { useNavigate, Link }    from 'react-router-dom';
 import { useApp }               from '../context/AppContext';
 import { detectOpportunities }  from '../lib/opportunitiesDetector';
-import { calcIR } from '../lib/taxCalculator';
+import { calcIR, computeFoyerSummary } from '../lib/taxCalculator';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -301,6 +301,7 @@ export default function Dashboard() {
 
   const [activeTab, setActiveTab] = useState('foyer');
 
+  const summary  = useMemo(() => computeFoyerSummary(p), [p]);
   const opps     = useMemo(() => detectOpportunities(p), [p]);
   const divScore = useMemo(() => diversificationScore(p), [p]);
 
@@ -430,7 +431,7 @@ export default function Dashboard() {
       </section>
 
       {/* Section 3 : Synthèse fiscale (si données disponibles après enrichissement IA) */}
-      {(p.irNet > 0 || p.remboursement > 0 || p.pasTotal > 0) && (
+      {summary && (summary.totalDu > 0 || summary.pasTotal > 0) && (
         <section className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <span className="w-6 h-6 rounded-lg bg-teal-gradient flex items-center justify-center text-white text-[10px] font-bold">3</span>
@@ -440,33 +441,33 @@ export default function Dashboard() {
             )}
           </h2>
           <div className="grid grid-cols-2 gap-2">
-            {p.irNet > 0    && <InfoRow label="IR net"       value={fmtE(p.irNet)}    />}
-            {p.totalDu > 0  && <InfoRow label="Total dû"     value={fmtE(p.totalDu)}  />}
-            {p.pasTotal > 0 && <InfoRow label="PAS prélevé"  value={fmtE(p.pasTotal)} />}
+            {summary.irNet > 0    && <InfoRow label="IR net"       value={fmtE(summary.irNet)}    />}
+            {summary.totalDu > 0  && <InfoRow label="Total dû"     value={fmtE(summary.totalDu)}  />}
+            {summary.pasTotal > 0 && <InfoRow label="PAS prélevé"  value={fmtE(summary.pasTotal)} />}
           </div>
-          {p.remboursement > 0 && (
+          {summary.solde < 0 && (
             <div className="flex items-center justify-between rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
               <div>
                 <p className="text-xs font-semibold text-teal-800">Remboursement attendu</p>
                 <p className="text-[10px] text-teal-600 mt-0.5">Versé en juillet–septembre</p>
               </div>
-              <span className="text-base font-bold text-teal-700">+{fmt(p.remboursement)} €</span>
+              <span className="text-base font-bold text-teal-700">+{fmt(Math.abs(summary.solde))} €</span>
             </div>
           )}
-          {p.solde < 0 && p.remboursement === 0 && (
+          {summary.solde > 0 && (
             <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-200 px-4 py-3">
               <div>
                 <p className="text-xs font-semibold text-red-800">Complément à payer</p>
-                <p className="text-[10px] text-red-600 mt-0.5">Prélevé en septembre</p>
+                <p className="text-[10px] text-red-600 mt-0.5">Prélevé en septembre 2026</p>
               </div>
-              <span className="text-base font-bold text-red-700">{fmt(-p.solde)} €</span>
+              <span className="text-base font-bold text-red-700">{fmt(summary.solde)} €</span>
             </div>
           )}
         </section>
       )}
 
       {/* Section 4 (couple) : Répartition fiscale */}
-      {isCouple && <ContributionTable p={p} sectionNum={p.irNet > 0 || p.remboursement > 0 || p.pasTotal > 0 ? '4' : '3'} />}
+      {isCouple && <ContributionTable p={p} sectionNum={summary && (summary.totalDu > 0 || summary.pasTotal > 0) ? '4' : '3'} />}
 
       {/* Section Opportunités */}
       <section className="flex flex-col gap-4">

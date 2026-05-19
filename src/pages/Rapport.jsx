@@ -124,7 +124,7 @@ function computeData(profile, p = {}) {
   const pasD2   = pf(secD2, /PAS prélevé 2025\s*:\s*([\d\s,]+)\s*€/);
   const _fs     = computeFoyerSummary(p);
   const pasTotal = _fs?.pasTotal > 0 ? _fs.pasTotal : pasD1 + pasD2;
-  const solde    = pasTotal - totalDu;
+  const solde    = totalDu - pasTotal;
 
   let irD1Solo = 0, irD2Solo = 0, gainPacs = 0, totalSolo = 0;
   let contribD1 = 0, contribD2 = 0, regloD1 = 0, regloD2 = 0;
@@ -580,7 +580,7 @@ function TmiProseBlock({ d }) {
 
 function SoldeTable({ d, cehr = 0 }) {
   const { irBrutFoyer, dec, irNetFoyer, psFoncier, totalDu, pasTotal, pasD1, pasD2, solde, isCouple } = d;
-  const isRemb = solde >= 0;
+  const isRemb = solde <= 0;
 
   return (
     <SectionBox title="Étape 3 — IR foyer et solde">
@@ -639,7 +639,7 @@ function SoldeTable({ d, cehr = 0 }) {
           </tr>
           <TotalRow
             label={isRemb ? 'Remboursement attendu' : 'Complément à payer'}
-            value={(isRemb ? '+ ' : '− ') + e2(Math.abs(solde))}
+            value={(isRemb ? '+ ' : '') + e2(Math.abs(solde))}
             color={isRemb ? 'teal' : 'amber'}
           />
         </tbody>
@@ -653,7 +653,7 @@ function SoldeTable({ d, cehr = 0 }) {
 function GainPacsTable({ d }) {
   const { irD1Solo, irD2Solo, totalSolo, gainPacs, irNetFoyer,
           contribD1, contribD2, pasD1, pasD2, pasTotal, solde } = d;
-  const isRemb = solde >= 0;
+  const isRemb = solde <= 0;
 
   return (
     <SectionBox title="Partage équitable du gain PACS — qui paie quoi">
@@ -707,7 +707,7 @@ function GainPacsTable({ d }) {
             <Td right>{e2(pasD2)}</Td>
             <Td right>{e2(pasTotal)}</Td>
           </tr>
-          <tr className={`border-t-2 ${solde >= 0 ? 'bg-teal-50/60 border-teal-200' : 'bg-amber-50/60 border-amber-200'}`}>
+          <tr className={`border-t-2 ${solde <= 0 ? 'bg-teal-50/60 border-teal-200' : 'bg-amber-50/60 border-amber-200'}`}>
             <td className="px-4 py-3 text-xs font-bold text-gray-900 whitespace-nowrap">Régularisation foyer</td>
             <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums whitespace-nowrap ${d.regloD1 >= 0 ? 'text-teal-700' : 'text-amber-700'}`}>
               {d.regloD1 >= 0 ? 'récupère ' : 'verse '}{e2(Math.abs(d.regloD1))}
@@ -716,7 +716,7 @@ function GainPacsTable({ d }) {
               {d.regloD2 >= 0 ? 'récupère ' : 'verse '}{e2(Math.abs(d.regloD2))}
             </td>
             <td className={`px-4 py-3 text-xs font-bold text-right tabular-nums whitespace-nowrap ${isRemb ? 'text-teal-700' : 'text-amber-700'}`}>
-              {isRemb ? '+ ' : '− '}{e2(Math.abs(solde))}
+              {isRemb ? '+ ' : ''}{e2(Math.abs(solde))}
             </td>
           </tr>
         </tbody>
@@ -1510,7 +1510,7 @@ function FeuilleRouteModule({ p, d }) {
       color: 'teal',
     });
   }
-  if (d.solde < -500) {
+  if (d.solde > 500) {
     priorities.push({
       title: 'Ajuster le taux PAS',
       levier: 'Éviter le complément à payer en septembre',
@@ -1620,7 +1620,7 @@ function RecapModule({ p, d }) {
     { label: 'TMI',                                  value: `${d.tmi} %` },
     { label: 'IR net foyer',                         value: e0(d.irNetFoyer) },
     { label: 'PAS prélevé 2025',                     value: e0(d.pasTotal) },
-    { label: 'Solde (rembours. / complément)',        value: (d.solde >= 0 ? '+ ' : '− ') + e0(Math.abs(d.solde)) },
+    { label: 'Solde (rembours. / complément)',        value: (d.solde <= 0 ? '+ ' : '') + e0(Math.abs(d.solde)) },
     ...(plafondPerTotal > 0 ? [{ label: 'Plafonds PER disponibles',  value: e0(plafondPerTotal) }] : []),
     ...(patrimoineTotal > 0 ? [{ label: 'Patrimoine financier total', value: e0(patrimoineTotal) }] : []),
     ...(epargneLiquide > 0  ? [{ label: 'Épargne liquide',           value: e0(epargneLiquide) }] : []),
@@ -2061,7 +2061,7 @@ export default function Rapport() {
   }
 
   const aiSections = d.sections.filter(s => isAiSection(s.title));
-  const isRemb     = d.solde >= 0;
+  const isRemb     = d.solde <= 0;
   const isCouple   = d.isCouple;
   const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
   const perSimulation = state.perSimulation ?? {};
@@ -2183,7 +2183,7 @@ export default function Rapport() {
               />
               <KpiCard
                 label={isRemb ? 'Remboursement attendu' : 'Complément à payer'}
-                value={(isRemb ? '+ ' : '− ') + e0(Math.abs(d.solde))}
+                value={(isRemb ? '+ ' : '') + e0(Math.abs(d.solde))}
                 sub={`PAS prélevé ${e0(d.pasTotal)}`}
                 color={isRemb ? 'teal' : 'amber'}
               />
