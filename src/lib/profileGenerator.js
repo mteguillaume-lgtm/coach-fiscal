@@ -119,6 +119,7 @@ PEL : ${fmtOui(d.pel)}${d.pel_date ? `\nPEL date ouverture : ${d.pel_date}` : ''
 PEA : ${fmtOui(d.pea)}${d.pea_date ? `\nPEA date ouverture : ${d.pea_date}` : ''}${d.pea_verse && d.pea_verse !== '0' ? `\nPEA total versé : ${Number(d.pea_verse).toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d.av)}${d.av_date ? `\nAV date souscription : ${d.av_date}` : ''}${d.av_verse && d.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d.av_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d.per)}
+PEE (valorisation) : ${fmtOui(d.pee)}${d.pee_verse && d.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d.pee_verse).toLocaleString('fr-FR')} €` : ''}
 Crypto (valeur wallet) : ${fmtOui(d.crypto_wallet)}${d.crypto_plateforme ? `\nCrypto plateforme : ${d.crypto_plateforme}` : ''}${d.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d.crypto_pv ? `\nCrypto plus-value nette : ${Number(d.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 
 == DÉDUCTIONS ==
@@ -301,6 +302,7 @@ Livret+ / Livret bancaire : ${fmtOui(d1.livret_plus)}
 PEL : ${fmtOui(d1.pel)}${d1.pel_date ? `\nPEL date ouverture : ${d1.pel_date}` : ''}
 PEA : ${fmtOui(d1.pea)}${d1.pea_date ? `\nPEA date ouverture : ${d1.pea_date}` : ''}${d1.pea_verse && d1.pea_verse !== '0' ? `\nPEA total versé : ${Number(d1.pea_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d1.per)}
+PEE (valorisation) : ${fmtOui(d1.pee)}${d1.pee_verse && d1.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d1.pee_verse).toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d1.av)}${d1.av_date ? `\nAV date souscription : ${d1.av_date}` : ''}${d1.av_verse && d1.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d1.av_verse).toLocaleString('fr-FR')} €` : ''}
 Crypto (valeur wallet) : ${fmtOui(d1.crypto_wallet)}${d1.crypto_plateforme ? `\nCrypto plateforme : ${d1.crypto_plateforme}` : ''}${d1.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d1.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d1.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d1.crypto_pv ? `\nCrypto plus-value nette : ${Number(d1.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 
@@ -312,6 +314,7 @@ Livret+ / Livret bancaire : ${fmtOui(d2.livret_plus)}
 PEL : ${fmtOui(d2.pel)}${d2.pel_date ? `\nPEL date ouverture : ${d2.pel_date}` : ''}
 PEA : ${fmtOui(d2.pea)}${d2.pea_date ? `\nPEA date ouverture : ${d2.pea_date}` : ''}${d2.pea_verse && d2.pea_verse !== '0' ? `\nPEA total versé : ${Number(d2.pea_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d2.per)}
+PEE (valorisation) : ${fmtOui(d2.pee)}${d2.pee_verse && d2.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d2.pee_verse).toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d2.av)}${d2.av_date ? `\nAV date souscription : ${d2.av_date}` : ''}${d2.av_verse && d2.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d2.av_verse).toLocaleString('fr-FR')} €` : ''}
 Crypto (valeur wallet) : ${fmtOui(d2.crypto_wallet)}${d2.crypto_plateforme ? `\nCrypto plateforme : ${d2.crypto_plateforme}` : ''}${d2.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d2.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d2.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d2.crypto_pv ? `\nCrypto plus-value nette : ${Number(d2.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 

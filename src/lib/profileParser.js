@@ -162,6 +162,8 @@ function _epargneDecl(sec, sfx) {
     [`pea${sfx}`]:               oui(sec, /PEA\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/),
     [`peaDate${sfx}`]:           s(sec,   /PEA date ouverture[^:\n]*:\s*(\S+)/i),
     [`peaVerse${sfx}`]:          n(sec,   /PEA total versé[^:\n]*:\s*([\d\s,]+)\s*€/i),
+    [`pee${sfx}`]:               oui(sec, /PEE\s*(?:\(valorisation\))?\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/i),
+    [`peeVerse${sfx}`]:          n(sec,   /PEE versements salarié 2025\s*:\s*([\d\s,]+)\s*€/i),
     [`av${sfx}`]:                oui(sec, /Assurance-vie\s*:\s*OUI\s*~\s*([\d\s,]+)\s*€/),
     [`avDate${sfx}`]:            s(sec,   /AV date souscription[^:\n]*:\s*(\S+)/i),
     [`avVerse${sfx}`]:           n(sec,   /AV versements nets cumulés[^:\n]*:\s*([\d\s,]+)\s*€/i),
@@ -260,8 +262,8 @@ function _patrimoine(epD1, epD2, immo, capacite, rniFoyer) {
   const g = (o, k) => o[k] || 0;
   const epargneLiquide   = g(epD1,'livretAD1') + g(epD1,'lddsD1') + g(epD1,'lepD1') + g(epD1,'livretPlusD1')
                          + g(epD2,'livretAD2') + g(epD2,'lddsD2') + g(epD2,'lepD2') + g(epD2,'livretPlusD2');
-  const epargneLongTerme = g(epD1,'peaD1') + g(epD1,'avD1') + g(epD1,'percoD1') + g(epD1,'pelD1')
-                         + g(epD2,'peaD2') + g(epD2,'avD2') + g(epD2,'percoD2') + g(epD2,'pelD2');
+  const epargneLongTerme = g(epD1,'peaD1') + g(epD1,'avD1') + g(epD1,'percoD1') + g(epD1,'pelD1') + g(epD1,'peeD1')
+                         + g(epD2,'peaD2') + g(epD2,'avD2') + g(epD2,'percoD2') + g(epD2,'pelD2') + g(epD2,'peeD2');
   const cryptoTotal       = g(epD1,'cryptoD1') + g(epD2,'cryptoD2');
   const patrimoineImmoNet = Math.max(0, g(immo,'rpValeur') - g(immo,'creditCrd'));
   const patrimoineNet     = epargneLiquide + epargneLongTerme + cryptoTotal + patrimoineImmoNet;
@@ -337,10 +339,10 @@ export function emptyProfile() {
     typeRevenuD2: 'Salarié(e)', pensionNetImpD2: 0,
     livretAD1: 0, lddsD1: 0, lepD1: 0, livretPlusD1: 0,
     pelD1: 0, pelDateD1: '', peaD1: 0, peaDateD1: '', peaVerseD1: 0, avD1: 0, avDateD1: '', avVerseD1: 0,
-    cryptoD1: 0, percoD1: 0, cryptoPlateformeD1: '', cryptoCessionsD1: '', cryptoMontantCedeD1: 0, cryptoPvD1: 0,
+    cryptoD1: 0, percoD1: 0, peeD1: 0, peeVerseD1: 0, cryptoPlateformeD1: '', cryptoCessionsD1: '', cryptoMontantCedeD1: 0, cryptoPvD1: 0,
     livretAD2: 0, lddsD2: 0, lepD2: 0, livretPlusD2: 0,
     pelD2: 0, pelDateD2: '', peaD2: 0, peaDateD2: '', peaVerseD2: 0, avD2: 0, avDateD2: '', avVerseD2: 0,
-    cryptoD2: 0, percoD2: 0, cryptoPlateformeD2: '', cryptoCessionsD2: '', cryptoMontantCedeD2: 0, cryptoPvD2: 0,
+    cryptoD2: 0, percoD2: 0, peeD2: 0, peeVerseD2: 0, cryptoPlateformeD2: '', cryptoCessionsD2: '', cryptoMontantCedeD2: 0, cryptoPvD2: 0,
     chargesFixes: 0, creditRp: 0, autresCredits: 0,
     chargesPersoD1: 0, chargesPersoD2: 0,
     capaciteEpargneD1: 0, capaciteEpargneD2: 0, capaciteEpargneFoyer: 0,

@@ -5,11 +5,12 @@ import {
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import toast                       from 'react-hot-toast';
-import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, PenLine } from 'lucide-react';
+import { TrendingUp, Layers, Home, Building2, Briefcase, MessageCircle, Save, ChevronRight, FileText, PenLine, ArrowRight } from 'lucide-react';
 
 import { useApp }       from '../context/AppContext';
 import Button           from '../components/Button';
 import EvolutionChart   from '../components/EvolutionChart';
+import SimImmobilier    from '../components/SimImmobilier';
 import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcIR, TRANCHES, computePerOptimumCascade, calcCEHR } from '../lib/taxCalculator';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
@@ -1322,12 +1323,263 @@ function SimFoncier({ data }) {
   );
 }
 
+// ─── Simulateur Frais Réels ───────────────────────────────────────────────────
+
+/**
+ * Barème kilométrique officiel 2024 (revenus 2024, déclaration 2025).
+ * Source : impôts.gouv.fr — arrêté du 22 février 2023, maintenu pour 2024.
+ *
+ *   ≤ 5 000 km          : d × a
+ *   5 001 → 20 000 km   : (d × b) + forfait
+ *   > 20 000 km         : d × c
+ *
+ * Majoration véhicule électrique : +20 % (art. 6 B annexe IV CGI).
+ * Repas pris hors domicile (sans cantine, sans mode de restauration sur le
+ * lieu de travail) : déduction par repas plafonnée à 21,10 € − 5,35 € = 15,75 €
+ * (BOI-RSA-BASE-30-50-30-20 §90).
+ */
+const BAREME_KM_2024 = {
+  3: { a: 0.529, b: 0.316, f: 1065, c: 0.370 },
+  4: { a: 0.606, b: 0.340, f: 1330, c: 0.407 },
+  5: { a: 0.636, b: 0.357, f: 1395, c: 0.427 },
+  6: { a: 0.665, b: 0.374, f: 1457, c: 0.447 },
+  7: { a: 0.697, b: 0.394, f: 1515, c: 0.470 },
+};
+const REPAS_FORFAIT_DOMICILE = 5.35; // valeur forfaitaire repas pris chez soi 2024
+const REPAS_PLAFOND_JOUR     = 21.10; // plafond indemnité repas 2024
+const REPAS_DEDUC_MAX        = REPAS_PLAFOND_JOUR - REPAS_FORFAIT_DOMICILE; // 15,75 €
+const ABAT_10_MIN            = 509;
+const ABAT_10_MAX            = 14_555;
+
+function fraisKm(km, cv, electrique) {
+  if (km <= 0) return 0;
+  const b = BAREME_KM_2024[Math.min(7, Math.max(3, cv))];
+  let base;
+  if      (km <= 5_000)  base = km * b.a;
+  else if (km <= 20_000) base = km * b.b + b.f;
+  else                   base = km * b.c;
+  return Math.round(base * (electrique ? 1.2 : 1));
+}
+
+function fraisRepas(jours, coutRepas) {
+  if (jours <= 0 || coutRepas <= 0) return 0;
+  const supplement = Math.min(REPAS_DEDUC_MAX, Math.max(0, coutRepas - REPAS_FORFAIT_DOMICILE));
+  return Math.round(supplement * jours);
+}
+
+function SimFrais({ data }) {
+  const navigate     = useNavigate();
+  const { dispatch, state } = useApp();
+  const isCouple     = data.isCouple;
+
+  // Pré-remplissage depuis le profil : salaire brut imposable (case 1AJ) du déclarant choisi.
+  const brutD1 = data.salairesBrutD1 || 0;
+  const brutD2 = data.salairesBrutD2 || 0;
+  const [declarant, setDeclarant] = useState('d1');
+  const salaireBrut = declarant === 'd2' ? brutD2 : brutD1;
+
+  // Trajet domicile-travail
+  const [distance,   setDistance]   = useState(20);     // km aller simple
+  const [joursSem,   setJoursSem]   = useState(5);
+  const [semaines,   setSemaines]   = useState(47);
+  const [cv,         setCv]         = useState(5);
+  const [electrique, setElectrique] = useState(false);
+
+  // Repas
+  const [joursRepas, setJoursRepas] = useState(0);
+  const [coutRepas,  setCoutRepas]  = useState(12);
+
+  // Autres frais professionnels (formation, documentation, double résidence, etc.)
+  const [autres, setAutres] = useState(0);
+
+  const res = useMemo(() => {
+    const kmAnnuels   = distance * 2 * joursSem * semaines;
+    const fVehicule   = fraisKm(kmAnnuels, cv, electrique);
+    const fRepas      = fraisRepas(joursRepas, coutRepas);
+    const fAutres     = Math.max(0, Number(autres) || 0);
+    const totalReels  = fVehicule + fRepas + fAutres;
+
+    const abat10Brut  = salaireBrut * 0.10;
+    const abat10      = salaireBrut > 0
+      ? Math.min(ABAT_10_MAX, Math.max(ABAT_10_MIN, Math.round(abat10Brut)))
+      : 0;
+
+    const gain        = totalReels - abat10;
+    const interessant = salaireBrut > 0 && gain > 0;
+
+    return { kmAnnuels, fVehicule, fRepas, fAutres, totalReels, abat10, gain, interessant };
+  }, [distance, joursSem, semaines, cv, electrique, joursRepas, coutRepas, autres, salaireBrut]);
+
+  const reporterDansCollecte = () => {
+    if (res.totalReels <= 0) {
+      toast.error('Renseignez au moins un poste de frais.');
+      return;
+    }
+    dispatch({
+      type: 'SET_FORM_DATA',
+      payload: { ...state.formData, frais_r: String(res.totalReels) },
+    });
+    toast.success(`Frais réels (${fmt(res.totalReels)} €) reportés dans la collecte.`);
+  };
+
+  const handleChat = () => {
+    const msg = `Simulation frais réels (${declarant === 'd2' ? 'D2' : 'D1'}) : trajet domicile-travail ${distance} km aller, ${joursSem} jours/semaine × ${semaines} semaines = ${fmt(res.kmAnnuels)} km/an, véhicule ${cv} CV${electrique ? ' électrique (+20 %)' : ''} → ${fmt(res.fVehicule)} €. Repas : ${joursRepas} jours × (${coutRepas} − 5,35 €) → ${fmt(res.fRepas)} €. Autres frais pro : ${fmt(res.fAutres)} €. Total frais réels : ${fmt(res.totalReels)} € vs abattement 10 % (${fmt(res.abat10)} €). ${res.interessant ? `Gain net = ${fmt(res.gain)} €.` : 'Le forfait 10 % reste plus avantageux.'} Peux-tu valider la cohérence et signaler les frais que j'aurais pu oublier ?`;
+    navigate('/chat', { state: { prefill: msg } });
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+
+      {isCouple && (
+        <ToggleGroup
+          label="Déclarant"
+          options={['d1', 'd2']}
+          value={declarant}
+          onChange={setDeclarant}
+          format={v => v === 'd1' ? 'Déclarant 1' : 'Déclarant 2'}
+        />
+      )}
+
+      {/* Trajet domicile-travail */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Trajet domicile ↔ travail</p>
+        <div className="flex flex-col gap-4">
+          <SimSlider label="Distance aller simple"        value={distance} min={0} max={150} step={1}  onChange={setDistance} format={v => `${v} km`} />
+          <SimSlider label="Jours travaillés / semaine"   value={joursSem} min={1} max={6}   step={1}  onChange={setJoursSem} format={v => `${v} j`} />
+          <SimSlider label="Semaines travaillées / an"    value={semaines} min={1} max={52}  step={1}  onChange={setSemaines} format={v => `${v} sem.`} />
+          <ToggleGroup
+            label="Puissance fiscale du véhicule"
+            options={[3, 4, 5, 6, 7]}
+            value={cv}
+            onChange={setCv}
+            format={v => v === 7 ? '7 CV et +' : `${v} CV`}
+          />
+          <ToggleGroup
+            label="Type de motorisation"
+            options={[false, true]}
+            value={electrique}
+            onChange={setElectrique}
+            format={v => v ? '⚡ Électrique (+20 %)' : 'Thermique / hybride'}
+          />
+        </div>
+      </div>
+
+      {/* Frais de repas */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Frais de repas hors domicile</p>
+        <div className="flex flex-col gap-4">
+          <SimSlider label="Nombre de repas dans l'année"      value={joursRepas} min={0} max={250} step={1} onChange={setJoursRepas} format={v => `${v} repas`} />
+          <SimSlider label="Coût moyen d'un repas (€)"         value={coutRepas}  min={0} max={30}  step={1} onChange={setCoutRepas}  format={v => `${v} €`} />
+        </div>
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Déduction = (coût repas − 5,35 €) × nombre de repas, plafonnée à 15,75 €/repas. À utiliser uniquement si vous n'avez ni cantine, ni titre-restaurant.
+        </p>
+      </div>
+
+      {/* Autres frais pro */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+          Autres frais professionnels (formation, documentation, double résidence…) — €
+        </label>
+        <input
+          type="number"
+          value={autres || ''}
+          onChange={e => setAutres(e.target.value)}
+          placeholder="0"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-300/50 font-sans placeholder:text-gray-300"
+        />
+      </div>
+
+      {/* Recommandation */}
+      <div className={`rounded-xl px-4 py-2.5 border text-xs flex items-start gap-2 ${
+        res.interessant
+          ? 'bg-teal-50 border-teal-200 text-teal-700'
+          : 'bg-gray-50 border-gray-200 text-gray-600'
+      }`}>
+        <span className="mt-0.5 shrink-0">{res.interessant ? '✅' : 'ℹ️'}</span>
+        <span>
+          {salaireBrut <= 0
+            ? 'Renseignez votre salaire brut imposable (case 1AJ) dans la collecte pour comparer avec l\'abattement 10 %.'
+            : res.interessant
+              ? `Vos frais réels (${fmt(res.totalReels)} €) dépassent l'abattement 10 % (${fmt(res.abat10)} €). Gain net : ${fmt(res.gain)} € à déduire en plus.`
+              : `L'abattement forfaitaire 10 % (${fmt(res.abat10)} €) reste plus avantageux que vos frais réels (${fmt(res.totalReels)} €). Laissez la case vide.`}
+        </span>
+      </div>
+
+      {/* Détail */}
+      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Détail des frais</p>
+        </div>
+        <div className="divide-y divide-gray-50">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <span className="text-sm text-gray-600">Indemnité kilométrique</span>
+              <p className="text-[10px] text-gray-400">{fmt(res.kmAnnuels)} km/an · barème {cv === 7 ? '7 CV+' : `${cv} CV`}{electrique ? ' ×1,20' : ''}</p>
+            </div>
+            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.fVehicule)} €</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm text-gray-600">Repas hors domicile</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.fRepas)} €</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm text-gray-600">Autres frais pro</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.fAutres)} €</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3 bg-teal-50/40">
+            <span className="text-sm font-semibold text-gray-700">Total frais réels</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-teal-700">{fmt(res.totalReels)} €</span>
+          </div>
+          {salaireBrut > 0 && (
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm text-gray-500">Abattement 10 % (référence)</span>
+              <span className="text-sm font-mono tabular-nums text-gray-500">{fmt(res.abat10)} €</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" className="flex-1"
+          onClick={() => saveSimulation(`Frais réels — ${fmt(res.totalReels)} € vs abat. 10% ${fmt(res.abat10)} €`)}>
+          <Save size={13} /> Sauvegarder
+        </Button>
+        <Button
+          variant={res.interessant ? 'primary' : 'secondary'}
+          size="sm"
+          className="flex-1"
+          onClick={reporterDansCollecte}
+          disabled={!res.interessant}
+        >
+          <ArrowRight size={13} /> Reporter dans la collecte
+        </Button>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleChat}
+        className="text-xs text-teal-600 hover:text-teal-700 underline self-center"
+      >
+        💬 Discuter de cette simulation
+      </button>
+
+      <p className="text-[10px] text-gray-400 text-center leading-snug">
+        Barème kilométrique 2024 (revenus 2024 → déclaration 2025). Plafonds repas : valeur forfaitaire 5,35 € — plafond 21,10 €.
+        Frais déductibles uniquement si vous renoncez à l'abattement forfaitaire 10 %.
+      </p>
+    </div>
+  );
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'per',        label: 'PER',        Icon: TrendingUp },
-  { id: 'enveloppes', label: 'Enveloppes', Icon: Layers     },
-  { id: 'foncier',    label: 'Foncier',    Icon: Home       },
+  { id: 'per',        label: 'PER',         Icon: TrendingUp },
+  { id: 'enveloppes', label: 'Enveloppes',  Icon: Layers     },
+  { id: 'foncier',    label: 'Foncier',     Icon: Home       },
+  { id: 'immo',       label: 'Immobilier',  Icon: Building2  },
+  { id: 'frais',      label: 'Frais réels', Icon: Briefcase  },
 ];
 
 const MODES = [
@@ -1684,6 +1936,8 @@ export default function Simulator() {
         {tab === 'per'        && <SimPER        data={profileData} />}
         {tab === 'enveloppes' && <SimEnveloppes data={profileData} />}
         {tab === 'foncier'    && <SimFoncier    data={profileData} />}
+        {tab === 'immo'       && <SimImmobilier />}
+        {tab === 'frais'      && <SimFrais      data={profileData} />}
       </div>
 
     </div>

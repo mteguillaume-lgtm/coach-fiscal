@@ -23,6 +23,7 @@ function diversificationScore(p) {
   if ((p.peaD1  || 0) + (p.peaD2  || 0) > 0) score += 2;
   if ((p.avD1   || 0) + (p.avD2   || 0) > 0) score += 2;
   if ((p.percoD1 || 0) > 0) score += 1;
+  if ((p.peeD1  || 0) + (p.peeD2  || 0) > 0) score += 1;
   if ((p.immoTotal || 0) > 0) score += 2;
   if ((p.cryptoTotal || 0) > 0) score += 1;
   return Math.min(score, 10);
@@ -136,7 +137,7 @@ function TabBar({ active, onChange }) {
 
 function DeclarantTab({ rev, ep, fiscal }) {
   const totalEp = (ep.livretA||0) + (ep.ldds||0) + (ep.lep||0) + (ep.livretPlus||0)
-                + (ep.pel||0) + (ep.pea||0) + (ep.av||0) + (ep.perco||0) + (ep.crypto||0);
+                + (ep.pel||0) + (ep.pea||0) + (ep.av||0) + (ep.perco||0) + (ep.pee||0) + (ep.crypto||0);
 
   const epLines = [
     { label: 'Livret A',        v: ep.livretA    },
@@ -147,6 +148,7 @@ function DeclarantTab({ rev, ep, fiscal }) {
     { label: 'PEA',             v: ep.pea        },
     { label: 'Assurance-vie',   v: ep.av         },
     { label: 'PER versements',  v: ep.perco      },
+    { label: 'PEE',             v: ep.pee        },
     { label: 'Crypto (wallet)', v: ep.crypto     },
   ].filter(x => (x.v || 0) > 0);
 
@@ -194,22 +196,22 @@ function DeclarantTab({ rev, ep, fiscal }) {
 
 // ─── ContributionTable ────────────────────────────────────────────────────────
 
-function ContributionTable({ p, sectionNum }) {
+function ContributionTable({ p, sectionNum, summary }) {
   const rniD1    = p.rniD1    || 0;
   const rniD2    = p.rniD2    || 0;
   const rniFoyer = p.rniFoyer || 0;
   const pasD1    = p.pasD1    || 0;
   const pasD2    = p.pasD2    || 0;
   const parts    = p.parts    || 2;
-  const irNet    = p.irNet    || 0;
 
   if (!rniFoyer) return null;
 
   // rniD1/rniD2 sont déjà post-abattement 10% (depuis le parser corrigé)
   const irD1Solo        = calcIR(rniD1, 1, false);
   const irD2Solo        = calcIR(rniD2, 1, false);
-  const irFoyerEnsemble = irNet > 0 ? irNet : calcIR(rniFoyer, parts, true);
+  const irFoyerEnsemble = summary?.irNet > 0 ? summary.irNet : calcIR(rniFoyer, parts, true);
   const gainCouple      = Math.max(0, irD1Solo + irD2Solo - irFoyerEnsemble);
+  const irNet           = irFoyerEnsemble;
 
   // Régularisation : PAS prélevé vs IR solo estimé
   const regD1 = pasD1 - irD1Solo;  // positif = trop prélevé → à rembourser
@@ -336,8 +338,8 @@ export default function Dashboard() {
   // ── Declarant data objects ──
   const d1Rev = { net: p.salaireNetImposableD1, brut: p.salairesBrutImposableD1, pas: p.pasD1, taux: p.tauxPasD1, pero: p.peroD1 };
   const d2Rev = { net: p.salaireNetImposableD2, brut: p.salairesBrutImposableD2, pas: p.pasD2, taux: p.tauxPasD2, pero: p.peroD2 };
-  const d1Ep  = { livretA: p.livretAD1, ldds: p.lddsD1, lep: p.lepD1, livretPlus: p.livretPlusD1, pel: p.pelD1, pea: p.peaD1, av: p.avD1, perco: p.percoD1, crypto: p.cryptoD1 };
-  const d2Ep  = { livretA: p.livretAD2, ldds: p.lddsD2, lep: p.lepD2, livretPlus: p.livretPlusD2, pel: p.pelD2, pea: p.peaD2, av: p.avD2, perco: p.percoD2, crypto: p.cryptoD2 };
+  const d1Ep  = { livretA: p.livretAD1, ldds: p.lddsD1, lep: p.lepD1, livretPlus: p.livretPlusD1, pel: p.pelD1, pea: p.peaD1, av: p.avD1, perco: p.percoD1, pee: p.peeD1, crypto: p.cryptoD1 };
+  const d2Ep  = { livretA: p.livretAD2, ldds: p.lddsD2, lep: p.lepD2, livretPlus: p.livretPlusD2, pel: p.pelD2, pea: p.peaD2, av: p.avD2, perco: p.percoD2, pee: p.peeD2, crypto: p.cryptoD2 };
   const d1Fis = { rni: p.rniD1, plafondPer: p.plafondPerD1 };
   const d2Fis = { rni: p.rniD2, plafondPer: p.plafondPerD2 };
 
@@ -467,7 +469,7 @@ export default function Dashboard() {
       )}
 
       {/* Section 4 (couple) : Répartition fiscale */}
-      {isCouple && <ContributionTable p={p} sectionNum={summary && (summary.totalDu > 0 || summary.pasTotal > 0) ? '4' : '3'} />}
+      {isCouple && <ContributionTable p={p} sectionNum={summary && (summary.totalDu > 0 || summary.pasTotal > 0) ? '4' : '3'} summary={summary} />}
 
       {/* Section Opportunités */}
       <section className="flex flex-col gap-4">

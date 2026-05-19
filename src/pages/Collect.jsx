@@ -129,7 +129,8 @@ const SECTION_SIT = {
 
 const REV_FIELDS = [
   ...pluginFields(['salaires', 'pensions-rentes'], ['pension_net_imp']),
-  { key: 'frais_r', label: 'Frais réels (€)', type: 'number', ph: 'vide = forfait 10%' },
+  { key: 'frais_r', label: 'Frais réels (€)', type: 'number', ph: 'vide = forfait 10%',
+    hint: 'Vide = abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer.' },
 ];
 
 const EP_INDIV_FIELDS = [
@@ -138,13 +139,21 @@ const EP_INDIV_FIELDS = [
   { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0' },
   { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
   { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0' },
-  { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate },
+  { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate,
+    dependsOn: { key: 'pel', check: v => parseFloat(v || 0) > 0 } },
   { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
-  { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate },
-  { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0' },
+  { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate,
+    dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
+    dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
   { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
+  { key: 'pee',                label: 'PEE — valorisation (€)',         type: 'number', ph: '0',
+    hint: 'Plan d\'Épargne Entreprise. Gains exonérés d\'IR (PS 17,2 % seulement). Abondement employeur exonéré.' },
+  { key: 'pee_verse',          label: 'PEE — versements salarié 2025 (€)', type: 'number', ph: '0',
+    dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 } },
   { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
-  { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate },
+  { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate,
+    dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 } },
   { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
     dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
     hint: 'Tous contrats AV de ce déclarant. Seuil 150 000 € (art. 125-0 A CGI).' },
@@ -197,16 +206,24 @@ const SECTION_EP_SOLO = {
     { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0' },
     { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
     { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0' },
-    { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate },
+    { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate,
+      dependsOn: { key: 'pel', check: v => parseFloat(v || 0) > 0 } },
     { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
-    { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate },
-    { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0' },
+    { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate,
+      dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
+    { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
+      dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
     { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
-    { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate },
+    { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate,
+      dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 } },
     { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
       dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
       hint: 'Tous vos contrats AV confondus. Seuil fiscal : 150 000 € (art. 125-0 A CGI). En dessous = taux 7,5 % IR post-8 ans. Au-delà = PFU 12,8 % sur la fraction excédentaire.' },
     { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
+    { key: 'pee',                label: 'PEE — valorisation (€)',         type: 'number', ph: '0',
+      hint: 'Plan d\'Épargne Entreprise. Gains exonérés d\'IR (PS 17,2 % seulement). Abondement employeur exonéré.' },
+    { key: 'pee_verse',          label: 'PEE — versements salarié 2025 (€)', type: 'number', ph: '0',
+      dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 } },
     { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
     { key: 'crypto_plateforme',  label: 'Crypto — plateforme',           type: 'select',
       opts: ['Binance', 'Coinbase', 'Kraken', 'Ledger (hardware)', 'Plateforme française', 'Autre'],
@@ -226,15 +243,16 @@ const SECTION_DED_SOLO = {
     { key: 'garde',    label: 'Frais garde enfants (€)',                type: 'number', ph: '0' },
     { key: 'domicile', label: 'Emploi à domicile (€)',                  type: 'number', ph: '0' },
     { key: 'travaux',  label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0' },
-    { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
-    { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0' },
-    { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0' },
-    { key: 'frais_r',  label: 'Frais réels (€)',                        type: 'number', ph: 'vide = forfait 10%' },
-    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
-    { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0' },
-    { key: 'per_n3',      label: 'PER reportable N-3 (€)',      type: 'number', ph: '0' },
-    { key: 'acompte_8hw', label: 'Acompte IR — case 8HW (€)',  type: 'number', ph: '0', hint: 'Acompte IR prélevé automatiquement (souvent < 100 €). Visible dans l\'espace PAS sur impots.gouv.' },
-    { key: 'acompte_8hx', label: 'Acompte PS — case 8HX (€)',  type: 'number', ph: '0', hint: 'Acompte prélèvements sociaux (foncier, mobilier). Prérempli par impots.gouv.' },
+    { key: 'frais_r',  label: 'Frais réels (€)',                        type: 'number', ph: 'vide = forfait 10%',
+      hint: 'Vide = abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer.' },
+    { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
+    { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true },
+    { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
+    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
+    { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true },
+    { key: 'per_n3',      label: 'PER reportable N-3 (€)',      type: 'number', ph: '0', advanced: true },
+    { key: 'acompte_8hw', label: 'Acompte IR — case 8HW (€)',  type: 'number', ph: '0', advanced: true, hint: 'Acompte IR prélevé automatiquement (souvent < 100 €). Visible dans l\'espace PAS sur impots.gouv.' },
+    { key: 'acompte_8hx', label: 'Acompte PS — case 8HX (€)',  type: 'number', ph: '0', advanced: true, hint: 'Acompte prélèvements sociaux (foncier, mobilier). Prérempli par impots.gouv.' },
   ],
 };
 
@@ -252,17 +270,17 @@ const SECTION_DED = {
     { key: 'garde',        label: 'Frais garde enfants (€)',                type: 'number', ph: '0' },
     { key: 'domicile',     label: 'Emploi à domicile (€)',                  type: 'number', ph: '0' },
     { key: 'travaux',      label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0' },
-    { key: 'pero_d1',      label: 'PERO D1 — cotisations 2025 (€)',         type: 'number', ph: '0', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D1 disponible N+1.' },
-    { key: 'pero_d2',      label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
-    { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0' },
-    { key: 'syndicat',     label: 'Cotisations syndicales (€)',             type: 'number', ph: '0' },
-    { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
-    { key: 'per_n2',       label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0' },
-    { key: 'per_n3',       label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0' },
-    { key: 'acompte_8hw',  label: 'Acompte IR D1 — case 8HW (€)',          type: 'number', ph: '0', hint: 'Acompte IR prélevé automatiquement par impots.gouv en cours d\'année (souvent < 100 €). Visible dans l\'espace "Gérer mon prélèvement à la source".' },
-    { key: 'acompte_8iw',  label: 'Acompte IR D2 — case 8IW (€)',          type: 'number', ph: '0' },
-    { key: 'acompte_8hx',  label: 'Acompte PS D1 — case 8HX (€)',          type: 'number', ph: '0', hint: 'Acompte prélèvements sociaux D1 (foncier, mobilier). Prérempli par impots.gouv.' },
-    { key: 'acompte_8ix',  label: 'Acompte PS D2 — case 8IX (€)',          type: 'number', ph: '0' },
+    { key: 'pero_d1',      label: 'PERO D1 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D1 disponible N+1.' },
+    { key: 'pero_d2',      label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
+    { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true },
+    { key: 'syndicat',     label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
+    { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
+    { key: 'per_n2',       label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true },
+    { key: 'per_n3',       label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0', advanced: true },
+    { key: 'acompte_8hw',  label: 'Acompte IR D1 — case 8HW (€)',          type: 'number', ph: '0', advanced: true, hint: 'Acompte IR prélevé automatiquement par impots.gouv en cours d\'année (souvent < 100 €). Visible dans l\'espace "Gérer mon prélèvement à la source".' },
+    { key: 'acompte_8iw',  label: 'Acompte IR D2 — case 8IW (€)',          type: 'number', ph: '0', advanced: true },
+    { key: 'acompte_8hx',  label: 'Acompte PS D1 — case 8HX (€)',          type: 'number', ph: '0', advanced: true, hint: 'Acompte prélèvements sociaux D1 (foncier, mobilier). Prérempli par impots.gouv.' },
+    { key: 'acompte_8ix',  label: 'Acompte PS D2 — case 8IX (€)',          type: 'number', ph: '0', advanced: true },
   ],
 };
 
@@ -284,7 +302,8 @@ const SECTION_IMMO = {
     { key: 'taxe_fonciere',     label: 'Taxe foncière annuelle (€)',      type: 'number', ph: '0',
       dependsOn: { key: 'proprio', value: 'Oui' } },
     { key: 'locatif',           label: 'Bien locatif ?',                  type: 'select', opts: ['Non', 'Oui — micro', 'Oui — réel'] },
-    { key: 'rev_loc',           label: 'Revenus locatifs 2025 (€)',       type: 'number', ph: '0' },
+    { key: 'rev_loc',           label: 'Revenus locatifs 2025 (€)',       type: 'number', ph: '0',
+      dependsOn: { key: 'locatif', check: v => v && v !== 'Non' } },
   ],
 };
 
@@ -361,10 +380,21 @@ function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
 
 function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAcc }) {
   const { Icon } = section;
-  const visible = section.fields.filter(f => _fieldVisible(f, data));
-  const filled  = visible.filter(f => data[f.key] && data[f.key] !== '').length;
-  const pct     = visible.length > 0 ? Math.round(filled / visible.length * 100) : 0;
-  const open    = activeAcc === section.id;
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const passDep    = f => _fieldVisible(f, data);
+  const baseFields = section.fields.filter(f => passDep(f) && !f.advanced);
+  const advFields  = section.fields.filter(f => passDep(f) &&  f.advanced);
+  const advFilled  = advFields.filter(f => data[f.key] && data[f.key] !== '').length;
+
+  // Si l'utilisateur a déjà rempli des cas particuliers, on les déplie d'office.
+  const advancedOpen = showAdvanced || advFilled > 0;
+
+  // Progression : on n'agrège que les champs réellement affichés.
+  const countable = advancedOpen ? [...baseFields, ...advFields] : baseFields;
+  const filled    = countable.filter(f => data[f.key] && data[f.key] !== '').length;
+  const pct       = countable.length > 0 ? Math.round(filled / countable.length * 100) : 0;
+  const open      = activeAcc === section.id;
 
   return (
     <div className={[
@@ -386,7 +416,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
           <span className="font-semibold text-sm text-gray-800">{section.label}</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="text-xs font-mono text-gray-400">{filled}/{visible.length}</span>
+          <span className="text-xs font-mono text-gray-400">{filled}/{countable.length}</span>
           <div className="w-8 h-1 bg-gray-100 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-300 ${pct === 100 ? 'bg-teal-500' : 'bg-purple-400'}`}
@@ -400,10 +430,36 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
       {open && (
         <div className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
           <div className="grid grid-cols-2 gap-3">
-            {section.fields.map(f => (
+            {baseFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
           </div>
+
+          {advFields.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(s => !s)}
+                className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:text-teal-800"
+              >
+                <ChevronDown
+                  size={13}
+                  className={`transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`}
+                />
+                {advancedOpen
+                  ? 'Masquer les cas particuliers'
+                  : `Voir les cas particuliers (${advFields.length}${advFilled > 0 ? ` · ${advFilled} renseigné${advFilled > 1 ? 's' : ''}` : ''})`}
+              </button>
+
+              {advancedOpen && (
+                <div className="mt-3 pt-3 border-t border-dashed border-gray-200 grid grid-cols-2 gap-3">
+                  {advFields.map(f => (
+                    <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
