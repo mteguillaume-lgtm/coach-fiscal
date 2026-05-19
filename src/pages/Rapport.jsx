@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
 import Button from '../components/Button';
-import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade, calcCEHR } from '../lib/taxCalculator';
+import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
 
 // ─── Float parser ─────────────────────────────────────────────────────────────
 
@@ -122,7 +122,8 @@ function computeData(profile, p = {}) {
 
   const pasD1   = pf(secD1, /PAS prélevé 2025\s*:\s*([\d\s,]+)\s*€/);
   const pasD2   = pf(secD2, /PAS prélevé 2025\s*:\s*([\d\s,]+)\s*€/);
-  const pasTotal = pasD1 + pasD2;
+  const _fs     = computeFoyerSummary(p);
+  const pasTotal = _fs?.pasTotal > 0 ? _fs.pasTotal : pasD1 + pasD2;
   const solde    = pasTotal - totalDu;
 
   let irD1Solo = 0, irD2Solo = 0, gainPacs = 0, totalSolo = 0;

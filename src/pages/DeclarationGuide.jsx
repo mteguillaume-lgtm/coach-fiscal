@@ -9,7 +9,7 @@ import {
 
 import { useApp }   from '../context/AppContext';
 import Button       from '../components/Button';
-import { calcIR }   from '../lib/taxCalculator';
+import { computeFoyerSummary } from '../lib/taxCalculator';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -520,20 +520,18 @@ function StepCrypto({ doneItems, onToggle }) {
   );
 }
 
-function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
-  const pasTotal      = (parsed.pas8HV || 0) + (mode === 'couple' ? (parsed.pas8IV || 0) : 0);
-  const parts         = parsed.parts  || (mode === 'couple' ? 2 : 1);
-  const isCouple      = parsed.isCouple ?? mode === 'couple';
-  const irTotal       = parsed.rni ? calcIR(parsed.rni, parts, isCouple) : null;
-  const solde         = irTotal != null ? irTotal - pasTotal : null;
-  const rembours      = solde != null && solde < 0;
-  const smallSolde    = solde != null && solde >= 0 && solde < 300;
-  const partLabel     = `${parts} part${parts > 1 ? 's' : ''} fiscale${parts > 1 ? 's' : ''}`;
+function StepRecap({ parsed, profile, mode, doneItems, onToggle, onShowConfetti }) {
+  const summary    = computeFoyerSummary(profile);
+  const solde      = summary?.solde ?? null;
+  const rembours   = solde != null && solde < 0;
+  const largeSolde = solde != null && !rembours && solde >= 1500;
+  const partsFiscales = summary?.partsFiscales ?? parsed.parts ?? (mode === 'couple' ? 2 : 1);
+  const partLabel  = `${partsFiscales} part${partsFiscales > 1 ? 's' : ''} fiscale${partsFiscales > 1 ? 's' : ''}`;
 
   const baseItems = [
-    { label: 'RNI foyer (base de calcul)', value: fmtEur(parsed.rni),       note: partLabel },
-    { label: 'PAS prélevé en 2024',        value: fmtEur(pasTotal || null),  note: '8HV' + (mode === 'couple' ? ' + 8IV' : '') },
-    { label: 'IR total estimé',            value: fmtEur(irTotal),           note: 'Barème progressif 2025' },
+    { label: 'RNI foyer (base de calcul)', value: fmtEur(summary?.rniFoyer ?? parsed.rni), note: partLabel },
+    { label: 'PAS prélevé en 2025',        value: fmtEur(summary?.pasTotal ?? null),        note: 'Toutes sources prélevées' },
+    { label: 'IR total estimé',            value: fmtEur(summary?.totalDu ?? null),          note: 'IR net + PS foncier' },
   ];
 
   return (
@@ -559,14 +557,14 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
           {solde != null && (
             <div className={`flex items-center justify-between px-4 py-3 gap-3 ${
               rembours   ? 'bg-teal-50/70'
-              : smallSolde ? 'bg-gray-50/70'
-              : 'bg-amber-50/70'
+              : largeSolde ? 'bg-amber-50/70'
+              : 'bg-gray-50/70'
             }`}>
               <div>
                 <p className={`text-sm font-semibold ${
                   rembours   ? 'text-teal-700'
-                  : smallSolde ? 'text-gray-600'
-                  : 'text-amber-700'
+                  : largeSolde ? 'text-amber-700'
+                  : 'text-gray-600'
                 }`}>
                   {rembours ? 'Remboursement estimé' : 'Supplément estimé'}
                 </p>
@@ -574,8 +572,8 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
               </div>
               <span className={`text-sm font-bold font-mono tabular-nums shrink-0 ${
                 rembours   ? 'text-teal-700'
-                : smallSolde ? 'text-gray-700'
-                : 'text-amber-700'
+                : largeSolde ? 'text-amber-700'
+                : 'text-gray-700'
               }`}>
                 {rembours ? `+ ${fmtEur(Math.abs(solde))}` : fmtEur(solde)}
               </span>
@@ -593,21 +591,21 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
       {solde != null && (
         <div className={`rounded-2xl border p-5 flex items-center gap-4 ${
           rembours    ? 'border-teal-200 bg-teal-50/50'
-          : smallSolde ? 'border-gray-200 bg-gray-50/50'
-          : 'border-amber-200 bg-amber-50/50'
+          : largeSolde ? 'border-amber-200 bg-amber-50/50'
+          : 'border-gray-200 bg-gray-50/50'
         }`}>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${
             rembours    ? 'bg-teal-100'
-            : smallSolde ? 'bg-gray-100'
-            : 'bg-amber-100'
+            : largeSolde ? 'bg-amber-100'
+            : 'bg-gray-100'
           }`}>
-            {rembours ? '💰' : smallSolde ? 'ℹ️' : '⚠️'}
+            {rembours ? '💰' : largeSolde ? '⚠️' : 'ℹ️'}
           </div>
           <div className="flex-1">
             <p className={`text-sm font-bold ${
               rembours    ? 'text-teal-700'
-              : smallSolde ? 'text-gray-700'
-              : 'text-amber-700'
+              : largeSolde ? 'text-amber-700'
+              : 'text-gray-700'
             }`}>
               {rembours
                 ? `Remboursement estimé : ${fmtEur(Math.abs(solde))}`
@@ -615,14 +613,14 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
             </p>
             <p className={`text-xs mt-0.5 leading-relaxed ${
               rembours    ? 'text-teal-600'
-              : smallSolde ? 'text-gray-500'
-              : 'text-amber-600'
+              : largeSolde ? 'text-amber-600'
+              : 'text-gray-500'
             }`}>
               {rembours
                 ? 'Versement attendu en juillet-septembre après traitement de votre déclaration. Vérifiez que votre RIB est à jour sur impots.gouv.'
-                : smallSolde
-                  ? 'Faible écart de régularisation. Ce montant peut être absorbé par les ajustements de votre taux de PAS.'
-                  : 'Ce montant sera prélevé progressivement via votre PAS à partir de septembre 2025. Vérifiez votre taux de PAS.'}
+                : largeSolde
+                  ? 'Ce montant sera prélevé progressivement via votre PAS à partir de septembre 2026. Vérifiez votre taux de PAS.'
+                  : 'Faible écart de régularisation. Ce montant peut être absorbé par les ajustements de votre taux de PAS.'}
             </p>
           </div>
         </div>
@@ -738,7 +736,7 @@ export default function DeclarationGuide() {
   const canPrev     = currentIdx > 0;
 
   const stepProps = {
-    parsed, mode, doneItems, manualValues,
+    parsed, profile: state.parsedProfile, mode, doneItems, manualValues,
     onToggle, onManual,
     onShowConfetti: () => setShowConfetti(true),
   };

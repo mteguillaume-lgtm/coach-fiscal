@@ -381,3 +381,71 @@ export function computePerOptimumCascade(rniFoyer, parts, plafondD1, plafondD2, 
     prioritaire,
   };
 }
+
+// ─── computeFoyerSummary ──────────────────────────────────────────────────────
+
+/**
+ * Source de vérité unique pour le résumé fiscal du foyer.
+ * Consommé par StepRecap (DeclarationGuide) et Rapport.
+ *
+ * @param {object} profile - parsedProfile issu de parseProfile(text)
+ * @returns {object|null} Résumé complet ou null si rniFoyer absent
+ */
+export function computeFoyerSummary(profile) {
+  if (!profile) return null;
+
+  const isCouple  = profile.mode === 'couple';
+  const parts     = Math.max(1, profile.parts || (isCouple ? 2 : 1));
+  const rniFoyer  = profile.rniFoyer || 0;
+  if (!rniFoyer) return null;
+
+  const irBrutVal  = irBrut(rniFoyer, parts);
+  const decoteVal  = applyDecote(irBrutVal, isCouple);
+  const irNet      = Math.max(0, irBrutVal - decoteVal);
+
+  const foncierBrut = profile.revensFonciers || 0;
+  const foncierNet  = (profile.foncierNet != null && profile.foncierNet >= 0)
+    ? profile.foncierNet
+    : profile.regimeFoncier === 'reel'
+      ? foncierBrut
+      : Math.round(foncierBrut * (1 - ABATTEMENT_MICRO_FONCIER));
+  const psFoncier = Math.round(foncierNet * TAUX_PS_CAPITAL);
+
+  const totalDu = irNet + psFoncier;
+
+  // Priorité à pasTotal consolidé (tous plugins) si disponible
+  const pasTotal = profile.pasTotal > 0
+    ? profile.pasTotal
+    : (profile.pasD1          || 0)
+    + (profile.pasD2          || 0)
+    + (profile.pasRente1BsD1  || 0)
+    + (profile.pasRente1BsD2  || 0)
+    + (profile.arePasD1       || 0)
+    + (profile.arePasD2       || 0);
+
+  const acomptesIR   = (profile.acompte8HW || 0) + (profile.acompte8IW || 0);
+  const acomptesPS   = (profile.acompte8HX || 0) + (profile.acompte8IX || 0);
+  const creditsImpot = profile.intMob2CK || 0;
+
+  // solde positif = complément à payer, négatif = remboursement
+  const solde = totalDu - pasTotal;
+  const tmi   = getTMI(rniFoyer, parts);
+
+  return {
+    rniFoyer,
+    partsFiscales: parts,
+    quotientFamilial: parts > 0 ? Math.round(rniFoyer / parts) : rniFoyer,
+    irBrut: irBrutVal,
+    decote: decoteVal,
+    irNet,
+    psFoncier,
+    totalDu,
+    pasTotal,
+    acomptesIR,
+    acomptesPS,
+    creditsImpot,
+    solde,
+    tmi,
+    isCouple,
+  };
+}
