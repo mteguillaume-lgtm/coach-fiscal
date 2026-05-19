@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { useNavigate }             from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -7,8 +7,9 @@ import {
 import toast                       from 'react-hot-toast';
 import { TrendingUp, Layers, Home, MessageCircle, Save, ChevronRight, FileText, PenLine } from 'lucide-react';
 
-import { useApp }  from '../context/AppContext';
-import Button      from '../components/Button';
+import { useApp }       from '../context/AppContext';
+import Button           from '../components/Button';
+import EvolutionChart   from '../components/EvolutionChart';
 import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcIR, TRANCHES, computePerOptimumCascade, calcCEHR } from '../lib/taxCalculator';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
@@ -768,6 +769,7 @@ function SimEnveloppes({ data }) {
   const [tmiE,       setTmiE]       = useState(tmiProfile); // TMI à l'entrée (prérempli)
   const [tmiS,       setTmiS]       = useState(data.tmiRetraiteD1 ?? 11);
   const [reinvest,   setReinvest]   = useState(true);       // réinvestir l'économie IR en PEA
+  const [selectedEnvId, setSelectedEnvId] = useState(null); // null → suit bestId
 
   const isCouple = data.isCouple ?? false;
   const tmiDiff  = tmiE - tmiS;
@@ -785,6 +787,17 @@ function SimEnveloppes({ data }) {
     () => tableRows.reduce((b, r) => r.net > b.net ? r : b, tableRows[0])?.id,
     [tableRows]
   );
+
+  const bestRow    = tableRows.find(r => r.id === bestId) ?? tableRows[0];
+  const activeEnvId = selectedEnvId ?? bestId;
+
+  const evolutionData = useMemo(() => {
+    return Array.from({ length: duration + 1 }, (_, y) => {
+      const vers = capital + mensualite * 12 * y;
+      const net  = envNet(activeEnvId, capital, rate, y, tmiE, tmiS, reinvest, isCouple, avVerse, mensualite);
+      return { year: y, versements: Math.round(vers), interets: Math.max(0, Math.round(net - vers)) };
+    });
+  }, [activeEnvId, capital, mensualite, rate, duration, tmiE, tmiS, reinvest, isCouple, avVerse]);
 
   // Point de croisement PER / PEA
   const crossoverYear = useMemo(
@@ -928,6 +941,27 @@ function SimEnveloppes({ data }) {
         {contextMsg.text}
       </div>
 
+      {/* Headline style Finary — meilleure enveloppe */}
+      <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-5">
+        <p className="text-[10px] font-semibold text-teal-500 uppercase tracking-widest mb-1">
+          Capital net · {bestRow.name}
+        </p>
+        <p className="text-4xl font-bold text-gray-900 font-mono tabular-nums leading-none mb-3">
+          {fmt(bestRow.net)} €
+        </p>
+        <div className="flex items-center gap-6 text-sm">
+          <div>
+            <p className="text-[10px] text-gray-400 mb-0.5">Versements</p>
+            <p className="font-bold text-gray-700 font-mono tabular-nums">{fmt(bestRow.pTotal)} €</p>
+          </div>
+          <span className="text-gray-200">·</span>
+          <div>
+            <p className="text-[10px] text-gray-400 mb-0.5">Intérêts nets</p>
+            <p className="font-bold text-teal-600 font-mono tabular-nums">+{fmt(bestRow.gain)} €</p>
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
@@ -948,35 +982,52 @@ function SimEnveloppes({ data }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {tableRows.map(row => (
-                <tr key={row.id} className={row.id === bestId ? 'bg-teal-50/60' : 'hover:bg-gray-50/40 transition-colors'}>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
-                      <span className="font-semibold text-gray-800">{row.name}</span>
-                      {row.id === bestId && (
-                        <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full">Meilleur</span>
+                <Fragment key={row.id}>
+                  <tr className={row.id === bestId ? 'bg-teal-50/60' : 'hover:bg-gray-50/40 transition-colors'}>
+                    <td className="px-4 pt-3 pb-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
+                        <span className="font-semibold text-gray-800">{row.name}</span>
+                        {row.id === bestId && (
+                          <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full">Meilleur</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-400 mt-0.5 ml-4">{row.taxLabel}</div>
+                    </td>
+                    <td className="px-3 pt-3 pb-1 text-right font-mono tabular-nums text-gray-500 whitespace-nowrap">
+                      {fmt(row.brut)} €
+                    </td>
+                    <td className="px-3 pt-3 pb-1 text-right font-mono tabular-nums whitespace-nowrap">
+                      {row.tax > 0
+                        ? <span className="text-red-500">−{fmt(row.tax)} €</span>
+                        : <span className="text-teal-600 font-semibold">0 €</span>}
+                      {row.id === 'per' && row.bonus > 0 && (
+                        <div className="text-[10px] text-violet-600 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
                       )}
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 ml-4">{row.taxLabel}</div>
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono tabular-nums text-gray-500 whitespace-nowrap">
-                    {fmt(row.brut)} €
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                    {row.tax > 0
-                      ? <span className="text-red-500">−{fmt(row.tax)} €</span>
-                      : <span className="text-teal-600 font-semibold">0 €</span>}
-                    {row.id === 'per' && row.bonus > 0 && (
-                      <div className="text-[10px] text-violet-600 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-right font-bold font-mono tabular-nums text-gray-800 whitespace-nowrap">
-                    {fmt(row.net)} €
-                  </td>
-                  <td className={`px-3 py-3 text-right font-bold font-mono tabular-nums whitespace-nowrap ${row.gain >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
-                    {row.gain >= 0 ? '+' : ''}{fmt(row.gain)} €
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums text-gray-800 whitespace-nowrap">
+                      {fmt(row.net)} €
+                    </td>
+                    <td className={`px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums whitespace-nowrap ${row.gain >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
+                      {row.gain >= 0 ? '+' : ''}{fmt(row.gain)} €
+                    </td>
+                  </tr>
+                  {/* Sous-ligne décomposition Versements / Intérêts */}
+                  <tr className={row.id === bestId ? 'bg-teal-50/40' : ''}>
+                    <td colSpan={5} className="px-4 pb-2.5 pt-0">
+                      <span className="text-[10px] text-gray-400 ml-4">
+                        Versements&nbsp;
+                        <span className="font-semibold" style={{ color: '#5B7CFA' }}>{fmt(row.pTotal)} €</span>
+                        &nbsp;·&nbsp;
+                        Intérêts bruts&nbsp;
+                        <span className="font-semibold text-gray-500">{fmt(row.brut - row.pTotal)} €</span>
+                        &nbsp;·&nbsp;
+                        Intérêts nets&nbsp;
+                        <span className="font-semibold" style={{ color: '#F5A623' }}>{fmt(row.gain)} €</span>
+                      </span>
+                    </td>
+                  </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -988,6 +1039,34 @@ function SimEnveloppes({ data }) {
               : `ℹ PER dépasserait PEA à ${crossoverYear} ans (au-delà de l'horizon affiché)`}
           </p>
         )}
+      </div>
+
+      {/* EvolutionChart — aire empilée versements + intérêts nets */}
+      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+            Évolution — versements vs intérêts
+          </p>
+          <div className="flex gap-1 flex-wrap">
+            {ENVELOPES.map(env => (
+              <button
+                key={env.id}
+                type="button"
+                onClick={() => setSelectedEnvId(env.id)}
+                className={[
+                  'px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border',
+                  activeEnvId === env.id
+                    ? 'text-white border-transparent'
+                    : 'text-gray-400 border-gray-200 bg-transparent hover:text-gray-600',
+                ].join(' ')}
+                style={activeEnvId === env.id ? { background: env.color, borderColor: env.color } : {}}
+              >
+                {env.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        <EvolutionChart data={evolutionData} height={window.innerWidth < 640 ? 200 : 280} />
       </div>
 
       {/* Chart */}
