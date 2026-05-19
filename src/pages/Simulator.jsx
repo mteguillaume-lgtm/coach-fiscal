@@ -756,6 +756,44 @@ function getPerEnvInfo(data) {
   return { declarant: primary, plafond: Math.max(primaryCalc.plafondNet, 1_000), fallback: false, fallbackReason: null };
 }
 
+// ─── Note méthodologique taux ─────────────────────────────────────────────────
+
+function RateExplainerTooltip() {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex items-center">
+      <button
+        type="button"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onClick={() => setOpen(v => !v)}
+        aria-label="Convention de taux"
+        className="text-gray-400 hover:text-teal-600 transition-colors ml-1 leading-none"
+      >
+        ⓘ
+      </button>
+      {open && (
+        <div className="absolute left-0 bottom-full mb-2 z-50 w-72 rounded-xl border border-gray-200 bg-white shadow-xl p-3.5 text-xs leading-relaxed text-gray-700">
+          <p className="font-bold text-gray-800 mb-2">Convention de taux</p>
+          <p>
+            Le rendement saisi est interprété comme{' '}
+            <strong>taux annuel équivalent</strong> : 5 % saisi = 5,000 % réellement appliqué chaque année.
+          </p>
+          <p className="mt-2">
+            Certains simulateurs (Finary, Boursorama) utilisent un{' '}
+            <strong>taux nominal proportionnel</strong> (5 % / 12 par mois), qui produit en réalité
+            un rendement annuel effectif de 5,116 %. Sur 20 ans, cela gonfle le capital final
+            d'environ +1,4 %.
+          </p>
+          <p className="mt-2 text-teal-700 font-medium">
+            Coach-fiscal privilégie la rigueur : le taux saisi est le taux réel.
+          </p>
+        </div>
+      )}
+    </span>
+  );
+}
+
 function SimEnveloppes({ data }) {
   const navigate = useNavigate();
   const tmiProfile = data.tmi || 30; // TMI entrée depuis le profil
@@ -898,8 +936,11 @@ function SimEnveloppes({ data }) {
         <div className="grid grid-cols-2 gap-4">
           <ToggleGroup label="Durée de placement" options={DURATIONS} value={duration}
             onChange={setDuration} format={v => `${v} ans`} />
-          <ToggleGroup label="Rendement annuel estimé" options={RATES} value={rate}
-            onChange={setRate} format={v => `${(v * 100).toFixed(0)} %`} />
+          <ToggleGroup
+            label={<span className="flex items-center">Rendement annuel estimé<RateExplainerTooltip /></span>}
+            options={RATES} value={rate}
+            onChange={setRate} format={v => `${(v * 100).toFixed(0)} %`}
+          />
         </div>
       </div>
 
