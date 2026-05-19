@@ -1590,13 +1590,27 @@ function FeuilleRouteModule({ p, d }) {
     });
   }
   if (d.solde > 500) {
-    priorities.push({
-      title: 'Ajuster le taux PAS',
-      levier: 'Éviter le complément à payer en septembre',
-      gain: `${e0(Math.abs(d.solde))} de solde à régulariser`,
-      deadline: 'Avant le 1er juillet',
-      color: 'amber',
-    });
+    const hasPonctuel =
+      (p.recurrentRente1BsD1 === false && (p.rniRenteD1 || 0) > 0) ||
+      (p.recurrentRente1BsD2 === false && (p.rniRenteD2 || 0) > 0);
+
+    if (hasPonctuel) {
+      priorities.push({
+        title: 'PAS 2026 — aucune modification nécessaire',
+        levier: 'Le complément 2025 découle d\'un revenu exceptionnel non récurrent (rente liquidée). En 2026 ce revenu disparaît : votre PAS sera automatiquement recalibré par l\'administration sans intervention de votre part.',
+        gain: `Complément 2025 : ${e0(d.solde)} — non représentatif de 2026`,
+        deadline: 'Aucune action requise',
+        color: 'gray',
+      });
+    } else {
+      priorities.push({
+        title: 'Ajuster le taux PAS',
+        levier: 'Éviter le complément à payer en septembre',
+        gain: `${e0(Math.abs(d.solde))} de solde à régulariser`,
+        deadline: 'Avant le 1er juillet',
+        color: 'amber',
+      });
+    }
   }
   if (epargneLiquide > 10000) {
     priorities.push({
