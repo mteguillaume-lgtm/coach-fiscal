@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { baseIRFoyer, abattement10 } from '../taxCalculator.js';
+import { baseIRFoyer, abattement10, calcIR } from '../taxCalculator.js';
 
 describe('baseIRFoyer — agrégation multi-plugins Sprint A', () => {
   it('salaires seuls (cas de base, rétrocompatibilité)', () => {
@@ -58,5 +58,27 @@ describe('baseIRFoyer — agrégation multi-plugins Sprint A', () => {
   it('champs absents → traités comme 0 (pas d\'exception)', () => {
     expect(() => baseIRFoyer({})).not.toThrow();
     expect(baseIRFoyer({})).toBe(0);
+  });
+});
+
+describe('calcIR — correction bug Récapitulatif (1 part → N parts)', () => {
+  it('profil-fiscal-ref : RNI 73 067 €, 2 parts couple → ~8 128 € (pas 15 024 € à 1 part)', () => {
+    // Avant le fix : computeIR(73067) avec 1 part et barème 2024 → ≈ 15 086 €
+    // Après le fix : calcIR(73067, 2, true) avec barème 2025 → 8 128 €
+    const ir = calcIR(73_067, 2, true);
+    expect(ir).toBeCloseTo(8_128, -1); // ±5
+    expect(ir).toBeLessThan(9_000);    // jamais confondu avec la valeur à 1 part (≈15 000)
+  });
+
+  it('solo 1 part — barème 2025 (régression : seuils 11 600 et 29 579, pas 11 497/29 315)', () => {
+    // Vérifie que taxCalculator utilise bien le barème 2025 (JSON)
+    const ir = calcIR(40_000, 1, false);
+    // QF = 40 000 ; (29579-11600)*11% + (40000-29579)*30% = 1977.69 + 3126.3 = 5104
+    expect(ir).toBeCloseTo(5_104, -1);
+  });
+
+  it('calcIR avec 0 ou base nulle → 0, pas null (cohérence avec StepRecap)', () => {
+    expect(calcIR(0, 2, true)).toBe(0);
+    expect(calcIR(null, 1, false)).toBe(0);
   });
 });

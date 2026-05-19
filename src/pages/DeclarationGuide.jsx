@@ -7,8 +7,9 @@ import {
   Info, Sparkles, Trophy, Save,
 } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
-import Button     from '../components/Button';
+import { useApp }   from '../context/AppContext';
+import Button       from '../components/Button';
+import { calcIR }   from '../lib/taxCalculator';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -36,22 +37,9 @@ function adaptParsedProfile(pp) {
     hasCrypto:  pp.hasCrypto,
     hasFoncier: pp.revensFonciers > 0 || pp.hasIndivision,
     hasPER:     pp.peroD1 > 0 || pp.peroD2 > 0 || pp.percoD1 > 0,
+    parts:      pp.parts || (pp.mode === 'couple' ? 2 : 1),
+    isCouple:   pp.mode === 'couple',
   };
-}
-
-// Barème IR simplifié 2025 (1 part fiscale, indicatif)
-function computeIR(rni) {
-  if (!rni || rni <= 0) return null;
-  const SLICES = [
-    [0,      11_497,   0    ],
-    [11_497, 29_315,   0.11 ],
-    [29_315, 83_823,   0.30 ],
-    [83_823, 180_294,  0.41 ],
-    [180_294, Infinity, 0.45],
-  ];
-  return Math.round(SLICES.reduce(
-    (ir, [lo, hi, r]) => rni > lo ? ir + (Math.min(rni, hi) - lo) * r : ir, 0
-  ));
 }
 
 // ─── Confetti ─────────────────────────────────────────────────────────────────
@@ -533,15 +521,19 @@ function StepCrypto({ doneItems, onToggle }) {
 }
 
 function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
-  const pasTotal = (parsed.pas8HV || 0) + (mode === 'couple' ? (parsed.pas8IV || 0) : 0);
-  const irTotal  = computeIR(parsed.rni);
-  const solde    = irTotal != null ? irTotal - pasTotal : null;
-  const rembours = solde != null && solde < 0;
+  const pasTotal      = (parsed.pas8HV || 0) + (mode === 'couple' ? (parsed.pas8IV || 0) : 0);
+  const parts         = parsed.parts  || (mode === 'couple' ? 2 : 1);
+  const isCouple      = parsed.isCouple ?? mode === 'couple';
+  const irTotal       = parsed.rni ? calcIR(parsed.rni, parts, isCouple) : null;
+  const solde         = irTotal != null ? irTotal - pasTotal : null;
+  const rembours      = solde != null && solde < 0;
+  const smallSolde    = solde != null && solde >= 0 && solde < 300;
+  const partLabel     = `${parts} part${parts > 1 ? 's' : ''} fiscale${parts > 1 ? 's' : ''}`;
 
   const baseItems = [
-    { label: 'RNI foyer (base de calcul)',  value: fmtEur(parsed.rni),          note: '1 part fiscale — indicatif' },
-    { label: 'PAS prélevé en 2024',         value: fmtEur(pasTotal || null),     note: '8HV' + (mode === 'couple' ? ' + 8IV' : '') },
-    { label: 'IR total estimé',             value: fmtEur(irTotal),              note: 'Barème progressif simplifié' },
+    { label: 'RNI foyer (base de calcul)', value: fmtEur(parsed.rni),       note: partLabel },
+    { label: 'PAS prélevé en 2024',        value: fmtEur(pasTotal || null),  note: '8HV' + (mode === 'couple' ? ' + 8IV' : '') },
+    { label: 'IR total estimé',            value: fmtEur(irTotal),           note: 'Barème progressif 2025' },
   ];
 
   return (
@@ -563,18 +555,28 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
               </span>
             </div>
           ))}
-          {/* Ligne supplément — mise en évidence dans le tableau */}
+          {/* Ligne solde — 3 états : remboursement (teal) / faible supplément (gris) / supplément (ambre) */}
           {solde != null && (
             <div className={`flex items-center justify-between px-4 py-3 gap-3 ${
-              rembours ? 'bg-teal-50/70' : 'bg-amber-50/70'
+              rembours   ? 'bg-teal-50/70'
+              : smallSolde ? 'bg-gray-50/70'
+              : 'bg-amber-50/70'
             }`}>
               <div>
-                <p className={`text-sm font-semibold ${rembours ? 'text-teal-700' : 'text-amber-700'}`}>
+                <p className={`text-sm font-semibold ${
+                  rembours   ? 'text-teal-700'
+                  : smallSolde ? 'text-gray-600'
+                  : 'text-amber-700'
+                }`}>
                   {rembours ? 'Remboursement estimé' : 'Supplément estimé'}
                 </p>
                 <p className="text-[10px] text-gray-400">IR total − PAS prélevé</p>
               </div>
-              <span className={`text-sm font-bold font-mono tabular-nums shrink-0 ${rembours ? 'text-teal-700' : 'text-amber-700'}`}>
+              <span className={`text-sm font-bold font-mono tabular-nums shrink-0 ${
+                rembours   ? 'text-teal-700'
+                : smallSolde ? 'text-gray-700'
+                : 'text-amber-700'
+              }`}>
                 {rembours ? `+ ${fmtEur(Math.abs(solde))}` : fmtEur(solde)}
               </span>
             </div>
@@ -590,31 +592,45 @@ function StepRecap({ parsed, mode, doneItems, onToggle, onShowConfetti }) {
       {/* Bloc explicatif solde */}
       {solde != null && (
         <div className={`rounded-2xl border p-5 flex items-center gap-4 ${
-          rembours ? 'border-teal-200 bg-teal-50/50' : 'border-amber-200 bg-amber-50/50'
+          rembours    ? 'border-teal-200 bg-teal-50/50'
+          : smallSolde ? 'border-gray-200 bg-gray-50/50'
+          : 'border-amber-200 bg-amber-50/50'
         }`}>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${
-            rembours ? 'bg-teal-100' : 'bg-amber-100'
+            rembours    ? 'bg-teal-100'
+            : smallSolde ? 'bg-gray-100'
+            : 'bg-amber-100'
           }`}>
-            {rembours ? '💰' : '⚠️'}
+            {rembours ? '💰' : smallSolde ? 'ℹ️' : '⚠️'}
           </div>
           <div className="flex-1">
-            <p className={`text-sm font-bold ${rembours ? 'text-teal-700' : 'text-amber-700'}`}>
+            <p className={`text-sm font-bold ${
+              rembours    ? 'text-teal-700'
+              : smallSolde ? 'text-gray-700'
+              : 'text-amber-700'
+            }`}>
               {rembours
                 ? `Remboursement estimé : ${fmtEur(Math.abs(solde))}`
                 : `Supplément estimé : ${fmtEur(solde)}`}
             </p>
-            <p className={`text-xs mt-0.5 leading-relaxed ${rembours ? 'text-teal-600' : 'text-amber-600'}`}>
+            <p className={`text-xs mt-0.5 leading-relaxed ${
+              rembours    ? 'text-teal-600'
+              : smallSolde ? 'text-gray-500'
+              : 'text-amber-600'
+            }`}>
               {rembours
                 ? 'Versement attendu en juillet-septembre après traitement de votre déclaration. Vérifiez que votre RIB est à jour sur impots.gouv.'
-                : 'Ce montant sera prélevé progressivement via votre PAS à partir de septembre 2025. Vérifiez votre taux de PAS.'}
+                : smallSolde
+                  ? 'Faible écart de régularisation. Ce montant peut être absorbé par les ajustements de votre taux de PAS.'
+                  : 'Ce montant sera prélevé progressivement via votre PAS à partir de septembre 2025. Vérifiez votre taux de PAS.'}
             </p>
           </div>
         </div>
       )}
 
       <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-        Estimation indicative basée sur 1 part fiscale. Le montant exact dépend du quotient familial,
-        des réductions d'impôt et du calcul officiel de l'administration.
+        Estimation indicative basée sur {partLabel}. Le montant exact dépend des réductions d'impôt
+        et du calcul officiel de l'administration fiscale.
       </p>
 
       {/* Done button */}
