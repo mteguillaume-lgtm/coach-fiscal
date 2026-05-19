@@ -96,8 +96,12 @@ function computeData(profile, p = {}) {
 
   const abt10D1 = netD1 > 0 ? Math.min(Math.max(netD1 * ABT.taux, ABT.minimum), ABT.maximum) : 0;
   const abt10D2 = netD2 > 0 ? Math.min(Math.max(netD2 * ABT.taux, ABT.minimum), ABT.maximum) : 0;
-  const retD1 = netD1 - abt10D1;
-  const retD2 = netD2 - abt10D2;
+  // Salary-only retained component (for display)
+  const salRetD1 = netD1 - abt10D1;
+  const salRetD2 = netD2 - abt10D2;
+  // Full per-declarant RNI (salary + rente + ARE + …) from parsedProfile
+  const retD1 = p.rniD1 > 0 ? p.rniD1 : salRetD1;
+  const retD2 = p.rniD2 > 0 ? p.rniD2 : salRetD2;
 
   const foncierBrut = pf(profile, /Revenus fonciers bruts\s*:\s*([\d\s,]+)\s*€/i)
                    || pf(profile, /(?<!nets? imposables? )Revenus fonciers\s*:\s*([\d\s,]+)\s*€/i);
@@ -147,7 +151,9 @@ function computeData(profile, p = {}) {
 
   return {
     isCouple, parts, quotient, rniFoyer,
-    netD1, netD2, brutD1, brutD2, abt10D1, abt10D2, retD1, retD2,
+    netD1, netD2, brutD1, brutD2, abt10D1, abt10D2,
+    salRetD1, salRetD2,
+    retD1, retD2,
     foncierBrut, foncierAbt, foncierNet, isMicro,
     steps, irParPart, irBrutFoyer, dec, irNetFoyer, psFoncier, totalDu,
     pasD1, pasD2, pasTotal, solde,
@@ -288,10 +294,28 @@ function RevenusTable({ d, p }) {
           <Row label="Net imposable (case 1AJ)" v1={e2(d.netD1)} v2={e2(d.netD2)} />
           <Row label="− Abattement 10 % frais pro" v1={`− ${e2(d.abt10D1)}`} v2={`− ${e2(d.abt10D2)}`} sub isMinus />
           <tr className="bg-gray-50/60">
-            <Td bold>Salaires retenus (RNI)</Td>
-            <Td right bold>{e2(d.retD1)}</Td>
-            {d.isCouple && <Td right bold>{e2(d.retD2)}</Td>}
+            <Td bold>Salaires retenus</Td>
+            <Td right bold>{e2(d.salRetD1 ?? d.retD1)}</Td>
+            {d.isCouple && <Td right bold>{e2(d.salRetD2 ?? d.retD2)}</Td>}
           </tr>
+          {/* Rente 1AS/1BS */}
+          {(p.rente1BsD1 > 0 || (d.isCouple && p.rente1BsD2 > 0)) && <>
+            <tr>
+              <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+                Pensions / rentes viagères
+              </td>
+            </tr>
+            {p.rente1BsD1 > 0 && (
+              <Row label="Rente/pension 1AS D1 (après abat. 10%)" v1={e2(p.rniRenteD1 || Math.round(p.rente1BsD1 * 0.9))} v2="—" />
+            )}
+            {d.isCouple && p.rente1BsD2 > 0 && (
+              <Row label="Rente/pension 1BS D2 (après abat. 10%)" v1={d.isCouple ? '—' : e2(p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))} v2={e2(p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))} />
+            )}
+          </>}
+          {/* ARE */}
+          {(p.rniAreD1 > 0 || p.rniAreD2 > 0) && (
+            <Row label="Allocations chômage (ARE)" v1={p.rniAreD1 > 0 ? e2(p.rniAreD1) : '—'} v2={p.rniAreD2 > 0 ? e2(p.rniAreD2) : '—'} />
+          )}
           <Row label="PAS prélevé 2025" v1={e2(d.pasD1)} v2={e2(d.pasD2)} />
           {(p.tauxPasD1 > 0 || p.tauxPasD2 > 0) && (
             <Row label="Taux PAS effectif" v1={fmtTaux(p.tauxPasD1)} v2={fmtTaux(p.tauxPasD2)} />
@@ -411,7 +435,7 @@ function PatrimoineDesequilibreBlock({ p }) {
 
 // ─── Table 1 : Du brut au RNI ─────────────────────────────────────────────────
 
-function RniTable({ d }) {
+function RniTable({ d, p = {} }) {
   return (
     <SectionBox title="Étape 1 — Du brut imposable au revenu net imposable (RNI)">
       <Tbl>
@@ -423,6 +447,7 @@ function RniTable({ d }) {
           </tr>
         </thead>
         <tbody>
+          {/* ── D1 salaires ── */}
           {d.netD1 > 0 && <>
             <tr>
               <Td>{d.isCouple ? 'Salaires nets imposables D1' : 'Salaires nets imposables'}</Td>
@@ -438,16 +463,43 @@ function RniTable({ d }) {
             </tr>
             <tr className="bg-gray-50/50">
               <Td bold>{`= Salaires retenus${d.isCouple ? ' D1' : ''}`}</Td>
-              <Td right bold>{e2(d.retD1)}</Td>
+              <Td right bold>{e2(d.salRetD1 ?? d.retD1)}</Td>
               <Td muted />
             </tr>
           </>}
 
+          {/* ── D1 rente 1AS ── */}
+          {(p.rente1BsD1 > 0) && <>
+            <tr>
+              <Td>Rente/pension 1AS D1</Td>
+              <Td right>{e2(p.rente1BsD1)}</Td>
+              <Td muted>case 1AS</Td>
+            </tr>
+            <tr>
+              <Td className="pl-8">− Abattement 10 % pensions D1</Td>
+              <Td right minus>− {e2(Math.round(p.rente1BsD1 - (p.rniRenteD1 || Math.round(p.rente1BsD1 * 0.9))))}</Td>
+              <Td muted>art. 158-5-a CGI</Td>
+            </tr>
+            <tr className="bg-gray-50/50">
+              <Td bold>= Rente retenue D1</Td>
+              <Td right bold>{e2(p.rniRenteD1 || Math.round(p.rente1BsD1 * 0.9))}</Td>
+              <Td muted />
+            </tr>
+          </>}
+
+          {/* ── D1 ARE ── */}
+          {(p.rniAreD1 > 0) && <tr>
+            <Td>Allocations chômage D1 (ARE)</Td>
+            <Td right>{e2(p.rniAreD1)}</Td>
+            <Td muted>case 1AP — imposable 100 %</Td>
+          </tr>}
+
+          {/* ── D2 salaires ── */}
           {d.isCouple && d.netD2 > 0 && <>
             <tr>
               <Td>Salaires nets imposables D2</Td>
               <Td right>{e2(d.netD2)}</Td>
-              <Td muted>{d.brutD2 > 0 ? `Bulletin(s) (brut ${e0(d.brutD2)})` : '1AJ — cumul 2 employeurs'}</Td>
+              <Td muted>{d.brutD2 > 0 ? `Bulletin(s) (brut ${e0(d.brutD2)})` : '1BJ — cumul 2 employeurs'}</Td>
             </tr>
             <tr>
               <Td className="pl-8">{`− Abattement ${ABT.taux * 100} % frais pro D2`}</Td>
@@ -456,14 +508,41 @@ function RniTable({ d }) {
             </tr>
             <tr className="bg-gray-50/50">
               <Td bold>= Salaires retenus D2</Td>
-              <Td right bold>{e2(d.retD2)}</Td>
+              <Td right bold>{e2(d.salRetD2 ?? d.retD2)}</Td>
               <Td muted />
             </tr>
           </>}
 
+          {/* ── D2 rente 1BS ── */}
+          {d.isCouple && (p.rente1BsD2 > 0) && <>
+            <tr>
+              <Td>Rente/pension 1BS D2</Td>
+              <Td right>{e2(p.rente1BsD2)}</Td>
+              <Td muted>case 1BS</Td>
+            </tr>
+            <tr>
+              <Td className="pl-8">− Abattement 10 % pensions D2</Td>
+              <Td right minus>− {e2(Math.round(p.rente1BsD2 - (p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))))}</Td>
+              <Td muted>art. 158-5-a CGI</Td>
+            </tr>
+            <tr className="bg-gray-50/50">
+              <Td bold>= Rente retenue D2</Td>
+              <Td right bold>{e2(p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))}</Td>
+              <Td muted />
+            </tr>
+          </>}
+
+          {/* ── D2 ARE ── */}
+          {d.isCouple && (p.rniAreD2 > 0) && <tr>
+            <Td>Allocations chômage D2 (ARE)</Td>
+            <Td right>{e2(p.rniAreD2)}</Td>
+            <Td muted>case 1AP — imposable 100 %</Td>
+          </tr>}
+
+          {/* ── Foncier ── */}
           {d.foncierBrut > 0 && <>
             <tr>
-              <Td>{d.isCouple ? 'Revenus fonciers bruts (D2)' : 'Revenus fonciers bruts'}</Td>
+              <Td>{d.isCouple ? 'Revenus fonciers bruts' : 'Revenus fonciers bruts'}</Td>
               <Td right>{e2(d.foncierBrut)}</Td>
               <Td muted>case 4BE</Td>
             </tr>
@@ -2241,7 +2320,7 @@ export default function Rapport() {
               {isCouple ? `${DECOTE.seuil_couple.toLocaleString('fr-FR')} € (couple)` : `${DECOTE.seuil_celibataire.toLocaleString('fr-FR')} € (célibataire)`}.
             </ProseCard>
 
-            <RniTable d={d} />
+            <RniTable d={d} p={p} />
             {d.steps.length > 0 && <BaremeTable d={d} />}
             {d.tmi > 0 && <TmiProseBlock d={d} />}
             <SoldeTable d={d} cehr={cehr} />
