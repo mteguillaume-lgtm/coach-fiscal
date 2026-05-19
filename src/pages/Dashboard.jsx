@@ -213,9 +213,15 @@ function ContributionTable({ p, sectionNum, summary }) {
   const gainCouple      = Math.max(0, irD1Solo + irD2Solo - irFoyerEnsemble);
   const irNet           = irFoyerEnsemble;
 
-  // Régularisation : PAS prélevé vs IR solo estimé
-  const regD1 = pasD1 - irD1Solo;  // positif = trop prélevé → à rembourser
-  const regD2 = pasD2 - irD2Solo;
+  // Partage équitable du gain PACS (50/50) → contribution juste de chaque déclarant.
+  // Sans ce partage, la régularisation basée sur l'IR solo lèse celui qui gagne le plus.
+  const partGain  = gainCouple / 2;
+  const contribD1 = Math.max(0, irD1Solo - partGain);
+  const contribD2 = Math.max(0, irD2Solo - partGain);
+
+  // Régularisation équitable = PAS prélevé − contribution équitable.
+  const regD1 = pasD1 - contribD1; // positif = trop prélevé → à rembourser
+  const regD2 = pasD2 - contribD2;
 
   const fmtReg   = v => {
     if (Math.abs(v) < 10) return '≈ 0 €';
@@ -254,17 +260,34 @@ function ContributionTable({ p, sectionNum, summary }) {
               <td className="py-2.5 text-right font-semibold text-gray-800">{fmtE(rniD2)}</td>
             </tr>
             <tr>
-              <td className="py-2.5 text-gray-600 pr-4">IR solo estimé</td>
+              <td className="py-2.5 text-gray-600 pr-4">IR si chacun en célibataire (1 part)</td>
               <td className="py-2.5 text-right font-semibold text-gray-800 pr-4">{fmtE(irD1Solo)}</td>
               <td className="py-2.5 text-right font-semibold text-gray-800">{fmtE(irD2Solo)}</td>
             </tr>
+            {gainCouple > 10 && (
+              <>
+                <tr className="bg-teal-50/40">
+                  <td className="py-2.5 pr-4 text-teal-700">
+                    − Part équitable du gain PACS
+                    <span className="block text-[10px] text-teal-500 font-normal">50 / 50 du gain {fmt(gainCouple)} €</span>
+                  </td>
+                  <td className="py-2.5 text-right font-semibold text-teal-700 pr-4">− {fmt(partGain)} €</td>
+                  <td className="py-2.5 text-right font-semibold text-teal-700">− {fmt(partGain)} €</td>
+                </tr>
+                <tr className="bg-gray-50/60">
+                  <td className="py-2.5 pr-4 font-semibold text-gray-800">= Contribution équitable</td>
+                  <td className="py-2.5 text-right font-bold text-gray-900 pr-4">{fmtE(contribD1)}</td>
+                  <td className="py-2.5 text-right font-bold text-gray-900">{fmtE(contribD2)}</td>
+                </tr>
+              </>
+            )}
             <tr>
               <td className="py-2.5 text-gray-600 pr-4">PAS prélevé 2025</td>
               <td className="py-2.5 text-right font-semibold text-gray-800 pr-4">{fmtE(pasD1)}</td>
               <td className="py-2.5 text-right font-semibold text-gray-800">{fmtE(pasD2)}</td>
             </tr>
             <tr>
-              <td className="py-2.5 text-gray-600 pr-4">Régularisation estimée</td>
+              <td className="py-2.5 text-gray-600 pr-4">Régularisation équitable</td>
               <td className={`py-2.5 text-right font-bold pr-4 ${regColor(regD1)}`}>{fmtReg(regD1)}</td>
               <td className={`py-2.5 text-right font-bold ${regColor(regD2)}`}>{fmtReg(regD2)}</td>
             </tr>
@@ -276,15 +299,16 @@ function ContributionTable({ p, sectionNum, summary }) {
         <div className="flex items-center justify-between rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
           <div>
             <p className="text-xs font-semibold text-teal-800">Gain du quotient conjugal</p>
-            <p className="text-[10px] text-teal-600 mt-0.5">Économie vs déclarations séparées</p>
+            <p className="text-[10px] text-teal-600 mt-0.5">Économie vs déclarations séparées, partagée 50 / 50</p>
           </div>
           <span className="text-base font-bold text-teal-700">~{fmt(gainCouple)} €</span>
         </div>
       )}
 
       <p className="text-[10px] text-gray-400 leading-relaxed">
-        Méthode célibataire de référence : chaque déclarant paie l'IR qu'il aurait payé seul (1 part).
-        Le gain du quotient conjugal est un avantage partagé du foyer, non imputé à l'un ou l'autre.
+        Méthode équitable : chaque déclarant part de l'IR qu'il aurait payé seul (1 part),
+        puis on retranche la moitié du gain PACS — chacun bénéficie d'une part égale de l'avantage conjugal.
+        La régularisation compare ensuite PAS prélevé et contribution équitable.
         {irNet === 0 && ' IR estimé d\'après le barème 2025 (décote non appliquée).'}
       </p>
     </section>

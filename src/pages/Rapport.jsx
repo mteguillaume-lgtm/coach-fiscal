@@ -133,13 +133,15 @@ function computeData(profile, p = {}) {
   let irD1Solo = 0, irD2Solo = 0, gainPacs = 0, totalSolo = 0;
   let contribD1 = 0, contribD2 = 0, regloD1 = 0, regloD2 = 0;
 
-  if (isCouple && retD1 > 0) {
+  if (isCouple && (retD1 > 0 || retD2 > 0)) {
     irD1Solo   = irBrut(retD1, 1);
     irD2Solo   = irBrut(retD2, 1);
     totalSolo  = irD1Solo + irD2Solo;
-    gainPacs   = totalSolo - irNetFoyer;
-    contribD1  = irD1Solo - gainPacs / 2;
-    contribD2  = irD2Solo - gainPacs / 2;
+    // Gain PACS = écart entre la somme des IR célibataires et l'IR réel du foyer.
+    // Toujours ≥ 0 — le quotient familial ne peut pas créer un surcoût.
+    gainPacs   = Math.max(0, totalSolo - irNetFoyer);
+    contribD1  = Math.max(0, irD1Solo - gainPacs / 2);
+    contribD2  = Math.max(0, irD2Solo - gainPacs / 2);
     regloD1    = pasD1 - contribD1;
     regloD2    = pasD2 - contribD2;
   }
@@ -2338,7 +2340,7 @@ export default function Rapport() {
             {d.steps.length > 0 && <BaremeTable d={d} />}
             {d.tmi > 0 && <TmiProseBlock d={d} />}
             <SoldeTable d={d} cehr={cehr} />
-            {isCouple && d.gainPacs > 0 && <GainPacsTable d={d} />}
+            {isCouple && d.totalSolo > 0 && <GainPacsTable d={d} />}
             {isCouple && d.gainPacs > 0 && <AccordCoupleProseBlock d={d} />}
           </>
         )}
