@@ -77,18 +77,31 @@ function _pero(text) {
 }
 
 function _rni(pd, profil, text) {
-  const rniD1 = n(text, /RNI D1[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || abattement10Auto(pd.salaireNetImposableD1, profil.typeRevenuD1, profil.pensionNetImpD1)
-                + Math.round((pd.rente1BsD1 || 0) * 0.9);
+  // RNI par déclarant : préférer la ligne "RNI Dx TOTAL" (nouveau format générateur,
+  // inclut la rente 1BS après abat. 10%). Sinon recalculer depuis les composantes
+  // (salaire net imposable + rente × 0,9) pour éviter de manquer la rente quand
+  // le profil n'expose qu'une ligne "après abat. salaires" partielle.
+  const renteAbatD1 = Math.round((pd.rente1BsD1 || 0) * 0.9);
+  const renteAbatD2 = Math.round((pd.rente1BsD2 || 0) * 0.9);
+  const salRniD1    = abattement10Auto(pd.salaireNetImposableD1, profil.typeRevenuD1, profil.pensionNetImpD1);
+  const salRniD2    = abattement10Auto(pd.salaireNetImposableD2, profil.typeRevenuD2, profil.pensionNetImpD2);
+
+  const rniD1 = n(text, /RNI D1 TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
+             || (salRniD1 + renteAbatD1);
   const rniD2 = n(text, /RNI D2 TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || n(text, /RNI D2 (?:après|[(])[^:\n]*:\s*([\d\s,]+)\s*€/i)
-             || abattement10Auto(pd.salaireNetImposableD2, profil.typeRevenuD2, profil.pensionNetImpD2)
-                + Math.round((pd.rente1BsD2 || 0) * 0.9);
-  const rniFoyer = n(text, /RNI FOYER TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
-                || n(text, /RNI total[^:\n]*:\s*([\d\s,]+)\s*€/i)
-                || n(text, /Revenu net imposable total estimé\s*:\s*([\d\s,]+)\s*€/)
-                || (rniD1 + rniD2 + (pd.foncierNet || 0))
-                || rniD1;
+             || (salRniD2 + renteAbatD2);
+
+  // RNI foyer : on accepte la ligne texte SI elle est cohérente avec la somme des
+  // composantes (écart < 100 €). Sinon, on recalcule — protège contre les profils
+  // anciens qui n'incluent pas la rente dans "RNI FOYER TOTAL".
+  const rniFoyerSum  = rniD1 + rniD2 + (pd.foncierNet || 0);
+  const rniFoyerText = n(text, /RNI FOYER TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                    || n(text, /RNI total[^:\n]*:\s*([\d\s,]+)\s*€/i)
+                    || n(text, /Revenu net imposable total estimé\s*:\s*([\d\s,]+)\s*€/);
+  const rniFoyer = rniFoyerText > 0 && Math.abs(rniFoyerText - rniFoyerSum) < 100
+                ? rniFoyerText
+                : (rniFoyerSum || rniFoyerText || rniD1);
+
   const rfr = n(text, /RFR[^:\n]*:\s*([\d\s,]+)\s*€/i)
            || n(text, /Revenu fiscal de référence[^:\n]*:\s*([\d\s,]+)\s*€/i)
            || rniFoyer;

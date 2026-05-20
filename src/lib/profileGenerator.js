@@ -182,12 +182,20 @@ function _buildCouple(d, d1, d2, docSums) {
 
   const net1AJd1 = parseFloat(d1.net_imp || 0);
   const net1AJd2 = parseFloat(d2.net_imp || 0);
-  const rniD1 = typeRevD1c === 'Retraité(e)' ? abattement10Pension(net1AJd1)
-              : typeRevD1c === 'Mixte'        ? abattement10(net1AJd1) + abattement10Pension(pensionD1c)
-              :                                  abattement10(net1AJd1);
-  const rniD2 = typeRevD2c === 'Retraité(e)' ? abattement10Pension(net1AJd2)
-              : typeRevD2c === 'Mixte'        ? abattement10(net1AJd2) + abattement10Pension(pensionD2c)
-              :                                  abattement10(net1AJd2);
+  // RNI part salaires (cas standard, retraité, ou mixte). Cas particulier "mixte"
+  // = salaire + pension, chacun avec son propre abattement 10 %.
+  const rniSalD1 = typeRevD1c === 'Retraité(e)' ? abattement10Pension(net1AJd1)
+                 : typeRevD1c === 'Mixte'        ? abattement10(net1AJd1) + abattement10Pension(pensionD1c)
+                 :                                  abattement10(net1AJd1);
+  const rniSalD2 = typeRevD2c === 'Retraité(e)' ? abattement10Pension(net1AJd2)
+                 : typeRevD2c === 'Mixte'        ? abattement10(net1AJd2) + abattement10Pension(pensionD2c)
+                 :                                  abattement10(net1AJd2);
+  // Rente viagère 1AS/1BS : abat. 10 % pensions (art. 158-5-a CGI).
+  const rniRenteD1 = rente1BsD1c > 0 ? abattement10Pension(rente1BsD1c) : 0;
+  const rniRenteD2 = rente1BsD2c > 0 ? abattement10Pension(rente1BsD2c) : 0;
+  // RNI total par déclarant (salaires + rente) — base utilisée pour l'IR foyer.
+  const rniD1 = rniSalD1 + rniRenteD1;
+  const rniD2 = rniSalD2 + rniRenteD2;
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
   const parts    = parseFloat(d.parts || 2);
   const rniFoyer = rniD1 + rniD2 + foncier.net;
@@ -228,7 +236,7 @@ ${pensionD2c > 0 ? `Pension nette imposable 1AS D2 : ${Number(pensionD2c).toLoca
 == REVENUS 2025 — DÉCLARANT 1 ==
 Brut imposable annuel : ${d1.brut ? Number(d1.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
 Net imposable annuel (1AJ — case déclaration) : ${net1AJd1 > 0 ? fmtN(net1AJd1) : 'Non renseigné'}${ijCpamD1c > 0 ? ` (dont ${fmtN(ijCpamD1c)} IJ CPAM — attestation ${d1.ij_cpam_org || 'CPAM'})` : ''}
-RNI D1 après abattement 10% salaires : ${fmtN(rniD1)}
+RNI D1 après abattement 10% salaires : ${fmtN(rniSalD1)}
 Taux PAS : ${d1.taux_pas ? d1.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${pasD1 > 0 ? fmtN(pasD1) : 'Non renseigné'}
 Frais réels : ${d1.frais_r && d1.frais_r !== '0' ? Number(d1.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
@@ -240,7 +248,7 @@ ${rente1BsD1c > 0 ? `Rente viagère — case 1BS (D1) :
 == REVENUS 2025 — DÉCLARANT 2 ==
 Brut imposable annuel : ${d2.brut ? Number(d2.brut).toLocaleString('fr-FR') + ' €' : 'Non renseigné'}
 Net imposable annuel (1BJ — case déclaration) : ${net1AJd2 > 0 ? fmtN(net1AJd2) : 'Non renseigné'}${ijCpamD2c > 0 ? ` (dont ${fmtN(ijCpamD2c)} IJ CPAM — attestation ${d2.ij_cpam_org || 'CPAM'})` : ''}
-RNI D2 après abattement 10% salaires : ${fmtN(rniD2)}
+RNI D2 après abattement 10% salaires : ${fmtN(rniSalD2)}
 Taux PAS : ${d2.taux_pas ? d2.taux_pas + '%' : 'Non renseigné'}
 PAS prélevé 2025 : ${pasD2 > 0 ? fmtN(pasD2) : 'Non renseigné'}
 Frais réels : ${d2.frais_r && d2.frais_r !== '0' ? Number(d2.frais_r).toLocaleString('fr-FR') + ' € (à comparer forfait 10%)' : 'Forfait 10% retenu'}
@@ -263,8 +271,12 @@ ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 
 == DONNÉES POUR CALCUL IR FOYER ==
-RNI D1 (après abat. salaires) : ${fmtN(rniD1)}
-RNI D2 (après abat. salaires) : ${fmtN(rniD2)}
+RNI D1 (après abat. salaires) : ${fmtN(rniSalD1)}
+${rniRenteD1 > 0 ? `Rente 1BS D1 (après abat. 10% pension) : ${fmtN(rniRenteD1)}` : ''}
+RNI D1 TOTAL : ${fmtN(rniD1)}
+RNI D2 (après abat. salaires) : ${fmtN(rniSalD2)}
+${rniRenteD2 > 0 ? `Rente 1BS D2 (après abat. 10% pension) : ${fmtN(rniRenteD2)}` : ''}
+RNI D2 TOTAL : ${fmtN(rniD2)}
 Foncier net imposable : ${fmtN(foncier.net)}
 RNI FOYER TOTAL : ${fmtN(rniFoyer)}
 Quotient familial (${parts} parts) : ${fmtN(rniFoyer / parts)} par part
@@ -279,14 +291,14 @@ ${parseFloat(d.acompte_8ix || 0) > 0 ? `Acompte PS D2 (8IX) : ${fmtN(parseFloat(
 
 == PLAFONDS PER 2026 ==
 D1 :
-  10% × RNI D1 (${fmtN(rniD1)}) : ${fmtN(perD1.brut10)}
+  10% × RNI D1 (${fmtN(rniSalD1)}) : ${fmtN(perD1.brut10)}
   Plancher PASS (10% × 47 100 €) : ${fmtN(MIN_PLAFOND_PER)}
   Plafond retenu : ${fmtN(perD1.plafond)}
   PERO D1 déduit : ${peroD1 > 0 ? fmtN(peroD1) : 'Néant'}
   PLAFOND DISPONIBLE D1 : ${fmtN(perD1.dispo)}
 
 D2 :
-  10% × RNI D2 (${fmtN(rniD2)}) : ${fmtN(perD2.brut10)}
+  10% × RNI D2 (${fmtN(rniSalD2)}) : ${fmtN(perD2.brut10)}
   Plancher PASS (10% × 47 100 €) : ${fmtN(MIN_PLAFOND_PER)}
   Plafond retenu : ${fmtN(perD2.plafond)}
   PERO D2 déduit : ${peroD2 > 0 ? fmtN(peroD2) : 'Néant'}
