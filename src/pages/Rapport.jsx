@@ -1588,68 +1588,298 @@ function PeaAvModule({ p }) {
   );
 }
 
-// ─── Module 08 : Réallocation patrimoniale D2 ────────────────────────────────
+// ─── Module : Réallocation patrimoniale (plan étape par étape) ───────────────
 
-function ReallocationModule({ p }) {
-  if (p.mode !== 'couple') return null;
+/**
+ * Construit un plan de réallocation pour un déclarant donné.
+ * Hypothèses de rendement (à expliquer dans l'UI) :
+ *  - Livret bancaire / Livret+ : ~1,5 % net
+ *  - LDDS : 3 % net (= Livret A, exo IR + PS)
+ *  - LEP : ~5 % net (éligibilité RFR)
+ *  - AV multisupport : ~4 % net LT espéré
+ *  - PEA (ETF Monde) : ~6 % net LT espéré, exo IR > 5 ans
+ */
+function _buildReallocationPlan(p, sfx) {
+  const livretA    = p[`livretA${sfx}`]    || 0;
+  const ldds       = p[`ldds${sfx}`]       || 0;
+  const lep        = p[`lep${sfx}`]        || 0;
+  const livretPlus = p[`livretPlus${sfx}`] || 0;
+  const pea        = p[`pea${sfx}`]        || 0;
+  const av         = p[`av${sfx}`]         || 0;
 
-  const peaD2 = p.peaD2 || 0;
-  const avD2 = p.avD2 || 0;
-  const liquidD2 = (p.livretAD2 || 0) + (p.lddsD2 || 0) + (p.lepD2 || 0) + (p.livretPlusD2 || 0) + (p.pelD2 || 0);
+  const livretTotal = livretA + ldds + lep + livretPlus;
+  if (livretTotal < 5_000) return null;
 
-  // Only show if D2 has meaningful liquid savings and lacks key envelopes
-  if (liquidD2 < 3000 || (peaD2 > 0 && avD2 > 0)) return null;
+  const isCouple    = p.mode === 'couple';
+  const rfr         = p.rfr || 0;
+  const plafondLEPRfr = isCouple ? 34_393 : 22_419;
+  const eligibleLEP = rfr > 0 && rfr <= plafondLEPRfr;
 
-  const options = [];
-  if (peaD2 === 0) {
-    options.push({
-      label: 'Ouvrir PEA D2',
-      montant: '1 € minimum',
-      detail: 'Démarre l\'horloge fiscale 5 ans. Versements progressifs jusqu\'à 150 000 €. Plus-values exonérées IR après 5 ans.',
-      couleur: 'teal',
+  const PLAFOND_LDDS = 12_000;
+  const PLAFOND_LEP  = 10_000;
+  // Coussin de précaution : 3-6 mois de charges. Sans info détaillée, 12 k€/déclarant.
+  const liquidityFloor = 12_000;
+  const excess = Math.max(0, livretTotal - liquidityFloor);
+  if (excess < 3_000) return null;
+
+  const steps = [];
+  let remaining = excess;
+
+  // 1. LDDS (taux 3 % vs Livret+ ~1,5 %)
+  const lddsRoom = Math.max(0, PLAFOND_LDDS - ldds);
+  if (lddsRoom > 0 && remaining > 1_000) {
+    const move = Math.min(lddsRoom, remaining);
+    steps.push({
+      label: ldds > 0 ? 'Compléter LDDS jusqu\'au plafond' : 'Ouvrir et saturer LDDS',
+      montant: move,
+      gainAnnuel: Math.round(move * 0.015),
+      detail: `Plafond ${e0(PLAFOND_LDDS)} · taux 3 % · exonéré IR + PS · disponibilité immédiate`,
     });
+    remaining -= move;
   }
-  if (avD2 === 0) {
-    options.push({
-      label: 'Ouvrir AV D2',
-      montant: '1 € minimum',
-      detail: 'Antériorité fiscale 8 ans, abattement 4 600 €/an sur gains, transmission avantageuse (152 500 € par bénéficiaire hors succession).',
-      couleur: 'teal',
-    });
-  }
-  options.push({
-    label: 'Arbitrage progressif (DCA)',
-    montant: `${e0(liquidD2 * 0.5)} sur 12 mois`,
-    detail: 'Réduire progressivement l\'exposition aux livrets réglementés (taux variable) vers des enveloppes à long terme.',
-    couleur: 'gray',
-  });
 
+  // 2. LEP si éligible
+  if (eligibleLEP) {
+    const lepRoom = Math.max(0, PLAFOND_LEP - lep);
+    if (lepRoom > 0 && remaining > 1_000) {
+      const move = Math.min(lepRoom, remaining);
+      steps.push({
+        label: lep > 0 ? 'Compléter LEP jusqu\'au plafond' : 'Ouvrir et saturer LEP',
+        montant: move,
+        gainAnnuel: Math.round(move * 0.035),
+        detail: `Plafond ${e0(PLAFOND_LEP)} · taux ~5 % · exonéré IR + PS · meilleur taux garanti de France`,
+      });
+      remaining -= move;
+    }
+  }
+
+  // 3. AV multisupport (~30 k€)
+  if (remaining > 5_000) {
+    const move = Math.min(remaining, 30_000);
+    steps.push({
+      label: av > 0 ? 'Renforcer AV multisupport' : 'Ouvrir AV multisupport (lump sum)',
+      montant: move,
+      gainAnnuel: Math.round(move * 0.028),
+      detail: 'Rendement LT ~4 % net espéré · abattement 4 600 €/an sur gains après 8 ans · transmission 152 500 €/bénéficiaire hors succession',
+    });
+    remaining -= move;
+  }
+
+  // 4. PEA (~20 k€)
+  if (remaining > 5_000) {
+    const move = Math.min(remaining, 20_000);
+    steps.push({
+      label: pea > 0 ? 'Renforcer PEA' : 'Ouvrir PEA (lump sum 20 k€ ou DCA 18-24 mois)',
+      montant: move,
+      gainAnnuel: Math.round(move * 0.045),
+      detail: 'Rendement LT ~6 % espéré (ETF Monde) · exonéré IR après 5 ans (PS 17,2 % seulement) · plafond 150 000 €',
+    });
+    remaining -= move;
+  }
+
+  // 5. Surplus
+  if (remaining > 5_000) {
+    steps.push({
+      label: 'Surplus → AV / PEA selon profil de risque',
+      montant: remaining,
+      gainAnnuel: Math.round(remaining * 0.03),
+      detail: 'Arbitrage final selon horizon et tolérance — privilégier AV pour la souplesse, PEA pour la croissance LT',
+    });
+    remaining = 0;
+  }
+
+  const totalRealloue = steps.reduce((s, x) => s + x.montant, 0);
+  const totalGain     = steps.reduce((s, x) => s + x.gainAnnuel, 0);
+
+  return {
+    declarant:     sfx,
+    livretTotal,
+    excess,
+    liquidityFloor,
+    eligibleLEP,
+    livretPlusD:   livretPlus,
+    steps,
+    totalRealloue,
+    totalGain,
+  };
+}
+
+function ReallocationPlanTable({ plan, label }) {
   return (
-    <SectionBox title="Réallocation D2 — optimiser l'épargne liquide" num="08b">
-      <div className="px-5 py-3 text-xs text-gray-600 bg-gray-50/50 border-b border-gray-100">
-        D2 dispose de <strong>{e0(liquidD2)}</strong> d'épargne liquide sur livrets (rendement brut ~3 %, soumis aux PS 17,2 %)
-        {peaD2 === 0 ? ', sans PEA ouvert' : ''}
-        {avD2 === 0 ? ' et sans assurance-vie' : ''}.
-        {' '}Une réallocation améliore le rendement net et la fiscalité à long terme.
+    <>
+      <div className="px-5 py-3 text-xs text-gray-600 bg-gray-50/40 border-b border-gray-100">
+        <strong className="text-gray-800">{label}</strong> — Épargne liquide totale :{' '}
+        <strong>{e0(plan.livretTotal)}</strong>{plan.livretPlusD > 0 && ` (dont ${e0(plan.livretPlusD)} sur Livret+/bancaire à ~1,5 %)`}.{' '}
+        Coussin de précaution conservé : ~{e0(plan.liquidityFloor)} (3-6 mois de charges). À réallouer :{' '}
+        <strong>{e0(plan.excess)}</strong>.{!plan.eligibleLEP && plan.livretTotal > 20_000 && ' (Non éligible LEP : RFR au-dessus du seuil.)'}
       </div>
       <Tbl>
         <thead>
           <tr>
-            <Th wide>Stratégie</Th>
+            <Th>Action</Th>
             <Th right>Montant</Th>
-            <Th>Avantage</Th>
+            <Th right>Gain annuel espéré</Th>
+            <Th wide>Avantage / modalités</Th>
           </tr>
         </thead>
         <tbody>
-          {options.map((o, i) => (
+          {plan.steps.map((s, i) => (
             <tr key={i}>
-              <Td bold>{o.label}</Td>
-              <Td right>{o.montant}</Td>
-              <Td muted>{o.detail}</Td>
+              <Td bold>{s.label}</Td>
+              <Td right>{e0(s.montant)}</Td>
+              <Td right plus>+ {e0(s.gainAnnuel)} €/an</Td>
+              <Td muted>{s.detail}</Td>
             </tr>
           ))}
+          <tr className="bg-teal-50/50 border-t-2 border-teal-200">
+            <td className="px-4 py-3 text-sm font-bold text-teal-800">Total réalloué</td>
+            <td className="px-4 py-3 text-sm font-bold text-teal-800 text-right tabular-nums">{e0(plan.totalRealloue)}</td>
+            <td className="px-4 py-3 text-sm font-bold text-teal-700 text-right tabular-nums">+ {e0(plan.totalGain)} €/an</td>
+            <td className="px-4 py-3 text-[10px] text-teal-600">Estimation indicative — à valider selon tolérance au risque</td>
+          </tr>
         </tbody>
       </Tbl>
+    </>
+  );
+}
+
+function ReallocationModule({ p }) {
+  const isCouple = p.mode === 'couple';
+  const planD1 = _buildReallocationPlan(p, 'D1');
+  const planD2 = isCouple ? _buildReallocationPlan(p, 'D2') : null;
+  if (!planD1 && !planD2) return null;
+
+  return (
+    <SectionBox title="Plan de réallocation patrimoniale — épargne liquide → enveloppes optimisées" num="05c">
+      <ProseCard color="gray">
+        Les livrets bancaires non réglementés (Livret+, Livret bancaire) servent un taux net proche de
+        <strong> 1-1,5 %</strong>. Saturer d'abord les enveloppes <strong>défiscalisées</strong> (LDDS, LEP)
+        puis basculer vers <strong>AV après 8 ans</strong> et <strong>PEA après 5 ans</strong> améliore le
+        rendement net annuel de 2 à 4 points sans risque déraisonnable. On conserve toujours un coussin de
+        précaution équivalent à <strong>3-6 mois de charges</strong> sur les livrets disponibles immédiatement.
+      </ProseCard>
+
+      {planD1 && (
+        <ReallocationPlanTable plan={planD1} label={isCouple ? 'Déclarant 1' : 'Plan de réallocation'} />
+      )}
+      {planD2 && (
+        <ReallocationPlanTable plan={planD2} label="Déclarant 2" />
+      )}
+    </SectionBox>
+  );
+}
+
+// ─── Module : PEL — modalités fiscales & décision à prendre ──────────────────
+
+function _pelRegime(pelDate) {
+  if (!pelDate) return null;
+  let year, month;
+  if (/^\d{2}\/\d{4}$/.test(pelDate)) {
+    [month, year] = pelDate.split('/').map(Number);
+  } else if (/^\d{4}$/.test(pelDate)) {
+    year = Number(pelDate); month = 1;
+  } else {
+    return null;
+  }
+  const now = new Date().getFullYear();
+  // Pré-mars 2011 : exo IR à vie. 2011-2017 : exo IR 12 ans. 2018+ : PFU dès origine.
+  if (year < 2011 || (year === 2011 && month < 3)) {
+    return { regime: 'pre-2011', label: 'Ouvert avant mars 2011 — exonération IR à vie',
+             irExo: true, irExoEnd: null, now };
+  }
+  if (year <= 2017) {
+    const exoEnd = year + 12;
+    return { regime: '2011-2017', label: `Ouvert ${pelDate} — exo IR pendant 12 ans (échéance ${exoEnd})`,
+             irExo: now < exoEnd, irExoEnd: exoEnd, now };
+  }
+  return { regime: '2018+', label: 'Ouvert à partir de 2018 — PFU 30 % dès la 1re année',
+           irExo: false, irExoEnd: null, now };
+}
+
+function _pelDecision(regime) {
+  if (!regime) return null;
+  if (regime.regime === 'pre-2011') {
+    return {
+      title: 'À conserver — fiscalité optimale',
+      body: 'PEL pré-mars 2011 = exonération IR à vie. Seuls les PS 17,2 % sont dus à la source. Aucune raison fiscale de fermer — c\'est l\'une des meilleures enveloppes garanties du marché.',
+      tone: 'teal',
+    };
+  }
+  if (regime.regime === '2011-2017' && regime.irExo) {
+    return {
+      title: `Décision à prendre fin ${regime.irExoEnd - 1} (avant l'échéance des 12 ans)`,
+      body: `Le PEL reste exonéré d'IR jusqu'en ${regime.irExoEnd}. Au-delà, les intérêts annuels deviendront imposables au PFU 30 % par défaut — le rendement net (taux contractuel × 0,7) tombera sous celui d'une AV multisupport bien gérée. Deux options à arbitrer en ${regime.irExoEnd - 1} : (a) conserver pour un matelas stable garanti, (b) basculer vers AV (meilleur rendement LT, fiscalité plus douce après 8 ans) ou PEA.`,
+      tone: 'amber',
+    };
+  }
+  if (regime.regime === '2011-2017' && !regime.irExo) {
+    const since = regime.now - regime.irExoEnd;
+    return {
+      title: `⚠️ Période d'exo IR échue depuis ${since} an${since > 1 ? 's' : ''} — fiscalité dégradée`,
+      body: 'Les intérêts sont désormais imposés au PFU 30 %. Le rendement net (~1,75 % pour un PEL 2,5 %) est inférieur à celui d\'une AV multisupport ou d\'un PEA. À réallouer en priorité dans le cadre du plan de réallocation ci-dessus.',
+      tone: 'red',
+    };
+  }
+  return {
+    title: 'PFU 30 % dès l\'origine — rentabilité fiscale limitée',
+    body: 'PEL ouvert à partir de 2018 : intérêts imposés au PFU 30 % dès la 1re année (taux net ~1,75 % pour un taux contractuel 2,5 %). Si le PEL est ouvert pour un projet immobilier, le conserver donne droit au prêt PEL à taux figé. Sinon, réallouer vers AV ou PEA.',
+    tone: 'amber',
+  };
+}
+
+function PelDetailBlock({ p, sfx, label }) {
+  const solde    = p[`pel${sfx}`] || 0;
+  const date     = p[`pelDate${sfx}`] || null;
+  const interets = p[`pelInterets${sfx}`] || 0;
+  const regime   = _pelRegime(date);
+  const decision = _pelDecision(regime);
+  if (!regime || !decision) return null;
+
+  const toneCls = {
+    teal:  'bg-teal-50/60  border-teal-200  text-teal-900',
+    amber: 'bg-amber-50/50 border-amber-200 text-amber-900',
+    red:   'bg-red-50/50   border-red-200   text-red-900',
+  }[decision.tone] || 'bg-gray-50 border-gray-200 text-gray-900';
+
+  return (
+    <>
+      <div className="px-5 py-2.5 bg-gray-50/40 border-b border-gray-100">
+        <p className="text-[11px] font-bold text-gray-700">{label} — {e0(solde)}</p>
+      </div>
+      <Tbl>
+        <tbody>
+          <tr><Td>Solde au 31/12/2025</Td><Td right bold>{e0(solde)}</Td></tr>
+          <tr><Td>Date d&apos;ouverture</Td><Td right>{date || '—'}</Td></tr>
+          <tr><Td>Régime fiscal IR</Td><Td right>{regime.label}</Td></tr>
+          <tr><Td>Prélèvements sociaux</Td><Td right>17,2 % à la source par la banque</Td></tr>
+          {interets > 0 && <tr><Td>Intérêts 2025</Td><Td right>{e0(interets)}</Td></tr>}
+        </tbody>
+      </Tbl>
+      <div className={`px-5 py-3 border-t ${toneCls}`}>
+        <p className="text-xs font-bold mb-1">{decision.title}</p>
+        <p className="text-[11px] leading-relaxed opacity-90">{decision.body}</p>
+      </div>
+    </>
+  );
+}
+
+function PelModule({ p }) {
+  const isCouple = p.mode === 'couple';
+  const pelD1 = p.pelD1 || 0;
+  const pelD2 = p.pelD2 || 0;
+  if (!pelD1 && !pelD2) return null;
+
+  return (
+    <SectionBox title="PEL — modalités fiscales & décision à prendre" num="05d">
+      <ProseCard color="gray">
+        Le régime fiscal d&apos;un PEL dépend de sa <strong>date d&apos;ouverture</strong> (et non de son ancienneté).
+        Trois cas : <strong>avant mars 2011</strong> (exo IR à vie, PS 17,2 % uniquement),{' '}
+        <strong>mars 2011 → 2017</strong> (exo IR pendant 12 ans, puis PFU 30 % par défaut),{' '}
+        <strong>2018+</strong> (PFU 30 % dès la 1re année). Le taux contractuel est <strong>figé à l&apos;ouverture</strong>
+        (~2,5 % pour un PEL 2015). Les PS 17,2 % sont prélevés à la source chaque année par la banque.
+      </ProseCard>
+      {pelD1 > 0 && <PelDetailBlock p={p} sfx="D1" label={isCouple ? 'PEL D1' : 'PEL'} />}
+      {pelD2 > 0 && <PelDetailBlock p={p} sfx="D2" label="PEL D2" />}
     </SectionBox>
   );
 }
@@ -2471,7 +2701,8 @@ export default function Rapport() {
 
         {/* ── Section 05b : PEA & AV (non-enrichi ou complément) ── */}
         {!p.isEnriched && <PeaAvModule p={p} />}
-        {!p.isEnriched && <ReallocationModule p={p} />}
+        <ReallocationModule p={p} />
+        <PelModule p={p} />
 
         {/* ── Section 06 : Transmission et protection ── */}
         <TransmissionModule p={p} />

@@ -23,6 +23,9 @@ export function detectOpportunities(parsedProfile) {
     lepD1, lepD2,
     livretPlusD1, livretPlusD2,
     peaD1, peaD2,
+    avD1, avD2,
+    pelD1, pelD2,
+    pelDateD1, pelDateD2,
     tauxPasD1, tauxPasD2,
     remboursement,
     cryptoTotal,
@@ -99,29 +102,135 @@ export function detectOpportunities(parsedProfile) {
   }
 
   // Épargne liquide mal rémunérée : total > 10 000 €
-  // Inclut : Livret A, LDDS, LEP, Livret+ / Livret bancaire (tout ce qui est disponible)
-  // Exclut : PEA, AV, PEL, PERCO (bloqués ou à horizon long terme)
+  // Plan de réallocation détaillé étape par étape avec gain annuel estimé.
   if (livretTotal > 10_000) {
+    const livretPlusTotal = (livretPlusD1 || 0) + (livretPlusD2 || 0);
+    const lddsTotal       = lddsD1 + lddsD2;
+    const lepTotal        = lepD1 + lepD2;
+    const livretATotal    = livretAD1 + livretAD2;
+
     const detail = [
-      livretAD1 + livretAD2 > 0 ? `Livret A ${fmt(livretAD1 + livretAD2)} €` : null,
-      lddsD1 + lddsD2 > 0       ? `LDDS ${fmt(lddsD1 + lddsD2)} €`           : null,
-      lepD1 + lepD2 > 0         ? `LEP ${fmt(lepD1 + lepD2)} €`              : null,
-      (livretPlusD1 || 0) + (livretPlusD2 || 0) > 0
-        ? `Livret bancaire ${fmt((livretPlusD1 || 0) + (livretPlusD2 || 0))} €` : null,
+      livretATotal    > 0 ? `Livret A ${fmt(livretATotal)} €`           : null,
+      lddsTotal       > 0 ? `LDDS ${fmt(lddsTotal)} €`                  : null,
+      lepTotal        > 0 ? `LEP ${fmt(lepTotal)} €`                    : null,
+      livretPlusTotal > 0 ? `Livret bancaire ${fmt(livretPlusTotal)} €` : null,
     ].filter(Boolean).join(' · ');
+
+    // Plafonds par déclarant
+    const NB = isCouple ? 2 : 1;
+    const PLAF_LDDS = 12_000 * NB;
+    const PLAF_LEP  = 10_000 * NB;
+    const liquidityFloor = isCouple ? 24_000 : 12_000; // 3-6 mois de charges
+
+    const excess = Math.max(0, livretTotal - liquidityFloor);
+    const plafondLEPRfr = isCouple ? 34_393 : 22_419;
+    const eligibleLEP = rfr > 0 && rfr <= plafondLEPRfr;
+
+    // Construction du plan
+    const plan = [];
+    let remaining = excess;
+    let gainTotal = 0;
+
+    const lddsRoom = Math.max(0, PLAF_LDDS - lddsTotal);
+    if (lddsRoom > 0 && remaining > 1_000) {
+      const move = Math.min(lddsRoom, remaining);
+      const gain = Math.round(move * 0.015);
+      plan.push(`Saturer LDDS (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux 3 % vs ~1,5 %)`);
+      remaining -= move; gainTotal += gain;
+    }
+    if (eligibleLEP) {
+      const lepRoom = Math.max(0, PLAF_LEP - lepTotal);
+      if (lepRoom > 0 && remaining > 1_000) {
+        const move = Math.min(lepRoom, remaining);
+        const gain = Math.round(move * 0.035);
+        plan.push(`Saturer LEP (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux ~5 %, meilleur taux garanti)`);
+        remaining -= move; gainTotal += gain;
+      }
+    }
+    if (remaining > 5_000) {
+      const move = Math.min(remaining, 30_000);
+      const gain = Math.round(move * 0.028);
+      const avExists = (avD1 || 0) + (avD2 || 0) > 0;
+      plan.push(`${avExists ? 'Renforcer' : 'Ouvrir'} AV multisupport (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (rendement ~4 % net)`);
+      remaining -= move; gainTotal += gain;
+    }
+    if (remaining > 5_000) {
+      const move = Math.min(remaining, 20_000);
+      const gain = Math.round(move * 0.045);
+      const peaExists = (peaD1 || 0) + (peaD2 || 0) > 0;
+      plan.push(`${peaExists ? 'Renforcer' : 'Ouvrir'} PEA (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (ETF Monde ~6 %, exo IR > 5 ans)`);
+      remaining -= move; gainTotal += gain;
+    }
+    if (remaining > 5_000) {
+      const gain = Math.round(remaining * 0.03);
+      plan.push(`Surplus ${fmt(remaining)} € → AV/PEA selon profil de risque — gain +${fmt(gain)} €/an`);
+      gainTotal += gain;
+    }
+
+    const planLine = plan.length > 0 ? ` Plan : ${plan.join(' ; ')}.` : '';
+    const lepNote = !eligibleLEP && livretTotal > 20_000 ? ' (Non éligible LEP : RFR au-dessus du seuil.)' : '';
+    const noteRendement = livretPlusTotal > 10_000
+      ? ` ${fmt(livretPlusTotal)} € sur Livret+/bancaire à ~1,5 % net = manque à gagner direct.`
+      : '';
+
     opps.push({
       id: 'epargne_mal_remuneree',
       type: 'gain',
       urgence: 'long_terme',
-      titre: '💡 Épargne liquide à optimiser',
-      description: `${fmt(livretTotal)} € d'épargne disponible détectée${detail ? ` (${detail})` : ''}. La part excédant votre épargne de précaution (3-6 mois de charges) pourrait être investie sur PEA ou assurance-vie pour une meilleure performance.`,
-      impact: 'Gain potentiel annuel selon l\'allocation choisie',
-      impactEuros: Math.round(livretTotal * 0.02),
-      action: 'Identifier le surplus au-delà de 3-6 mois de charges, puis alimenter PEA ou AV',
+      titre: '💡 Plan de réallocation épargne liquide',
+      description: `${fmt(livretTotal)} € d'épargne disponible${detail ? ` (${detail})` : ''}.${noteRendement} Coussin de précaution conservé : ~${fmt(liquidityFloor)} € (3-6 mois de charges). À réallouer : ${fmt(excess)} €.${lepNote}${planLine}`,
+      impact: `Gain annuel récurrent espéré : +${fmt(gainTotal)} €/an`,
+      impactEuros: gainTotal,
+      action: plan.length > 0
+        ? plan.map((p, i) => `${i + 1}. ${p}`).join(' | ')
+        : 'Identifier le surplus au-delà de 3-6 mois de charges, puis alimenter LDDS/LEP saturés, AV, PEA',
       questionChat: isCouple
-        ? `Mon foyer (couple marié/pacsé) a ${fmt(livretTotal)} € d'épargne liquide répartie ainsi : ${detail || 'sur plusieurs livrets'}. Quelle part garder en épargne de précaution pour un couple et comment investir le surplus — PEA (un chacun), assurance-vie, répartition optimale ?`
-        : `J'ai ${fmt(livretTotal)} € d'épargne liquide répartie ainsi : ${detail || 'sur plusieurs livrets'}. Quelle part garder en épargne de précaution et comment investir le surplus sur PEA ou assurance-vie ?`,
+        ? `Mon foyer (couple) a ${fmt(livretTotal)} € d'épargne liquide${livretPlusTotal > 0 ? `, dont ${fmt(livretPlusTotal)} € sur Livret+/bancaire à ~1,5 % net` : ''}. Plan de réallocation proposé : ${plan.join(' / ')}. Quel ordre exécuter, quels supports AV/PEA choisir, lump sum ou DCA, et comment équilibrer entre D1 et D2 ?`
+        : `J'ai ${fmt(livretTotal)} € d'épargne liquide${livretPlusTotal > 0 ? `, dont ${fmt(livretPlusTotal)} € sur Livret+/bancaire à ~1,5 % net` : ''}. Plan de réallocation proposé : ${plan.join(' / ')}. Peux-tu valider l'ordre, suggérer des supports AV/PEA concrets, et comparer lump sum vs DCA ?`,
     });
+  }
+
+  // Décision PEL — fiscalité bascule à l'échéance des 12 ans
+  const pelTotal = (pelD1 || 0) + (pelD2 || 0);
+  if (pelTotal > 0) {
+    const analyses = [];
+    [['D1', pelD1, pelDateD1], ['D2', pelD2, pelDateD2]].forEach(([sfx, solde, date]) => {
+      if (!solde || !date) return;
+      // Parse MM/AAAA ou YYYY
+      let year = null, month = 1;
+      if (/^\d{2}\/\d{4}$/.test(date)) { const [m, y] = date.split('/').map(Number); month = m; year = y; }
+      else if (/^\d{4}$/.test(date))   { year = Number(date); }
+      if (!year) return;
+      const nowY = new Date().getFullYear();
+      if (year < 2011 || (year === 2011 && month < 3)) {
+        analyses.push({ sfx, solde, msg: `PEL ${sfx} (${fmt(solde)} €, ouvert ${date}) : exo IR à vie — à conserver.` });
+      } else if (year <= 2017) {
+        const exoEnd = year + 12;
+        if (nowY < exoEnd) {
+          analyses.push({ sfx, solde, decision: true,
+            msg: `PEL ${sfx} (${fmt(solde)} €, ouvert ${date}) : exo IR jusqu'en ${exoEnd}. Décision à prendre fin ${exoEnd - 1} — conserver comme matelas garanti, ou basculer vers AV/PEA avant la bascule en PFU 30 %.` });
+        } else {
+          analyses.push({ sfx, solde, decision: true,
+            msg: `⚠️ PEL ${sfx} (${fmt(solde)} €, ouvert ${date}) : exo IR échue depuis ${nowY - exoEnd} an(s). Intérêts désormais imposés au PFU 30 % → rendement net dégradé. Envisager une réallocation vers AV/PEA.` });
+        }
+      } else {
+        analyses.push({ sfx, solde,
+          msg: `PEL ${sfx} (${fmt(solde)} €, ouvert ${date}) : PFU 30 % dès l'origine (post-2018). Utile uniquement pour le prêt PEL à taux figé — sinon réallouer.` });
+      }
+    });
+    if (analyses.length > 0 && analyses.some(a => a.decision)) {
+      opps.push({
+        id: 'pel_decision',
+        type: 'action',
+        urgence: 'long_terme',
+        titre: '🔵 PEL — décision à prendre avant l\'échéance des 12 ans',
+        description: analyses.map(a => a.msg).join(' '),
+        impact: 'Préserver le rendement net avant la bascule au PFU 30 %',
+        impactEuros: Math.round(pelTotal * 0.0075), // perte fiscale annuelle si conservé après échéance : ~0,75% (PFU sur 2,5% = 0,75 € manqué/100 € capital)
+        action: 'Arbitrer fin de l\'avant-dernière année : conserver le PEL comme matelas garanti, ou clôturer pour basculer vers AV multisupport (fiscalité plus douce après 8 ans, meilleur rendement LT)',
+        questionChat: `J'ai un PEL : ${analyses.map(a => a.msg).join(' ')} Faut-il conserver ce PEL jusqu'à l'échéance des 12 ans, clôturer avant, ou basculer le capital vers AV multisupport ? Compare le rendement net après la bascule PFU avec une AV bien gérée.`,
+      });
+    }
   }
 
   // PEA non ouvert
