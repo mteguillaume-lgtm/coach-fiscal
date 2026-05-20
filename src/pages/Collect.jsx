@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, Fragment } from 'react';
 import { useNavigate }    from 'react-router-dom';
 import toast              from 'react-hot-toast';
 import {
@@ -127,10 +127,19 @@ const SECTION_SIT = {
   ],
 };
 
+// Champs frais-réels et IJ CPAM exclus de la collecte — gérés par le simulateur
+// (frais réels) ou inutiles dans le flux UI (IJ CPAM déjà dans le net imposable).
+const EXCLUDE_REV = [
+  'pension_net_imp',
+  'ij_cpam', 'ij_cpam_org',
+  'frais_distance_aller', 'frais_jours', 'frais_cv',
+  'frais_electrique', 'frais_autres', 'frais_option',
+];
+
 const REV_FIELDS = [
-  ...pluginFields(['salaires', 'pensions-rentes'], ['pension_net_imp']),
+  ...pluginFields(['salaires', 'pensions-rentes'], EXCLUDE_REV),
   { key: 'frais_r', label: 'Frais réels (€)', type: 'number', ph: 'vide = forfait 10%',
-    hint: 'Vide = abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer.' },
+    hint: 'Laissez vide pour utiliser l\'abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer puis reporter ici.' },
 ];
 
 const EP_INDIV_FIELDS = [
@@ -150,7 +159,8 @@ const EP_INDIV_FIELDS = [
   { key: 'pee',                label: 'PEE — valorisation (€)',         type: 'number', ph: '0',
     hint: 'Plan d\'Épargne Entreprise. Gains exonérés d\'IR (PS 17,2 % seulement). Abondement employeur exonéré.' },
   { key: 'pee_verse',          label: 'PEE — versements salarié 2025 (€)', type: 'number', ph: '0',
-    dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 } },
+    dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Vos versements volontaires 2025 sur le PEE (hors abondement employeur et hors intéressement/participation déjà placés). Plafond légal : 25 % de votre rémunération annuelle brute. Ne réduisent PAS l\'IR (le PEE n\'est pas déductible) mais déterminent le plafond restant pour abondement employeur (3 fois votre versement, dans la limite de 8 % du PASS = ~3 770 € en 2025). Les gains à la sortie sont exonérés d\'IR (PS 17,2 % uniquement).' },
   { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
   { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate,
     dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 } },
@@ -181,7 +191,7 @@ const PROFIL_INDIV_FIELDS = [
 
 const SECTION_REV_SOLO = {
   id: 'rev', Icon: TrendingUp, label: 'Revenus 2025', fields: [
-    ...pluginFields(['salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers'], ['pension_net_imp']),
+    ...pluginFields(['salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers'], EXCLUDE_REV),
     { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0' },
   ],
@@ -248,10 +258,20 @@ const SECTION_DED_SOLO = {
     { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
-    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
+    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true,
+      groupStart: {
+        title: 'Plafonds PER reportés des années précédentes',
+        hint: 'À remplir uniquement si vous n\'avez pas versé tout votre plafond PER les années précédentes. Visible sur la case 6PS / 6PT / 6PU de votre avis d\'imposition.',
+      },
+      hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
     { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true },
     { key: 'per_n3',      label: 'PER reportable N-3 (€)',      type: 'number', ph: '0', advanced: true },
-    { key: 'acompte_8hw', label: 'Acompte IR — case 8HW (€)',  type: 'number', ph: '0', advanced: true, hint: 'Acompte IR prélevé automatiquement (souvent < 100 €). Visible dans l\'espace PAS sur impots.gouv.' },
+    { key: 'acompte_8hw', label: 'Acompte IR — case 8HW (€)',  type: 'number', ph: '0', advanced: true,
+      groupStart: {
+        title: 'Acomptes IR / PS déjà versés en 2025',
+        hint: 'À remplir uniquement si vous avez des revenus fonciers, mobiliers ou indépendants pour lesquels impots.gouv prélève automatiquement un acompte (mensuel ou trimestriel). Si vous êtes uniquement salarié, laissez vide. Ces acomptes seront déduits de votre IR final — sans les renseigner, le solde affiché pourrait être faux.',
+      },
+      hint: 'Acompte IR prélevé automatiquement (souvent < 100 €). Visible dans l\'espace PAS sur impots.gouv.' },
     { key: 'acompte_8hx', label: 'Acompte PS — case 8HX (€)',  type: 'number', ph: '0', advanced: true, hint: 'Acompte prélèvements sociaux (foncier, mobilier). Prérempli par impots.gouv.' },
   ],
 };
@@ -274,10 +294,20 @@ const SECTION_DED = {
     { key: 'pero_d2',      label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
     { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true },
     { key: 'syndicat',     label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
-    { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
+    { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true,
+      groupStart: {
+        title: 'Plafonds PER reportés des années précédentes',
+        hint: 'À remplir uniquement si le foyer n\'a pas versé tout son plafond PER les années précédentes. Visible sur la case 6PS / 6PT / 6PU de votre avis d\'imposition 2024.',
+      },
+      hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
     { key: 'per_n2',       label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true },
     { key: 'per_n3',       label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0', advanced: true },
-    { key: 'acompte_8hw',  label: 'Acompte IR D1 — case 8HW (€)',          type: 'number', ph: '0', advanced: true, hint: 'Acompte IR prélevé automatiquement par impots.gouv en cours d\'année (souvent < 100 €). Visible dans l\'espace "Gérer mon prélèvement à la source".' },
+    { key: 'acompte_8hw',  label: 'Acompte IR D1 — case 8HW (€)',          type: 'number', ph: '0', advanced: true,
+      groupStart: {
+        title: 'Acomptes IR / PS déjà versés en 2025',
+        hint: 'À remplir uniquement si vous avez des revenus fonciers, mobiliers ou indépendants pour lesquels impots.gouv prélève automatiquement un acompte (mensuel ou trimestriel). Si le foyer est uniquement salarié, laissez vide. Ces acomptes seront déduits de l\'IR final — sans les renseigner, le solde affiché pourrait être faux.',
+      },
+      hint: 'Acompte IR prélevé automatiquement par impots.gouv en cours d\'année (souvent < 100 €). Visible dans l\'espace "Gérer mon prélèvement à la source".' },
     { key: 'acompte_8iw',  label: 'Acompte IR D2 — case 8IW (€)',          type: 'number', ph: '0', advanced: true },
     { key: 'acompte_8hx',  label: 'Acompte PS D1 — case 8HX (€)',          type: 'number', ph: '0', advanced: true, hint: 'Acompte prélèvements sociaux D1 (foncier, mobilier). Prérempli par impots.gouv.' },
     { key: 'acompte_8ix',  label: 'Acompte PS D2 — case 8IX (€)',          type: 'number', ph: '0', advanced: true },
@@ -454,7 +484,17 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
               {advancedOpen && (
                 <div className="mt-3 pt-3 border-t border-dashed border-gray-200 grid grid-cols-2 gap-3">
                   {advFields.map(f => (
-                    <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
+                    <Fragment key={f.key}>
+                      {f.groupStart && (
+                        <div className="col-span-2 mt-2 first:mt-0">
+                          <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wide">{f.groupStart.title}</p>
+                          {f.groupStart.hint && (
+                            <p className="text-[11px] text-gray-500 leading-snug mt-1">{f.groupStart.hint}</p>
+                          )}
+                        </div>
+                      )}
+                      <FieldRow f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
+                    </Fragment>
                   ))}
                 </div>
               )}
