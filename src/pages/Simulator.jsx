@@ -1345,11 +1345,15 @@ const BAREME_KM_2024 = {
   6: { a: 0.665, b: 0.374, f: 1457, c: 0.447 },
   7: { a: 0.697, b: 0.394, f: 1515, c: 0.470 },
 };
-const REPAS_FORFAIT_DOMICILE = 5.35; // valeur forfaitaire repas pris chez soi 2024
-const REPAS_PLAFOND_JOUR     = 21.10; // plafond indemnité repas 2024
-const REPAS_DEDUC_MAX        = REPAS_PLAFOND_JOUR - REPAS_FORFAIT_DOMICILE; // 15,75 €
-const ABAT_10_MIN            = 509;
-const ABAT_10_MAX            = 14_555;
+const REPAS_FORFAIT_DOMICILE  = 5.35;  // valeur forfaitaire repas pris chez soi 2024
+const REPAS_PLAFOND_JOUR      = 21.10; // plafond indemnité repas 2024
+const REPAS_DEDUC_MAX         = REPAS_PLAFOND_JOUR - REPAS_FORFAIT_DOMICILE; // 15,75 €
+const ABAT_10_MIN             = 509;
+const ABAT_10_MAX             = 14_555;
+// Forfait télétravail DGFiP : 2,70 €/jour de télétravail effectif, plafond 626,40 €/an.
+// L'allocation employeur déjà exonérée doit être déduite de cette déduction.
+const TELETRAVAIL_FORFAIT_JOUR = 2.70;
+const TELETRAVAIL_PLAFOND_AN   = 626.40;
 
 function fraisKm(km, cv, electrique) {
   if (km <= 0) return 0;
@@ -1367,6 +1371,32 @@ function fraisRepas(jours, coutRepas) {
   return Math.round(supplement * jours);
 }
 
+/**
+ * Forfait télétravail DGFiP — déductible UNIQUEMENT si l'employeur ne verse pas
+ * d'allocation déjà exonérée, ou si l'allocation reçue est inférieure au forfait.
+ * Si l'employeur a remboursé > forfait → pas de déduction supplémentaire.
+ */
+function fraisTeletravail(jours, allocationDejaExoneree) {
+  if (jours <= 0) return 0;
+  const forfait = Math.min(TELETRAVAIL_PLAFOND_AN, jours * TELETRAVAIL_FORFAIT_JOUR);
+  return Math.max(0, Math.round(forfait - (+allocationDejaExoneree || 0)));
+}
+
+function FraisNum({ label, value, onChange, placeholder = '0' }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-medium text-gray-600 mb-1">{label}</label>
+      <input
+        type="number"
+        value={value || ''}
+        placeholder={placeholder}
+        onChange={e => onChange(e.target.value)}
+        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-300/50 placeholder:text-gray-300 font-mono tabular-nums"
+      />
+    </div>
+  );
+}
+
 function SimFrais({ data }) {
   const navigate     = useNavigate();
   const { dispatch, state } = useApp();
@@ -1378,37 +1408,76 @@ function SimFrais({ data }) {
   const [declarant, setDeclarant] = useState('d1');
   const salaireBrut = declarant === 'd2' ? brutD2 : brutD1;
 
-  // Trajet domicile-travail
-  const [distance,   setDistance]   = useState(20);     // km aller simple
+  // 1. Trajet domicile-travail
+  const [distance,   setDistance]   = useState(20);
   const [joursSem,   setJoursSem]   = useState(5);
   const [semaines,   setSemaines]   = useState(47);
   const [cv,         setCv]         = useState(5);
   const [electrique, setElectrique] = useState(false);
 
-  // Repas
+  // 2. Frais véhicule complémentaires (déductibles en plus du barème)
+  const [peage,    setPeage]    = useState(0);
+  const [parking,  setParking]  = useState(0);
+  const [interetsEmprunt, setInteretsEmprunt] = useState(0);
+
+  // 3. Repas
   const [joursRepas, setJoursRepas] = useState(0);
   const [coutRepas,  setCoutRepas]  = useState(12);
 
-  // Autres frais professionnels (formation, documentation, double résidence, etc.)
+  // 4. Télétravail
+  const [joursTeletravail, setJoursTeletravail] = useState(0);
+  const [allocTeletravail, setAllocTeletravail] = useState(0); // allocation employeur déjà exonérée
+
+  // 5. Vêtements pro / EPI / outillage spécifique
+  const [vetements, setVetements] = useState(0);
+
+  // 6. Documentation pro / formation
+  const [documentation, setDocumentation] = useState(0);
+  const [formation,     setFormation]     = useState(0);
+
+  // 7. Double résidence imposée par l'employeur
+  const [doubleResidence, setDoubleResidence] = useState(0);
+
+  // 8. Autres frais
   const [autres, setAutres] = useState(0);
 
   const res = useMemo(() => {
-    const kmAnnuels   = distance * 2 * joursSem * semaines;
-    const fVehicule   = fraisKm(kmAnnuels, cv, electrique);
-    const fRepas      = fraisRepas(joursRepas, coutRepas);
-    const fAutres     = Math.max(0, Number(autres) || 0);
-    const totalReels  = fVehicule + fRepas + fAutres;
+    const kmAnnuels    = distance * 2 * joursSem * semaines;
+    const fVehicule    = fraisKm(kmAnnuels, cv, electrique);
+    const fPeage       = Math.max(0, Number(peage)           || 0);
+    const fParking     = Math.max(0, Number(parking)         || 0);
+    const fInterets    = Math.max(0, Number(interetsEmprunt) || 0);
+    const fRepas       = fraisRepas(joursRepas, coutRepas);
+    const fTeletravail = fraisTeletravail(joursTeletravail, allocTeletravail);
+    const fVetements   = Math.max(0, Number(vetements)        || 0);
+    const fDocum       = Math.max(0, Number(documentation)    || 0);
+    const fFormation   = Math.max(0, Number(formation)        || 0);
+    const fDoubleRes   = Math.max(0, Number(doubleResidence)  || 0);
+    const fAutres      = Math.max(0, Number(autres)           || 0);
 
-    const abat10Brut  = salaireBrut * 0.10;
-    const abat10      = salaireBrut > 0
+    const totalReels   = fVehicule + fPeage + fParking + fInterets
+                       + fRepas + fTeletravail + fVetements
+                       + fDocum + fFormation + fDoubleRes + fAutres;
+
+    const abat10Brut   = salaireBrut * 0.10;
+    const abat10       = salaireBrut > 0
       ? Math.min(ABAT_10_MAX, Math.max(ABAT_10_MIN, Math.round(abat10Brut)))
       : 0;
 
-    const gain        = totalReels - abat10;
-    const interessant = salaireBrut > 0 && gain > 0;
+    const gain         = totalReels - abat10;
+    const interessant  = salaireBrut > 0 && gain > 0;
 
-    return { kmAnnuels, fVehicule, fRepas, fAutres, totalReels, abat10, gain, interessant };
-  }, [distance, joursSem, semaines, cv, electrique, joursRepas, coutRepas, autres, salaireBrut]);
+    return {
+      kmAnnuels, fVehicule, fPeage, fParking, fInterets,
+      fRepas, fTeletravail, fVetements, fDocum, fFormation,
+      fDoubleRes, fAutres,
+      totalReels, abat10, gain, interessant,
+    };
+  }, [distance, joursSem, semaines, cv, electrique,
+      peage, parking, interetsEmprunt, joursRepas, coutRepas,
+      joursTeletravail, allocTeletravail,
+      vetements, documentation, formation, doubleResidence, autres,
+      salaireBrut]);
 
   const reporterDansCollecte = () => {
     if (res.totalReels <= 0) {
@@ -1423,8 +1492,19 @@ function SimFrais({ data }) {
   };
 
   const handleChat = () => {
-    const msg = `Simulation frais réels (${declarant === 'd2' ? 'D2' : 'D1'}) : trajet domicile-travail ${distance} km aller, ${joursSem} jours/semaine × ${semaines} semaines = ${fmt(res.kmAnnuels)} km/an, véhicule ${cv} CV${electrique ? ' électrique (+20 %)' : ''} → ${fmt(res.fVehicule)} €. Repas : ${joursRepas} jours × (${coutRepas} − 5,35 €) → ${fmt(res.fRepas)} €. Autres frais pro : ${fmt(res.fAutres)} €. Total frais réels : ${fmt(res.totalReels)} € vs abattement 10 % (${fmt(res.abat10)} €). ${res.interessant ? `Gain net = ${fmt(res.gain)} €.` : 'Le forfait 10 % reste plus avantageux.'} Peux-tu valider la cohérence et signaler les frais que j'aurais pu oublier ?`;
-    navigate('/chat', { state: { prefill: msg } });
+    const lignes = [
+      `Simulation frais réels (${declarant === 'd2' ? 'D2' : 'D1'}).`,
+      res.fVehicule > 0 && `Trajet : ${distance} km aller × ${joursSem} j/sem × ${semaines} sem = ${fmt(res.kmAnnuels)} km/an, ${cv} CV${electrique ? ' électrique (+20 %)' : ''} → ${fmt(res.fVehicule)} €`,
+      (res.fPeage + res.fParking + res.fInterets) > 0 && `Compléments véhicule : péage ${fmt(res.fPeage)} €, parking ${fmt(res.fParking)} €, intérêts emprunt ${fmt(res.fInterets)} €`,
+      res.fRepas > 0 && `Repas : ${joursRepas} × (${coutRepas} − 5,35 €) → ${fmt(res.fRepas)} €`,
+      res.fTeletravail > 0 && `Télétravail : ${joursTeletravail} j × 2,70 € − allocation employeur ${fmt(allocTeletravail)} € → ${fmt(res.fTeletravail)} €`,
+      (res.fVetements + res.fDocum + res.fFormation + res.fDoubleRes) > 0
+        && `Vêtements pro ${fmt(res.fVetements)} €, documentation ${fmt(res.fDocum)} €, formation ${fmt(res.fFormation)} €, double résidence ${fmt(res.fDoubleRes)} €`,
+      res.fAutres > 0 && `Autres : ${fmt(res.fAutres)} €`,
+      `Total frais réels : ${fmt(res.totalReels)} € vs abattement 10 % (${fmt(res.abat10)} €). ${res.interessant ? `Gain net = ${fmt(res.gain)} €.` : 'Le forfait 10 % reste plus avantageux.'}`,
+      "Peux-tu valider la cohérence et signaler les frais que j'aurais pu oublier ?",
+    ].filter(Boolean);
+    navigate('/chat', { state: { prefill: lignes.join(' ') } });
   };
 
   return (
@@ -1440,54 +1520,106 @@ function SimFrais({ data }) {
         />
       )}
 
-      {/* Trajet domicile-travail */}
+      {/* 1. Trajet domicile-travail */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Trajet domicile ↔ travail</p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">1 · Trajet domicile ↔ travail</p>
         <div className="flex flex-col gap-4">
           <SimSlider label="Distance aller simple"        value={distance} min={0} max={150} step={1}  onChange={setDistance} format={v => `${v} km`} />
           <SimSlider label="Jours travaillés / semaine"   value={joursSem} min={1} max={6}   step={1}  onChange={setJoursSem} format={v => `${v} j`} />
           <SimSlider label="Semaines travaillées / an"    value={semaines} min={1} max={52}  step={1}  onChange={setSemaines} format={v => `${v} sem.`} />
-          <ToggleGroup
-            label="Puissance fiscale du véhicule"
-            options={[3, 4, 5, 6, 7]}
-            value={cv}
-            onChange={setCv}
-            format={v => v === 7 ? '7 CV et +' : `${v} CV`}
-          />
-          <ToggleGroup
-            label="Type de motorisation"
-            options={[false, true]}
-            value={electrique}
-            onChange={setElectrique}
-            format={v => v ? '⚡ Électrique (+20 %)' : 'Thermique / hybride'}
-          />
-        </div>
-      </div>
-
-      {/* Frais de repas */}
-      <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Frais de repas hors domicile</p>
-        <div className="flex flex-col gap-4">
-          <SimSlider label="Nombre de repas dans l'année"      value={joursRepas} min={0} max={250} step={1} onChange={setJoursRepas} format={v => `${v} repas`} />
-          <SimSlider label="Coût moyen d'un repas (€)"         value={coutRepas}  min={0} max={30}  step={1} onChange={setCoutRepas}  format={v => `${v} €`} />
+          <ToggleGroup label="Puissance fiscale du véhicule" options={[3, 4, 5, 6, 7]} value={cv} onChange={setCv}
+            format={v => v === 7 ? '7 CV et +' : `${v} CV`} />
+          <ToggleGroup label="Type de motorisation" options={[false, true]} value={electrique} onChange={setElectrique}
+            format={v => v ? '⚡ Électrique (+20 %)' : 'Thermique / hybride'} />
         </div>
         <p className="mt-2 text-[10px] text-gray-400 leading-snug">
-          Déduction = (coût repas − 5,35 €) × nombre de repas, plafonnée à 15,75 €/repas. À utiliser uniquement si vous n'avez ni cantine, ni titre-restaurant.
+          Barème kilométrique 2024. Plafond pratique : 80 km aller-retour/jour sauf justification
+          (horaires décalés, double activité, handicap…). Si vous avez changé de véhicule en cours d'année,
+          calculez séparément pour chaque véhicule puis additionnez dans « Autres frais ».
         </p>
       </div>
 
-      {/* Autres frais pro */}
+      {/* 2. Frais véhicule complémentaires */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1.5">
-          Autres frais professionnels (formation, documentation, double résidence…) — €
-        </label>
-        <input
-          type="number"
-          value={autres || ''}
-          onChange={e => setAutres(e.target.value)}
-          placeholder="0"
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-300/50 font-sans placeholder:text-gray-300"
-        />
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">2 · Frais véhicule complémentaires</p>
+        <div className="grid grid-cols-2 gap-3">
+          <FraisNum label="Péages autoroute / an"       value={peage}           onChange={setPeage} />
+          <FraisNum label="Parking habituel / an"       value={parking}         onChange={setParking} />
+          <FraisNum label="Intérêts d'emprunt véhicule" value={interetsEmprunt} onChange={setInteretsEmprunt} />
+        </div>
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Déductibles <strong>en plus</strong> du barème kilométrique. Carburant, entretien, assurance véhicule
+          et dépréciation sont déjà inclus dans le barème — ne les saisissez pas ici.
+        </p>
+      </div>
+
+      {/* 3. Repas */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">3 · Repas hors domicile</p>
+        <div className="flex flex-col gap-4">
+          <SimSlider label="Nombre de repas dans l'année" value={joursRepas} min={0} max={250} step={1} onChange={setJoursRepas} format={v => `${v} repas`} />
+          <SimSlider label="Coût moyen d'un repas (€)"    value={coutRepas}  min={0} max={30}  step={1} onChange={setCoutRepas}  format={v => `${v} €`} />
+        </div>
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Déduction = (coût repas − 5,35 €) × nombre de repas, plafonnée à 15,75 €/repas (BOI-RSA-BASE-30-50-30-20).
+          À utiliser uniquement si vous n'avez ni cantine, ni titre-restaurant.
+          Si vous avez des titres-restaurant, seule la part employeur excédentaire compte.
+        </p>
+      </div>
+
+      {/* 4. Télétravail */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">4 · Télétravail</p>
+        <div className="grid grid-cols-2 gap-3">
+          <FraisNum label="Jours de télétravail / an"               value={joursTeletravail} onChange={setJoursTeletravail} placeholder="0" />
+          <FraisNum label="Allocation employeur déjà exonérée"       value={allocTeletravail} onChange={setAllocTeletravail} placeholder="0" />
+        </div>
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Forfait DGFiP : <strong>2,70 €/jour</strong>, plafond 626,40 €/an.
+          Si votre employeur vous a versé une <strong>allocation forfaitaire ou un remboursement</strong>
+          (exonéré à hauteur de ces mêmes plafonds), <strong>déduisez-le ici</strong> — sinon double déduction.
+          Si l'allocation employeur est supérieure au forfait, la déduction supplémentaire est nulle.
+        </p>
+      </div>
+
+      {/* 5. Vêtements pro */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">5 · Vêtements pro / EPI / outillage</p>
+        <FraisNum label="Total annuel" value={vetements} onChange={setVetements} placeholder="0" />
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Uniquement les vêtements spécifiques à l'activité (uniforme, blouse, chaussures de sécurité…)
+          et leur entretien. Les costumes de bureau et tenues passe-partout ne sont pas déductibles.
+        </p>
+      </div>
+
+      {/* 6. Documentation / formation */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">6 · Documentation & formation</p>
+        <div className="grid grid-cols-2 gap-3">
+          <FraisNum label="Documentation pro / abonnements"  value={documentation} onChange={setDocumentation} placeholder="0" />
+          <FraisNum label="Formation pro non remboursée"     value={formation}     onChange={setFormation}     placeholder="0" />
+        </div>
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Revues techniques, ouvrages spécialisés, MOOC payants directement liés à l'emploi.
+          Les formations remboursées par l'employeur ou OPCO ne sont pas déductibles.
+        </p>
+      </div>
+
+      {/* 7. Double résidence */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">7 · Double résidence professionnelle</p>
+        <FraisNum label="Loyer + charges du second logement" value={doubleResidence} onChange={setDoubleResidence} placeholder="0" />
+        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+          Déductible uniquement si la double résidence est <strong>imposée par l'emploi</strong>
+          (mutation, mission temporaire, conjoint travaillant ailleurs) — pas pour convenance personnelle.
+          Loyer, charges, taxe d'habitation du second logement.
+        </p>
+      </div>
+
+      {/* 8. Autres frais pro */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">8 · Autres frais professionnels</p>
+        <FraisNum label="Autres (frais de mission non remboursés, déménagement professionnel imposé…)" value={autres} onChange={setAutres} placeholder="0" />
       </div>
 
       {/* Recommandation */}
@@ -1512,21 +1644,26 @@ function SimFrais({ data }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Détail des frais</p>
         </div>
         <div className="divide-y divide-gray-50">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div>
-              <span className="text-sm text-gray-600">Indemnité kilométrique</span>
-              <p className="text-[10px] text-gray-400">{fmt(res.kmAnnuels)} km/an · barème {cv === 7 ? '7 CV+' : `${cv} CV`}{electrique ? ' ×1,20' : ''}</p>
+          {[
+            { label: 'Indemnité kilométrique', value: res.fVehicule,
+              sub: `${fmt(res.kmAnnuels)} km/an · barème ${cv === 7 ? '7 CV+' : `${cv} CV`}${electrique ? ' ×1,20' : ''}` },
+            { label: 'Péage / parking / intérêts véhicule', value: res.fPeage + res.fParking + res.fInterets },
+            { label: 'Repas hors domicile',         value: res.fRepas },
+            { label: 'Télétravail (forfait DGFiP)', value: res.fTeletravail,
+              sub: joursTeletravail > 0 ? `${joursTeletravail} j × 2,70 € − ${fmt(allocTeletravail)} € employeur` : null },
+            { label: 'Vêtements pro / EPI',         value: res.fVetements },
+            { label: 'Documentation + formation',    value: res.fDocum + res.fFormation },
+            { label: 'Double résidence',             value: res.fDoubleRes },
+            { label: 'Autres',                       value: res.fAutres },
+          ].filter(r => r.value > 0).map(({ label, value, sub }) => (
+            <div key={label} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <span className="text-sm text-gray-600">{label}</span>
+                {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+              </div>
+              <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(value)} €</span>
             </div>
-            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.fVehicule)} €</span>
-          </div>
-          <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">Repas hors domicile</span>
-            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.fRepas)} €</span>
-          </div>
-          <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">Autres frais pro</span>
-            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.fAutres)} €</span>
-          </div>
+          ))}
           <div className="flex items-center justify-between px-4 py-3 bg-teal-50/40">
             <span className="text-sm font-semibold text-gray-700">Total frais réels</span>
             <span className="text-sm font-bold font-mono tabular-nums text-teal-700">{fmt(res.totalReels)} €</span>

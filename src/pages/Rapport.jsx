@@ -325,6 +325,12 @@ function RevenusTable({ d, p }) {
           {(p.peroD1 > 0 || p.peroD2 > 0) && (
             <Row label="PERO — déjà inclus dans 1AJ" v1={p.peroD1 > 0 ? e0(p.peroD1) : '—'} v2={p.peroD2 > 0 ? e0(p.peroD2) : '—'} />
           )}
+          {/* Total revenus nets imposables par déclarant (avant agrégation foyer) */}
+          <tr className="bg-teal-50/40 border-t-2 border-teal-100">
+            <Td bold>Total revenus nets imposables{d.isCouple ? ' (par déclarant)' : ''}</Td>
+            <Td right bold className="text-teal-700">{e2(d.retD1)}</Td>
+            {d.isCouple && <Td right bold className="text-teal-700">{e2(d.retD2)}</Td>}
+          </tr>
           {d.foncierBrut > 0 && <>
             <tr>
               <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
@@ -619,6 +625,95 @@ function BaremeTable({ d }) {
             value={e2(irBrutFoyer)}
             colSpan={3}
           />
+        </tbody>
+      </Tbl>
+    </SectionBox>
+  );
+}
+
+// ─── Table : détail du calcul d'IR par déclarant (méthode célibataire) ───────
+
+function IRParDeclarantTable({ d }) {
+  if (!d.isCouple) return null;
+  const { retD1, retD2 } = d;
+  if ((retD1 || 0) <= 0 && (retD2 || 0) <= 0) return null;
+
+  const stepsD1   = baremeSteps(retD1 || 0, 1);
+  const stepsD2   = baremeSteps(retD2 || 0, 1);
+  const irBrutD1  = stepsD1.reduce((s, t) => s + t.irParPart, 0);
+  const irBrutD2  = stepsD2.reduce((s, t) => s + t.irParPart, 0);
+  const decoteD1  = decote(irBrutD1, false);
+  const decoteD2  = decote(irBrutD2, false);
+  const irNetD1   = Math.max(0, irBrutD1 - decoteD1);
+  const irNetD2   = Math.max(0, irBrutD2 - decoteD2);
+
+  // Toutes les tranches qui interviennent pour au moins un déclarant.
+  const ratesUsed = [...new Set([...stepsD1, ...stepsD2].map(s => s.rate))];
+  const tranches  = TRANCHES.filter(([, , rate]) => ratesUsed.includes(rate));
+
+  const findStep = (steps, rate) => steps.find(s => Math.abs(s.rate - rate) < 1e-6);
+
+  return (
+    <SectionBox title="Détail du calcul d'IR par déclarant (1 part chacun, méthode célibataire)">
+      <div className="px-5 py-2.5 text-xs text-gray-500 bg-gray-50/50 border-b border-gray-100">
+        Application du barème progressif à chaque RNI individuel, comme si chacun déclarait seul.
+        Sert de référence pour le partage équitable du gain PACS dans la section suivante.
+      </div>
+      <Tbl>
+        <thead>
+          <tr>
+            <Th>Tranche</Th>
+            <Th right>D1 — base × taux</Th>
+            <Th right>IR D1</Th>
+            <Th right>D2 — base × taux</Th>
+            <Th right>IR D2</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {tranches.map(([lo, hi, rate], i) => {
+            const sD1 = findStep(stepsD1, rate);
+            const sD2 = findStep(stepsD2, rate);
+            const hiLabel = isFinite(hi) ? e2(hi) : '∞';
+            return (
+              <tr key={i}>
+                <Td bold={rate > 0}>
+                  {pct(rate)}
+                  <span className="block text-[10px] text-gray-400 font-normal">{e0(lo)} → {hiLabel}</span>
+                </Td>
+                <Td right muted={!sD1}>
+                  {sD1 ? `${e2(sD1.taxable)} × ${pct(rate)}` : '—'}
+                </Td>
+                <Td right bold={!!sD1 && rate > 0}>{sD1 ? e2(sD1.irParPart) : '—'}</Td>
+                <Td right muted={!sD2}>
+                  {sD2 ? `${e2(sD2.taxable)} × ${pct(rate)}` : '—'}
+                </Td>
+                <Td right bold={!!sD2 && rate > 0}>{sD2 ? e2(sD2.irParPart) : '—'}</Td>
+              </tr>
+            );
+          })}
+          <tr className="bg-gray-50 border-t border-gray-200">
+            <td className="px-4 py-2.5 text-xs font-semibold text-gray-700">IR brut solo (1 part)</td>
+            <td className="px-4 py-2.5"></td>
+            <td className="px-4 py-2.5 text-xs font-bold text-gray-900 text-right tabular-nums">{e2(irBrutD1)}</td>
+            <td className="px-4 py-2.5"></td>
+            <td className="px-4 py-2.5 text-xs font-bold text-gray-900 text-right tabular-nums">{e2(irBrutD2)}</td>
+          </tr>
+          {(decoteD1 > 0 || decoteD2 > 0) && (
+            <tr>
+              <td className="px-4 py-2.5 text-xs text-gray-600">− Décote célibataire</td>
+              <td className="px-4 py-2.5"></td>
+              <td className="px-4 py-2.5 text-xs text-red-600 text-right tabular-nums">{decoteD1 > 0 ? `− ${e2(decoteD1)}` : '—'}</td>
+              <td className="px-4 py-2.5"></td>
+              <td className="px-4 py-2.5 text-xs text-red-600 text-right tabular-nums">{decoteD2 > 0 ? `− ${e2(decoteD2)}` : '—'}</td>
+            </tr>
+          )}
+          <tr className="bg-teal-50/60 border-t-2 border-teal-200">
+            <td className="px-4 py-3 text-sm font-bold text-teal-900">IR net solo (1 part)</td>
+            <td className="px-4 py-3"></td>
+            <td className="px-4 py-3 text-sm font-bold text-teal-700 text-right tabular-nums">{e2(irNetD1)}</td>
+            <td className="px-4 py-3"></td>
+            <td className="px-4 py-3 text-sm font-bold text-teal-700 text-right tabular-nums">{e2(irNetD2)}</td>
+          </tr>
         </tbody>
       </Tbl>
     </SectionBox>
@@ -2338,6 +2433,7 @@ export default function Rapport() {
 
             <RniTable d={d} p={p} />
             {d.steps.length > 0 && <BaremeTable d={d} />}
+            {isCouple && <IRParDeclarantTable d={d} />}
             {d.tmi > 0 && <TmiProseBlock d={d} />}
             <SoldeTable d={d} cehr={cehr} />
             {isCouple && d.totalSolo > 0 && <GainPacsTable d={d} />}

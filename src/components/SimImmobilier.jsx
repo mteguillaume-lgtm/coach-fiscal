@@ -32,10 +32,15 @@ const newLoan = (n = 1) => ({
   label: `Prêt ${n}`,
   capitalInitial: 0,
   crd: 0,
-  taux: 0,
+  taux: 0,            // taux nominal (%)
+  assuranceTaux: 0,   // taux assurance emprunteur (%)
   mensualite: 0,
   dureeRestanteMois: 0,
 });
+
+// Taux global simplifié (proche du TAEG) = taux nominal + assurance.
+// Approximation valable quand l'assurance est calculée sur le capital initial.
+const tauxGlobalLoan = l => (+l.taux || 0) + (+l.assuranceTaux || 0);
 
 const newProject = (type = 'rp') => ({
   id: makeId(),
@@ -65,8 +70,12 @@ function computeProjectMetrics(project) {
   const ciTotal     = loans.reduce((s, l) => s + (+l.capitalInitial || 0), 0);
   const mensTotal   = loans.reduce((s, l) => s + (+l.mensualite || 0), 0);
   const dureeMaxMois = loans.reduce((m, l) => Math.max(m, +l.dureeRestanteMois || 0), 0);
-  const tauxMoyen   = crdTotal > 0
+  // Moyennes pondérées par capital restant dû : taux nominal et taux global (intérêts + assurance).
+  const tauxMoyen = crdTotal > 0
     ? loans.reduce((s, l) => s + (+l.crd || 0) * (+l.taux || 0), 0) / crdTotal
+    : 0;
+  const tauxGlobalMoyen = crdTotal > 0
+    ? loans.reduce((s, l) => s + (+l.crd || 0) * tauxGlobalLoan(l), 0) / crdTotal
     : 0;
   const remboursementRestant = loans.reduce(
     (s, l) => s + (+l.mensualite || 0) * (+l.dureeRestanteMois || 0), 0,
@@ -94,7 +103,7 @@ function computeProjectMetrics(project) {
     };
   }
 
-  return { crdTotal, ciTotal, mensTotal, dureeMaxMois, tauxMoyen, coutInteretsRestant, locatif };
+  return { crdTotal, ciTotal, mensTotal, dureeMaxMois, tauxMoyen, tauxGlobalMoyen, coutInteretsRestant, locatif };
 }
 
 // ─── Champ numérique ─────────────────────────────────────────────────────────
@@ -128,6 +137,7 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
   const dureeAnnees = loan.dureeRestanteMois > 0
     ? (loan.dureeRestanteMois / 12).toFixed(1)
     : '—';
+  const tauxGlobal = tauxGlobalLoan(loan);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white">
@@ -146,7 +156,9 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
         </div>
         <div className="flex items-center gap-3 text-[10px] text-gray-500 font-mono shrink-0">
           <span>CRD {fmt(loan.crd)} €</span>
-          <span>{(+loan.taux || 0).toFixed(2)} %</span>
+          <span title="Taux global = nominal + assurance" className="text-teal-700 font-semibold">
+            {tauxGlobal.toFixed(2)} %
+          </span>
           <span>{dureeAnnees} ans</span>
           {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </div>
@@ -177,11 +189,19 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <NumField label="Capital initial"     value={loan.capitalInitial}    onChange={v => onChange({ ...loan, capitalInitial: v })}    placeholder="250 000" suffix="€" />
-            <NumField label="Capital restant dû"  value={loan.crd}               onChange={v => onChange({ ...loan, crd: v })}               placeholder="180 000" suffix="€" />
-            <NumField label="Taux nominal"        value={loan.taux}              onChange={v => onChange({ ...loan, taux: v })}              placeholder="1.50"    suffix="%" step="0.01" />
-            <NumField label="Mensualité"          value={loan.mensualite}        onChange={v => onChange({ ...loan, mensualite: v })}        placeholder="950"     suffix="€" />
-            <NumField label="Durée restante"      value={loan.dureeRestanteMois} onChange={v => onChange({ ...loan, dureeRestanteMois: v })} placeholder="180"     suffix="mois" />
+            <NumField label="Capital initial"        value={loan.capitalInitial}    onChange={v => onChange({ ...loan, capitalInitial: v })}    placeholder="250 000" suffix="€" />
+            <NumField label="Capital restant dû"     value={loan.crd}               onChange={v => onChange({ ...loan, crd: v })}               placeholder="180 000" suffix="€" />
+            <NumField label="Taux nominal"           value={loan.taux}              onChange={v => onChange({ ...loan, taux: v })}              placeholder="1.50"    suffix="%" step="0.01" />
+            <NumField label="Taux assurance"         value={loan.assuranceTaux}     onChange={v => onChange({ ...loan, assuranceTaux: v })}     placeholder="0.36"    suffix="%" step="0.01" />
+            <NumField label="Mensualité (assurance incluse)" value={loan.mensualite} onChange={v => onChange({ ...loan, mensualite: v })}        placeholder="950"     suffix="€" />
+            <NumField label="Durée restante"         value={loan.dureeRestanteMois} onChange={v => onChange({ ...loan, dureeRestanteMois: v })} placeholder="180"     suffix="mois" />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg bg-teal-50/60 border border-teal-100 px-3 py-2">
+            <span className="text-[11px] text-teal-700">
+              Taux global (≈ TAEG) = {(+loan.taux || 0).toFixed(2)} % + {(+loan.assuranceTaux || 0).toFixed(2)} % assurance
+            </span>
+            <span className="text-sm font-bold font-mono text-teal-700">{tauxGlobal.toFixed(2)} %</span>
           </div>
 
           {canRemove && (
@@ -291,8 +311,9 @@ export default function SimImmobilier() {
     const crd       = sum(allLoans, l => l.crd);
     const mens      = sum(allLoans, l => l.mensualite);
     const dureeMois = allLoans.reduce((m, l) => Math.max(m, +l.dureeRestanteMois || 0), 0);
+    // Taux global moyen (nominal + assurance) pondéré par CRD — c'est le coût réel.
     const tauxMoyen = crd > 0
-      ? sum(allLoans, l => (+l.crd || 0) * (+l.taux || 0)) / crd
+      ? sum(allLoans, l => (+l.crd || 0) * tauxGlobalLoan(l)) / crd
       : 0;
 
     return {
@@ -493,10 +514,14 @@ export default function SimImmobilier() {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="flex justify-between"><span className="text-gray-600">Capital restant dû</span><span className="font-bold font-mono text-gray-800">{fmt(metrics.crdTotal)} €</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Mensualité totale</span><span className="font-bold font-mono text-gray-800">{fmt(metrics.mensTotal)} €</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Taux moyen pondéré</span><span className="font-bold font-mono text-teal-700">{metrics.tauxMoyen.toFixed(2)} %</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Taux nominal moyen pondéré</span><span className="font-bold font-mono text-gray-700">{metrics.tauxMoyen.toFixed(2)} %</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Taux global moyen (≈ TAEG)</span><span className="font-bold font-mono text-teal-700">{metrics.tauxGlobalMoyen.toFixed(2)} %</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Durée max restante</span><span className="font-bold font-mono text-gray-800">{(metrics.dureeMaxMois / 12).toFixed(1)} ans</span></div>
-              <div className="flex justify-between col-span-2"><span className="text-gray-600">Intérêts restants à payer</span><span className="font-bold font-mono text-red-500">{fmt(metrics.coutInteretsRestant)} €</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Intérêts restants à payer</span><span className="font-bold font-mono text-red-500">{fmt(metrics.coutInteretsRestant)} €</span></div>
             </div>
+            <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+              Taux global ≈ TAEG = taux nominal + assurance emprunteur. Pondération par capital restant dû.
+            </p>
           </div>
 
           {/* Locatif */}
