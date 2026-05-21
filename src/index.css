@@ -1,75 +1,220 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import './styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ────────────────────────────────────────────────────────────
+   BASE — dark first
+   ──────────────────────────────────────────────────────────── */
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    color-scheme: dark;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 m-0;
+    @apply bg-ink-900 text-ink-0 m-0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
   }
 
   #root {
     @apply min-h-screen;
   }
 
-  ::-webkit-scrollbar       { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-gray-100; }
-  ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+  /* Scrollbar dark */
+  ::-webkit-scrollbar       { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ink-500); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-400); background-clip: content-box; }
+
+  /* Sélection */
+  ::selection {
+    background: var(--glow-kapio);
+    color: var(--ink-0);
+  }
+
+  /* Focus visible — accent Kapio */
+  *:focus-visible {
+    outline: 2px solid var(--kapio-300);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
+/* ────────────────────────────────────────────────────────────
+   UTILITIES — étendues pour la refonte
+   ──────────────────────────────────────────────────────────── */
 @layer utilities {
-  /* Gradient text */
+
+  /* ─── Gradients de texte ─── */
   .text-gradient {
-    @apply bg-gradient-to-r from-teal-300 to-emerald-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-kapio-300 via-kapio-200 to-kapio-300 bg-clip-text text-transparent;
   }
   .text-gradient-dark {
-    @apply bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-kapio-500 to-kapio-300 bg-clip-text text-transparent;
+  }
+  .text-gradient-bright {
+    background: linear-gradient(135deg, #FAFAFA 0%, #A1A1AA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-hero {
+    background: linear-gradient(180deg, #FAFAFA 0%, #FAFAFA 40%, rgba(250,250,250,0.4) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
-  /* Glassmorphism */
-  .glass {
-    @apply bg-white/70 backdrop-blur-sm border border-white/80;
-  }
+  /* ─── Glass / glassmorphism dark ─── */
   .glass-dark {
-    @apply bg-white/10 backdrop-blur-md border border-white/15;
+    background: rgba(17, 17, 19, 0.6);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--border-default);
+  }
+  .glass-darker {
+    background: rgba(7, 7, 8, 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--border-subtle);
   }
 
-  /* Focus ring cohérent */
+  /* ─── Borders Kapio ─── */
+  .border-subtle   { border-color: var(--border-subtle); }
+  .border-default  { border-color: var(--border-default); }
+  .border-emphasis { border-color: var(--border-emphasis); }
+  .border-kapio    { border-color: var(--border-kapio); }
+
+  /* ─── Focus ring cohérent ─── */
   .focus-ring {
-    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-kapio-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-900;
   }
 
-  /* Shimmer overlay (bouton CTA) */
+  /* ─── Glow effects ─── */
+  .glow-kapio {
+    box-shadow: 0 0 40px rgba(46, 184, 138, 0.35), 0 0 80px rgba(46, 184, 138, 0.15);
+  }
+  .glow-soft {
+    box-shadow: 0 0 24px rgba(46, 184, 138, 0.2);
+  }
+
+  /* ─── Shimmer (sur boutons CTA) ─── */
+  .shimmer-btn {
+    position: relative;
+    overflow: hidden;
+  }
   .shimmer-btn::after {
     content: '';
-    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent;
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     animation: shimmer 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* ─── Conic gradient border (cards premium) ─── */
+  .border-conic {
+    position: relative;
+    background: var(--ink-800);
+    border-radius: var(--radius-xl);
+  }
+  .border-conic::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(46,184,138,0.4) 25%, transparent 50%, rgba(46,184,138,0.2) 75%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ─── Hide scrollbar (pour carousels horizontaux) ─── */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* ─── Mask gradient (fade-out en bas/haut/côtés) ─── */
+  .mask-fade-bottom {
+    -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+            mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+  }
+  .mask-fade-right {
+    -webkit-mask-image: linear-gradient(90deg, #000 60%, transparent 100%);
+            mask-image: linear-gradient(90deg, #000 60%, transparent 100%);
   }
 }
 
+/* ────────────────────────────────────────────────────────────
+   COMPONENTS — patterns réutilisables
+   ──────────────────────────────────────────────────────────── */
 @layer components {
-  .card-lift {
-    @apply transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5;
+
+  /* Card dark — base réutilisable */
+  .card-dark {
+    @apply relative bg-ink-800 border border-white/[0.05] rounded-2xl;
+    background: linear-gradient(145deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 100%), #111113;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
   }
+  .card-dark-elevated {
+    @apply relative bg-ink-700 border border-white/[0.06] rounded-2xl;
+    background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), #18181B;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 32px rgba(0,0,0,0.45);
+  }
+
+  /* Lift sur hover */
+  .card-lift {
+    @apply transition-all duration-400 ease-kapio;
+  }
+  .card-lift:hover {
+    @apply -translate-y-1;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 0 0 1px rgba(46,184,138,0.25), 0 20px 48px rgba(0,0,0,0.5), 0 0 32px rgba(46,184,138,0.08);
+  }
+
+  /* CTA premium */
+  .btn-kapio {
+    @apply relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-ink-900 transition-all duration-300 ease-kapio overflow-hidden;
+    background: linear-gradient(135deg, #2EB88A 0%, #34D399 100%);
+    box-shadow: 0 0 0 1px rgba(46,184,138,0.5), 0 0 32px rgba(46,184,138,0.4), 0 12px 32px rgba(0,0,0,0.6);
+  }
+  .btn-kapio:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px rgba(46,184,138,0.7), 0 0 48px rgba(46,184,138,0.5), 0 16px 40px rgba(0,0,0,0.7);
+  }
+  .btn-kapio:active {
+    transform: translateY(0);
+  }
+
+  /* CTA ghost (secondaire) */
+  .btn-ghost-dark {
+    @apply relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-ink-0 border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300 ease-kapio;
+  }
+
+  /* Scroll area dark */
   .scroll-area {
     @apply overflow-y-auto max-h-[60vh] pr-2;
   }
 }
 
-/* Respect des préférences d'accessibilité */
+/* ────────────────────────────────────────────────────────────
+   REDUCED MOTION — respect des préférences système
+   ──────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

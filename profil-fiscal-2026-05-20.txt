@@ -1,0 +1,510 @@
+== PROFIL FISCAL FOYER 2025 ==
+Généré le 20/05/2026 — Outil v4.1.0
+Mode : Déclaration commune (Pacsé(e))
+
+== SITUATION DU FOYER ==
+Statut : Pacsé(e)
+Parts fiscales : 2
+Enfants à charge : 0
+Département : 33
+
+== PROFIL & RETRAITE ==
+Âge D1 : 30 ans
+Âge retraite D1 : 67 ans
+Horizon retraite D1 : 37 ans
+TMI retraite D1 : 11%
+Type de revenu D1 : Salarié(e)
+
+Âge D2 : 30 ans
+Âge retraite D2 : 67 ans
+Horizon retraite D2 : 37 ans
+TMI retraite D2 : 11%
+Type de revenu D2 : Salarié(e)
+
+
+== REVENUS 2025 — DÉCLARANT 1 ==
+Brut imposable annuel : 55 910 €
+Net imposable annuel (1AJ — case déclaration) : 45 162 €
+RNI D1 après abattement 10% salaires : 40 646 €
+Taux PAS : 11.8%
+PAS prélevé 2025 : 4 609 €
+Frais réels : Forfait 10% retenu
+
+== REVENUS 2025 — DÉCLARANT 2 ==
+Brut imposable annuel : 33 848 €
+Net imposable annuel (1BJ — case déclaration) : 29 283 € (dont 1 599 € IJ CPAM — attestation Maine-et-Loire)
+RNI D2 après abattement 10% salaires : 26 355 €
+Taux PAS : 7.3%
+PAS prélevé 2025 : 1 741 €
+Frais réels : Forfait 10% retenu
+Rente viagère — case 1BS (D2) :
+  Organisme : Crédit Agricole Assurance — contrat PrédiAgri (père de D2, décédé)
+  Montant 1BS déclaré : 6 192 €
+  PAS rente 1BS : 0 €
+  Récurrent : Non
+
+== REVENUS DU FOYER ==
+Revenus fonciers bruts : 705 €
+Régime foncier : micro-foncier (abat. 30%)
+Revenus fonciers nets imposables : 493 €
+Prélèvements sociaux fonciers (17,2%) : 85 €
+Dividendes/intérêts : Néant
+Revenus crypto : Néant
+Revenus locatifs 2025 : Néant
+Intérêts mobiliers bruts (case 2TR) : 527 €
+PFU 12,8% prélevé (case 2CK) : 68 €
+Intérêts soumis PS (case 2BH) : 527 €
+
+== DONNÉES POUR CALCUL IR FOYER ==
+RNI D1 (après abat. salaires) : 40 646 €
+RNI D2 (après abat. salaires) : 26 355 €
+Foncier net imposable : 493 €
+RNI FOYER TOTAL : 67 494 €
+Quotient familial (2 parts) : 33 747 € par part
+PAS D1 prélevé 2025 : 4 609 €
+PAS D2 prélevé 2025 : 1 741 €
+PAS total foyer 2025 : 6 350 €
+Acompte IR D1 (8HW) : 12 €
+Acompte IR D2 (8IW) : 12 €
+Acompte PS D1 (8HX) : 24 €
+Acompte PS D2 (8IX) : 18 €
+→ IR foyer, TMI, TOTAL DÛ, régularisation, méthode célibataire : à calculer lors de l'enrichissement IA
+
+== PLAFONDS PER 2026 ==
+D1 :
+  10% × RNI D1 (40 646 €) : 4 065 €
+  Plancher PASS (10% × 47 100 €) : 4 710 €
+  Plafond retenu : 4 710 €
+  PERO D1 déduit : 1 260 €
+  PLAFOND DISPONIBLE D1 : 3 450 €
+
+D2 :
+  10% × RNI D2 (26 355 €) : 2 636 €
+  Plancher PASS (10% × 47 100 €) : 4 710 €
+  Plafond retenu : 4 710 €
+  PERO D2 déduit : Néant
+  PLAFOND DISPONIBLE D2 : 4 710 €
+
+Plafond cumulé mutualisable : 8 160 €
+
+== ÉPARGNE — DÉCLARANT 1 ==
+Livret A : OUI ~1 014 €
+LDDS : OUI ~146 €
+LEP : OUI ~482 €
+Livret+ / Livret bancaire : OUI ~50 €
+PEL : Néant
+PEA : OUI ~9 609 €
+PEA date ouverture : 05/2023
+PEA total versé : 7 912 €
+PER versements 2025 : Néant
+PEE (valorisation) : OUI ~10 000 €
+PEE versements salarié 2025 : -2 €
+Assurance-vie : OUI ~302 €
+AV date souscription : 09/2025
+AV versements nets cumulés : 300 €
+Crypto (valeur wallet) : OUI ~990 €
+Crypto plateforme : Binance
+
+== ÉPARGNE — DÉCLARANT 2 ==
+Livret A : OUI ~23 447 €
+LDDS : Néant
+LEP : Néant
+Livret+ / Livret bancaire : OUI ~96 651 €
+PEL : OUI ~62 460 €
+PEL date ouverture : 01/2015
+PEA : Néant
+PER versements 2025 : Néant
+PEE (valorisation) : Néant
+Assurance-vie : OUI ~300 €
+AV date souscription : 03/2026
+AV versements nets cumulés : 300 €
+Crypto (valeur wallet) : Néant
+
+== DÉDUCTIONS DU FOYER ==
+Dons associations : Néant
+Frais garde enfants : Néant
+Emploi à domicile : Néant
+Rénov. énergétique / MaPrimeRénov : Néant
+PERO D1 — cotisations 2025 : 1 260 € → case 6QS/6QT/6QU (déjà inclus dans 1AJ)
+PERO D2 — cotisations 2025 : Néant
+Pension alimentaire versée : Néant
+Cotisations syndicales : Néant
+
+== CAPACITÉ D'ÉPARGNE ==
+Charges communes : Non renseignées
+
+
+
+
+
+
+
+== IMMOBILIER ==
+Propriétaire RP : Oui
+
+Crédit immobilier en cours : Non renseigné
+
+
+
+
+Bien locatif : Non renseigné
+Revenus locatifs 2025 : Néant
+
+# ANALYSE FISCALE APPROFONDIE — FOYER 2025
+
+---
+
+## == DÉCLARATION — CASES FORMULAIRE 2042 ==
+
+### FORMULAIRE PRINCIPAL 2042
+
+**État civil et situation**
+- **Case V** : Pacsé(e) — cocher
+- **Nombre de parts** : 2 parts (sans enfant)
+
+**Revenus — Déclarant 1 (D1)**
+- **Case 1AJ** : 45 162 € (salaire net imposable)
+- **Case 8HV** : 4 609 € (PAS prélevé 2025)
+- **Case 8HW** : 12 € (acompte IR 2025)
+- **Case 8HX** : 24 € (acompte PS 2025)
+
+**Revenus — Déclarant 2 (D2)**
+- **Case 1BJ** : 29 283 € (salaire net imposable dont 1 599 € IJ CPAM)
+- **Case 1BS** : 6 192 € (rente viagère — contrat PrédiAgri Crédit Agricole Assurance)
+  - [⚠️ À VÉRIFIER] Attestation annuelle de l'assureur précisant le montant imposable — la fraction capital peut être partiellement exonérée selon l'âge du crédirentier au 1er versement (art. 158-6 CGI)
+- **Case 8IV** : 1 741 € (PAS prélevé 2025)
+- **Case 8IW** : 12 € (acompte IR 2025)
+- **Case 8IX** : 18 € (acompte PS 2025)
+
+**Revenus fonciers**
+- **Case 4BE** : 705 € (revenus fonciers bruts — micro-foncier, abattement 30% automatique)
+
+**Revenus du capital**
+- **Case 2TR** : 527 € (intérêts mobiliers bruts)
+- **Case 2CK** : 68 € (PFU 12,8% prélevé à la source)
+- **Case 2BH** : 527 € (montant soumis aux prélèvements sociaux 17,2%)
+
+**Épargne retraite — information uniquement (ne réduit PAS l'IR 2025)**
+- **Case 6QS** (ou 6QT/6QU selon ventilation) : 1 260 € (cotisations PERO D1 2025)
+  - ⚠️ **RÈGLE ABSOLUE** : ces cotisations sont **déjà déduites du 1AJ** (prélevées avant le net imposable). Cette case sert uniquement à informer la DGFIP pour réduire le plafond PER 2026. **NE PAS les inclure dans les charges déductibles** — ce serait une double déduction (art. 163 quatervicies III CGI, BOI-RSA-ES-40-10-20).
+
+### FORMULAIRES ANNEXES DÉCLENCHÉS
+
+**Aucune annexe obligatoire détectée pour ce profil.**
+
+Justification :
+- Pas de revenus fonciers > 15 000 € → pas de 2044
+- Pas de comptes étrangers mentionnés → pas de 3916 (sauf si Binance considéré comme compte étranger — voir section Points d'Attention)
+- Pas de plus-values mobilières déclarées → pas de 2074
+- Pas de cessions crypto > 305 € → pas de 2086 (à vérifier — voir Points d'Attention)
+- Pas de patrimoine immobilier net > 1,3 M€ → pas de 2042-IFI
+- Pas de réductions/crédits déclarés → pas de 2042-RICI (dons, emploi à domicile, garde d'enfant)
+
+---
+
+## == ANALYSE DES SITUATIONS PARTICULIÈRES ==
+
+### 1. RENTE VIAGÈRE HÉRITÉE (DÉCLARANT 2)
+
+**Situation détectée** : Rente viagère à titre gratuit issue d'un contrat d'assurance-vie souscrit par le père de D2 (décédé), organisme Crédit Agricole Assurance — contrat PrédiAgri.
+
+**Régime fiscal applicable** :
+- **Article 158-6 CGI** : rente viagère à titre gratuit (succession)
+- Imposition selon **fraction imposable** dépendant de l'âge du crédirentier au 1er versement :
+  - Moins de 50 ans : 70% imposable
+  - 50-59 ans : 50% imposable
+  - 60-69 ans : 40% imposable
+  - 70 ans et plus : 30% imposable
+
+**Analyse pour ce profil** :
+- D2 a 30 ans → si le 1er versement de la rente a eu lieu en 2025 ou antérieurement, **70% de 6 192 € = 4 334 € imposables** au barème (pas 6 192 € intégralement).
+- La case 1BS doit contenir **le montant BRUT reçu** (6 192 €). La DGFIP applique automatiquement l'abattement selon l'âge déclaré au 1er versement.
+- **Abattement 10% pensions** (art. 158-5-a CGI) s'applique APRÈS la fraction imposable → RNI rente = 4 334 € × 0,9 = 3 901 €.
+
+**Pièges à éviter** :
+- Si le contrat est un contrat de capitalisation avec option rente (et non un contrat retraite Madelin), vérifier que la fraction imposable est correctement appliquée.
+- Si la rente provient d'un **contrat article 83 ou PERP** du père → régime différent (rente imposée comme pension, pas comme rente viagère à titre gratuit).
+- [⚠️ À CONFIRMER] **Attestation annuelle de l'assureur** (Crédit Agricile Assurance) précisant :
+  - Date de 1er versement de la rente
+  - Âge du crédirentier au 1er versement
+  - Fraction imposable appliquée (70%, 50%, 40% ou 30%)
+  - Montant brut annuel
+
+**Référence légale** :
+- Art. 158-6 CGI (rentes viagères constituées à titre gratuit)
+- BOI-RSA-PENS-20-10-20 (rentes viagères à titre gratuit — doctrine)
+
+**Impact déclaratif** :
+- Si l'attestation confirme une fraction imposable de 70% → **le RNI D2 est surévalué de 2 291 €** (6 192 € − 4 334 € × 0,9).
+- À corriger avant dépôt pour éviter une imposition excessive.
+
+---
+
+### 2. INDEMNITÉS JOURNALIÈRES CPAM (DÉCLARANT 2)
+
+**Situation détectée** : 1 599 € d'IJ CPAM inclus dans le 1BJ (attestation Maine-et-Loire).
+
+**Régime fiscal applicable** :
+- **IJ maladie ordinaires** : imposables au barème, **SANS abattement 10%** (art. 80 sexies CGI).
+- **IJ maternité/paternité/adoption** : exonérées d'IR.
+- **IJ accident du travail/maladie professionnelle** : imposables à 50% du montant (art. 80 octies CGI).
+
+**Analyse pour ce profil** :
+- Le montant 1 599 € est intégré au 1BJ (salaire net imposable) → **distinction critique à vérifier** :
+  - Si IJ maladie ordinaire → OK, traitement identique au salaire (mais sans abattement 10% — la case 1BJ est la bonne).
+  - Si IJ maternité → doivent être **déclarées séparément en case 1AM ou 1BM** (exonérées).
+  - Si IJ AT/MP → doivent être déclarées séparément en case 1AJ ou 1BJ, mais seuls 50% sont imposables.
+
+**Vérification obligatoire** :
+- [⚠️ À CONFIRMER] **Bulletin de salaire décembre 2025 ou attestation employeur/CPAM** précisant :
+  - Nature exacte des IJ (maladie ordinaire / maternité / AT-MP)
+  - Montant net versé par la CPAM
+  - Traitement fiscal appliqué par l'employeur (intégration au 1AJ/1BJ ou case séparée)
+
+**Piège à éviter** :
+- Si les IJ sont des **IJ maternité** (fréquent chez une personne de 30 ans), elles doivent être **retirées du 1BJ** et déclarées en **1BM** (exonérées). Impact : **réduction du RNI de 1 599 €** → gain IR ≈ 480 € (TMI 30%).
+
+**Référence légale** :
+- Art. 80 sexies CGI (IJ maladie)
+- Art. 80 octies CGI (IJ AT-MP)
+- BOI-RSA-CHAMP-20-30-10 (IJ — doctrine)
+
+---
+
+### 3. ÉPARGNE SALARIALE — PEE DÉCLARANT 1
+
+**Situation détectée** : PEE valorisé à ~10 000 €, versement salarié 2025 de **−2 €** (incohérence apparente).
+
+**Analyse** :
+- Un versement négatif est anormal. Hypothèses :
+  1. **Retrait partiel en 2025** (déblocage anticipé cas légaux : achat RP, mariage, naissance 3e enfant, divorce avec enfant, fin de contrat, surendettement, invalidité, décès, violences conjugales — art. L. 3332-25 C. trav.).
+  2. **Frais de gestion** prélevés sur le PEE (rare, généralement supportés par l'entreprise).
+  3. **Erreur de saisie** dans le profil.
+
+**Régime fiscal en cas de retrait PEE** :
+- **Avant 5 ans** : gains imposables à l'IR (barème ou PFU 30%) + PS 17,2% (sauf cas de déblocage anticipé légal → exonération IR, PS 17,2% dus).
+- **Après 5 ans** : gains exonérés d'IR, PS 17,2% dus.
+
+**Vérification obligatoire** :
+- [⚠️ À CONFIRMER] **Relevé PEE annuel 2025** précisant :
+  - Versements salariés 2025
+  - Abondement employeur 2025
+  - Retraits éventuels
+  - Date d'ouverture du PEE (pour vérifier l'ancienneté 5 ans)
+  - Cas de déblocage invoqué si retrait < 5 ans
+
+**Piège à éviter** :
+- Si retrait sans cas légal avant 5 ans → **gains imposables au barème + PS 17,2%** (non pré-rempli sur la déclaration). À déclarer en case 3VG (PFU) ou 2DC (barème) selon option.
+- Si cas légal (ex : achat RP) → exonération IR, mais **PS 17,2% dus** sur les gains.
+
+**Impact déclaratif** :
+- Si retrait partiel confirmé → vérifier si **gains imposables à déclarer**. À défaut, risque de redressement.
+
+**Référence légale** :
+- Art. L. 3332-1 et s. Code du travail (PEE)
+- Art. 163 bis AA CGI (épargne salariale)
+- BOI-RSA-ES-10-10 (PEE — doctrine)
+
+---
+
+### 4. CRYPTO-ACTIFS — BINANCE (DÉCLARANT 1)
+
+**Situation détectée** : Wallet Binance valorisé à ~990 € (D1). Pas de cessions déclarées.
+
+**Obligations déclaratives** :
+1. **Déclaration du compte étranger (formulaire 3916 bis)** :
+   - Binance est un exchange **offshore** (siège social hors France jusqu'en 2025 — vérifier statut actuel).
+   - **Obligation** : déclarer tout compte détenu à l'étranger, même si aucune cession (art. 1649 AA CGI).
+   - **Pénalité** : 1 500 € par compte non déclaré (750 € si régularisation spontanée).
+
+2. **Déclaration des cessions (formulaire 2086)** :
+   - **Seuil** : cessions cumulées sur l'année ≤ 305 € → exonération totale. Au-delà → imposition intégrale (PFU 30% sur la plus-value nette, méthode PAMC).
+   - **Piège** : le seuil de 305 € s'applique au **montant brut des cessions** (pas à la plus-value). Exemple : vendre 500 € de BTC → imposition même si PV = 10 €.
+
+**Vérification obligatoire** :
+- [🔴 CRITIQUE] **Historique des transactions Binance 2025** (export CSV/API) :
+  - Montant total des cessions crypto → fiat (EUR/USD) en 2025
+  - Achats, ventes, swaps, staking, airdrops
+  - Si cessions > 305 € → **formulaire 2086 obligatoire** + report sur 2042 C case 3AN (gains) ou 3BN (pertes).
+
+**Piège à éviter** :
+- Oublier le 3916 bis → amende 1 500 € automatique lors du 1er contrôle.
+- Sous-déclarer les cessions → redressement + majoration 10% à 40%.
+- Confondre "wallet valorisé à 990 €" avec "pas de cessions" → si des achats/ventes ont eu lieu, même à montant faible, l'obligation 3916 bis reste.
+
+**Référence légale** :
+- Art. 1649 AA CGI (déclaration comptes étrangers)
+- Art. 150 VH bis CGI (crypto — PAMC)
+- BOI-RPPM-PVBMC-30 (crypto — doctrine)
+
+---
+
+### 5. PLAFOND PER 2026 — RÉDUCTION PAR PERO D1
+
+**Situation détectée** : PERO D1 = 1 260 € en 2025 (case 6QS). Plafond PER disponible D1 pour 2026 = 3 450 €.
+
+**Mécanisme de réduction du plafond** :
+- Les cotisations PERO obligatoires **réduisent le plafond PER volontaire de l'année suivante** (art. 163 quatervicies-I-2 CGI).
+- Formule :
+  ```
+  Plafond 2026 = MAX(4 710 € ; 10% × RNI 2025) − PERO 2025
+  ```
+- Ici : MAX(4 710 € ; 4 065 €) − 1 260 € = **3 450 €** (correct).
+
+**Impact stratégique** :
+- D1 dispose de **3 450 € de déduction PER en 2026** (pas 4 710 €).
+- D2 dispose de **4 710 € de déduction PER en 2026** (pas de PERO).
+- **Mutualisation couple** : total mutualisable = 8 160 € (correct dans le profil).
+
+**Aucune action requise** — le calcul est déjà intégré. À rappeler en fin d'année 2026 pour optimiser un versement PER volontaire.
+
+**Référence légale** :
+- Art. 163 quatervicies-I-2 CGI (plafond PER)
+- BOI-IR-BASE-20-50-20-30 (plafonds épargne retraite)
+
+---
+
+## == POINTS D'ATTENTION ==
+
+### [🔴 CRITIQUE] Risques de redressement
+
+**1. Déclaration compte Binance (3916 bis) — PÉNALITÉ 1 500 €**
+- **Obligation** : déclarer tout compte d'actifs numériques détenu à l'étranger (art. 1649 AA CGI).
+- **Deadline** : en même temps que la déclaration 2042 (mai-juin 2026).
+- **Pénalité** : 1 500 € si omission constatée lors d'un contrôle (750 € si régularisation spontanée avant contrôle).
+- **Action** : vérifier le statut juridique actuel de Binance (entité française ou étrangère). Si entité étrangère → **formulaire 3916 bis obligatoire**.
+
+**2. Cessions crypto > 305 € non déclarées**
+- **Seuil** : si le montant brut cumulé des cessions crypto → fiat en 2025 dépasse **305 €** → formulaire 2086 obligatoire + case 3AN/3BN sur la 2042 C.
+- **Piège** : oublier le formulaire 2086 → redressement + majoration 10% minimum.
+- **Action** : récupérer l'historique Binance 2025 et vérifier le montant total des cessions. Si > 305 € → déclarer avant le dépôt de la 2042.
+
+**3. IJ CPAM 1 599 € — nature à vérifier**
+- **Risque** : si les IJ sont des **IJ maternité** (exonérées), elles ne doivent PAS être en case 1BJ mais en case **1BM** (exonérées).
+- **Impact** : surimposition de 1 599 € → IR excédentaire ≈ **480 €** (TMI 30%).
+- **Action** : récupérer l'attestation CPAM ou le bulletin de salaire précisant la nature des IJ. Si maternité → corriger la déclaration avant dépôt.
+
+---
+
+### [🟡 À CONFIRMER] Documents à récupérer
+
+**1. Attestation rente viagère (Crédit Agricole Assurance)**
+- **Contenu attendu** :
+  - Date de 1er versement de la rente
+  - Âge de D2 au 1er versement
+  - Fraction imposable (70%, 50%, 40% ou 30%)
+  - Montant brut annuel 2025
+- **Impact** : si fraction imposable = 70% (âge < 50 ans) → RNI corrigé = 4 334 € × 0,9 = 3 901 € (et non 6 192 € × 0,9 = 5 573 €).
+- **Gain potentiel** : correction du RNI de **−1 672 €** → économie IR ≈ **500 €**.
+
+**2. Relevé PEE annuel 2025 (D1)**
+- **Vérifier** :
+  - Montant réel des versements salariés 2025 (−2 € incohérent)
+  - Abondement employeur 2025
+  - Date d'ouverture du PEE (ancienneté 5 ans ?)
+  - Retraits éventuels et cas de déblocage invoqué
+- **Impact** : si retrait sans cas légal avant 5 ans → gains imposables non déclarés.
+
+**3. Attestation IJ CPAM (D2)**
+- **Vérifier** : nature exacte des IJ (maladie ordinaire / maternité / AT-MP).
+- **Impact** : si IJ maternité → case 1BM (exonérées) au lieu de 1BJ → gain IR ≈ 480 €.
+
+**4. Historique transactions Binance 2025 (D1)**
+- **Export CSV/API** : achats, ventes, swaps, staking, airdrops.
+- **Montant critique** : cessions crypto → fiat cumulées sur l'année.
+- **Impact** : si > 305 € → formulaire 2086 obligatoire.
+
+---
+
+### [🟢 OPTIMISATION] Actions avant le 31/12/2026
+
+**1. Versement PER volontaire D2 — GAIN ESTIMÉ 1 413 €**
+- **Situation** : D2 dispose d'un plafond PER 2026 de **4 710 €**, non utilisé en 2025.
+- **Opportunité** : versement PER volontaire avant le 31/12/2026 → économie IR immédiate.
+- **Calcul** :
+  - Versement max déductible : 4 710 €
+  - TMI couple : 30% (RNI foyer 67 494 € ÷ 2 parts = 33 747 €/part → tranche 29 579 - 84 577 €)
+  - Économie IR : 4 710 € × 30% = **1 413 €**
+- **Mais** : réduction du plafond 2027 d'autant → arbitrage à faire selon horizon retraite (37 ans pour D2).
+- **Recommandation** : si D2 n'a pas besoin de liquidité immédiate et anticipe un TMI retraite < 30%, versement PER avantageux. Sinon, préférer saturer les enveloppes liquides (PEA, AV).
+
+**2. Saturation abondement employeur PEE/PERCO (D1 et D2) — GAIN 30% À 300%**
+- **Règle d'or** : **toujours saturer l'abondement employeur avant tout versement PER volontaire**. L'abondement est un rendement immédiat de 30% à 300% (selon le taux d'abondement de l'entreprise).
+- **Action** : vérifier auprès de l'employeur si un PEE/PERCO existe avec abondement. Si oui, verser le montant maximum ouvrant droit à l'abondement.
+- **Impact** : abondement de 1 000 € à 50% → gain immédiat **500 €** (sans compter l'exonération IR + PS sur l'abondement).
+
+**3. Arbitrage PFU vs barème sur intérêts 2026 — GAIN ESTIMÉ 53 €**
+- **Situation** : intérêts mobiliers 2025 = 527 €. PFU prélevé = 68 €. TMI couple = 30%.
+- **Simulation barème 2026** :
+  - Pas d'abattement sur intérêts (contrairement aux dividendes).
+  - IR : 527 € × 30% = 158 €
+  - PS : 527 € × 17,2% = 91 €
+  - CSG déductible N+1 : 527 € × 6,8% × 30% = 11 €
+  - Total net barème : 158 + 91 − 11 = **238 €**
+  - Total PFU : 527 € × 30% = **158 €**
+  - → **PFU plus avantageux de 80 €** (238 − 158).
+- **Conclusion** : conserver le PFU par défaut pour 2026 (pas d'option barème).
+- **Mais** : si en 2026 des dividendes importants sont perçus (abattement 40%), recalculer l'arbitrage global.
+
+**4. Optimisation épargne de précaution — GAIN RENDEMENT 0,5-1,5%**
+- **Situation** : D2 dispose de **96 651 € sur livret bancaire** (taux faible, ~2-3%) et **23 447 € sur Livret A** (plafonné à 22 950 €).
+- **Optimisation** :
+  - Transférer l'excédent Livret A (23 447 − 22 950 = **497 €**) vers **LDDS** (plafond 12 000 €, taux identique, exonéré IR + PS).
+  - Ouvrir un **LEP** pour D2 (si éligibilité ressources confirmée — seuil RFR couple ~43 000 € en 2025) → taux ~3,5-4% exonéré.
+  - Réallouer 50 000 € du livret bancaire vers :
+    - **LDDS** (11 500 € restants)
+    - **AV fonds euros** (20 000 €, rendement ~2,5-3%, abattement 9 200 € après 8 ans)
+    - **PEA D2** (ouverture, 18 500 €, horizon 37 ans → performance actions attendue ~6-7%/an)
+- **Gain rendement estimé** : +1%/an sur 50 000 € = **500 €/an**.
+
+**5. Ouverture PEA D2 — GAIN LONG TERME ≈ 150 000 €**
+- **Situation** : D2 n'a pas de PEA. Horizon retraite : 37 ans.
+- **Stratégie** : ouvrir un PEA en 2026 avec un versement symbolique (100 €) → prendre date pour l'ancienneté 5 ans.
+- **Impact** : au bout de 5 ans (2031), les retraits seront exonérés d'IR (seuls PS 17,2% dus). Capitalisation sur 37 ans à 6%/an :
+  - Capital final (versements 18 500 € + 3 000 €/an pendant 32 ans) ≈ **370 000 €**
+  - Gains ≈ 280 000 €
+  - Économie IR vs CTO : 280 000 € × 12,8% = **35 840 €**
+  - (Les PS 17,2% restent dus dans les deux cas.)
+- **Action** : ouvrir un PEA D2 avant fin 2026, même avec un montant minimal.
+
+---
+
+## == OBJECTIFS PRIORITAIRES ==
+
+### 1. [🔴 CRITIQUE] Déclarer le compte Binance (3916 bis) — GAIN : ÉVITER 1 500 € DE PÉNALITÉ
+- **Quoi** : remplir le formulaire 3916 bis (déclaration compte d'actifs numériques étranger) en même temps que la 2042.
+- **Deadline** : mai-juin 2026 (date limite déclaration selon département).
+- **Gain** : éviter une pénalité automatique de **1 500 €** lors du 1er contrôle (750 € si régularisation spontanée avant contrôle).
+- **Pourquoi prioritaire** : le compte Binance est détecté (wallet 990 €). L'absence de déclaration est une omission légalement sanctionnée (art. 1649 AA CGI). Risque de contrôle élevé (DGFIP croise les données exchanges via échange automatique d'informations).
+
+---
+
+### 2. [🟡 URGENT] Vérifier la nature des IJ CPAM 1 599 € — GAIN POTENTIEL 480 €
+- **Quoi** : récupérer l'attestation CPAM ou le bulletin de salaire précisant la nature des IJ (maladie ordinaire / maternité / AT-MP).
+- **Deadline** : avant dépôt de la déclaration 2042 (mai-juin 2026).
+- **Gain estimé** : si IJ maternité → correction case 1BJ → case 1BM (exonérées) → RNI −1 599 € → économie IR ≈ **480 €** (TMI 30%).
+- **Pourquoi prioritaire** : les IJ maternité sont exonérées d'IR (art. 80 quinquies CGI) mais souvent intégrées à tort au 1BJ par l'employeur. Erreur fréquente, correction simple, gain immédiat.
+
+---
+
+### 3. [🟡 URGENT] Récupérer l'attestation rente viagère (Crédit Agricole Assurance) — GAIN POTENTIEL 500 €
+- **Quoi** : contacter Crédit Agricole Assurance pour obtenir l'attestation annuelle 2025 précisant la fraction imposable de la rente PrédiAgri (70%, 50%, 40% ou 30% selon l'âge de D2 au 1er versement).
+- **Deadline** : avant dépôt de la déclaration 2042 (mai-juin 2026).
+- **Gain estimé** : si fraction imposable = 70% (âge < 50 ans) → correction case 1BS → RNI −1 672 € → économie IR ≈ **500 €**.
+- **Pourquoi prioritaire** : le montant 6 192 € déclaré en case 1BS est le montant brut. Si la fraction imposable est inférieure à 100% (probable pour une rente à titre gratuit), le RNI doit être corrigé. Sans attestation, risque de surimposition.
+
+---
+
+### 4. [🟢 OPTIMISATION] Saturer l'abondement employeur PEE/PERCO (D1 et D2) — GAIN 30% À 300%
+- **Quoi** : vérifier auprès de l'employeur si un PEE/PERCO existe avec abondement. Si oui, verser le montant maximum ouvrant droit à l'abondement.
+- **Deadline** : 31/12/2026 (dernier jour pour versement PEE/PERCO 2026).
+- **Gain estimé** : abondement de 1 000 € à 50% → gain immédiat **500 €** (+ exonération IR + PS sur l'abondement).
+- **Pourquoi prioritaire** : l'abondement employeur est un rendement immédiat sans risque. À privilégier AVANT tout versement PER volontaire (qui lui génère une économie IR de 30% seulement).
+
+---
+
+### 5. [🟢 OPTIMISATION] Versement PER volontaire D2 avant le 31/12/2026 — GAIN 1 413 €
+- **Quoi** : versement PER individuel D2 de **4 710 €** (plafond disponible 2026).
+- **Deadline** : 31/12/2026.
+- **Gain estimé** : économie IR immédiate = 4 710 € × 30% = **1 413 €**.
+- **Pourquoi prioritaire** : D2 dispose d'un plafond PER non utilisé. Horizon retraite long (37 ans) → capitalisation sur l'économie IR
