@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
@@ -373,6 +373,7 @@ function EpargneTable({ p }) {
     { label: 'PEA',                        d1: p.peaD1,        d2: p.peaD2        },
     { label: 'Assurance-vie',              d1: p.avD1,         d2: p.avD2         },
     { label: 'PERCO / PER',               d1: p.percoD1,      d2: p.percoD2      },
+    { label: 'PEE',                        d1: p.peeD1,        d2: p.peeD2        },
     { label: 'Crypto (wallet)',            d1: p.cryptoD1,     d2: p.cryptoD2     },
   ].filter(r => (r.d1 || 0) + (r.d2 || 0) > 0);
 
@@ -417,8 +418,8 @@ function EpargneTable({ p }) {
 function PatrimoineDesequilibreBlock({ p }) {
   if (p.mode !== 'couple') return null;
 
-  const D1_FIELDS = ['livretAD1','lddsD1','lepD1','livretPlusD1','pelD1','peaD1','avD1','percoD1','cryptoD1'];
-  const D2_FIELDS = ['livretAD2','lddsD2','lepD2','livretPlusD2','pelD2','peaD2','avD2','percoD2','cryptoD2'];
+  const D1_FIELDS = ['livretAD1','lddsD1','lepD1','livretPlusD1','pelD1','peaD1','avD1','percoD1','peeD1','cryptoD1'];
+  const D2_FIELDS = ['livretAD2','lddsD2','lepD2','livretPlusD2','pelD2','peaD2','avD2','percoD2','peeD2','cryptoD2'];
 
   const totalD1 = D1_FIELDS.reduce((s, f) => s + (p[f] || 0), 0);
   const totalD2 = D2_FIELDS.reduce((s, f) => s + (p[f] || 0), 0);
@@ -1910,28 +1911,76 @@ function diversificationScorePA(p) {
 }
 
 function AllocationActifsModule({ p }) {
-  const pieData = [
-    { name: 'PEA',             value: (p.peaD1   || 0) + (p.peaD2   || 0) },
-    { name: 'Assurance-vie',   value: (p.avD1    || 0) + (p.avD2    || 0) },
-    { name: 'PER / PERCO',    value: (p.percoD1 || 0) + (p.percoD2 || 0) },
-    { name: 'PEL',             value: (p.pelD1   || 0) + (p.pelD2   || 0) },
-    { name: 'Livrets',         value:  p.epargneLiquide || 0 },
-    { name: 'Crypto',          value:  p.cryptoTotal    || 0 },
-    { name: 'Immobilier net',  value:  p.patrimoineImmoNet || 0 },
-  ].filter(d => d.value > 0);
+  const isCouple = p.mode === 'couple';
+  const [view, setView] = useState('foyer');
 
-  const total = pieData.reduce((s, d) => s + d.value, 0);
-  const score = diversificationScorePA(p);
+  const livrets = (sfx) => (
+    (p[`livretA${sfx}`] || 0) + (p[`ldds${sfx}`] || 0) +
+    (p[`lep${sfx}`]    || 0) + (p[`livretPlus${sfx}`] || 0)
+  );
+
+  const buildData = (v) => {
+    if (v === 'D1') return [
+      { name: 'PEA',           value: p.peaD1    || 0 },
+      { name: 'Assurance-vie', value: p.avD1     || 0 },
+      { name: 'PER / PERCO',  value: p.percoD1  || 0 },
+      { name: 'PEL',           value: p.pelD1    || 0 },
+      { name: 'PEE',           value: p.peeD1    || 0 },
+      { name: 'Livrets',       value: livrets('D1') },
+      { name: 'Crypto',        value: p.cryptoD1 || 0 },
+    ].filter(d => d.value > 0);
+    if (v === 'D2') return [
+      { name: 'PEA',           value: p.peaD2    || 0 },
+      { name: 'Assurance-vie', value: p.avD2     || 0 },
+      { name: 'PER / PERCO',  value: p.percoD2  || 0 },
+      { name: 'PEL',           value: p.pelD2    || 0 },
+      { name: 'PEE',           value: p.peeD2    || 0 },
+      { name: 'Livrets',       value: livrets('D2') },
+      { name: 'Crypto',        value: p.cryptoD2 || 0 },
+    ].filter(d => d.value > 0);
+    return [
+      { name: 'PEA',            value: (p.peaD1   || 0) + (p.peaD2   || 0) },
+      { name: 'Assurance-vie',  value: (p.avD1    || 0) + (p.avD2    || 0) },
+      { name: 'PER / PERCO',   value: (p.percoD1 || 0) + (p.percoD2 || 0) },
+      { name: 'PEL',            value: (p.pelD1   || 0) + (p.pelD2   || 0) },
+      { name: 'PEE',            value: (p.peeD1   || 0) + (p.peeD2   || 0) },
+      { name: 'Livrets',        value:  p.epargneLiquide     || 0 },
+      { name: 'Crypto',         value:  p.cryptoTotal        || 0 },
+      { name: 'Immobilier net', value:  p.patrimoineImmoNet  || 0 },
+    ].filter(d => d.value > 0);
+  };
+
+  const pieData = buildData(view);
+  const total   = pieData.reduce((s, d) => s + d.value, 0);
+  const score   = diversificationScorePA(p);
   const scoreColor = score >= 7 ? 'text-teal-700'  : score >= 4 ? 'text-amber-600' : 'text-red-600';
   const scoreBg    = score >= 7 ? 'bg-teal-50 border-teal-200' : score >= 4 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
   const scoreLabel = score >= 7 ? 'Bonne diversification' : score >= 4 ? 'Diversification partielle' : 'Concentration élevée';
 
+  const Tab = ({ v, label }) => (
+    <button onClick={() => setView(v)}
+      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+        view === v ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+      }`}>
+      {label}
+    </button>
+  );
+
+  const fouerTotal = buildData('foyer').reduce((s, d) => s + d.value, 0);
+
   return (
-    <SectionBox title="Allocation d'actifs" num="PA-A" badge={total > 0 ? e0(total) : undefined}>
-      {total === 0 ? (
+    <SectionBox title="Allocation d'actifs" num="PA-A" badge={fouerTotal > 0 ? e0(fouerTotal) : undefined}>
+      {fouerTotal === 0 ? (
         <p className="text-xs text-gray-400 p-5">Non renseigné</p>
       ) : (
-        <div className="p-4">
+        <div className="p-4 flex flex-col gap-4">
+          {isCouple && (
+            <div className="flex gap-2">
+              <Tab v="foyer" label="Foyer" />
+              <Tab v="D1"    label="D1" />
+              <Tab v="D2"    label="D2" />
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             <div className="shrink-0">
               <ResponsiveContainer width={220} height={220}>
@@ -1947,31 +1996,37 @@ function AllocationActifsModule({ p }) {
               </ResponsiveContainer>
             </div>
             <div className="flex-1 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                {pieData.map((entry, i) => {
-                  const share = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0';
-                  return (
-                    <div key={i} className="flex items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm shrink-0 inline-block"
-                          style={{ backgroundColor: PIE_COLORS_ALLOC[i % PIE_COLORS_ALLOC.length] }} />
-                        <span className="text-gray-700">{entry.name}</span>
+              {total === 0 ? (
+                <p className="text-xs text-gray-400">Aucune donnée pour ce déclarant</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {pieData.map((entry, i) => {
+                    const share = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0';
+                    return (
+                      <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-sm shrink-0 inline-block"
+                            style={{ backgroundColor: PIE_COLORS_ALLOC[i % PIE_COLORS_ALLOC.length] }} />
+                          <span className="text-gray-700">{entry.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-400">{share} %</span>
+                          <span className="font-semibold text-gray-800 tabular-nums w-24 text-right">{e0(entry.value)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-400">{share} %</span>
-                        <span className="font-semibold text-gray-800 tabular-nums w-24 text-right">{e0(entry.value)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className={`rounded-xl border p-3 ${scoreBg}`}>
-                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Score de diversification</p>
-                <p className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
-                  {score}<span className="text-sm font-normal opacity-60"> / 10</span>
-                </p>
-                <p className={`text-xs font-medium mt-0.5 ${scoreColor}`}>{scoreLabel}</p>
-              </div>
+                    );
+                  })}
+                </div>
+              )}
+              {view === 'foyer' && (
+                <div className={`rounded-xl border p-3 ${scoreBg}`}>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Score de diversification</p>
+                  <p className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
+                    {score}<span className="text-sm font-normal opacity-60"> / 10</span>
+                  </p>
+                  <p className={`text-xs font-medium mt-0.5 ${scoreColor}`}>{scoreLabel}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2071,6 +2126,7 @@ function FeuilleRouteModule({ p, d }) {
   const peaD2 = p.peaD2 || 0;
   const epargneLiquide = p.epargneLiquide || 0;
 
+  const currentYear = new Date().getFullYear();
   const fParts = p.parts || (isCouple ? 2 : 1);
   const tmiRetraite = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11));
   const stopRate = tmiRetraite / 100;
@@ -2081,10 +2137,10 @@ function FeuilleRouteModule({ p, d }) {
 
   if (opt.optimumTotal > 0 && opt.tmiDepart > 11) {
     ct.push({
-      title: 'Versement PER avant 31/12/2025',
+      title: `Versement PER avant 31/12/${currentYear}`,
       levier: `Efface la tranche ${opt.tmiDepart} % — économie IR réelle : ${e0(opt.economieOptimum)} (effort net : ${e0(opt.effortNet)})`,
       gain: `${e0(opt.economieOptimum)} d'économie IR`,
-      deadline: '31 déc. 2025',
+      deadline: `31 déc. ${currentYear}`,
       color: 'teal',
     });
   }
@@ -2222,7 +2278,7 @@ function FeuilleRouteModule({ p, d }) {
   const hasAny = ct.length + mt.length + lt.length > 0;
 
   return (
-    <SectionBox title="Feuille de route — priorités d'action" num="09">
+    <SectionBox title={`Feuille de route ${currentYear} — priorités d'action`} num="09">
       <div className="p-4 flex flex-col gap-5">
         {!hasAny ? (
           <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
@@ -2464,6 +2520,12 @@ function EnveloppesDetailModule({ p }) {
     if (p.percoPlafondD1 > 0 || p.percoPlafondD2 > 0) {
       rows.push({ label: 'Plafond abondement', d1: p.percoPlafondD1 > 0 ? e0(p.percoPlafondD1) : '—', d2: p.percoPlafondD2 > 0 ? e0(p.percoPlafondD2) : '—', sub: true });
     }
+  }
+
+  if ((p.peeD1 || 0) + (p.peeD2 || 0) > 0) {
+    rows.push({ sep: 'PEE — Plan d\'épargne entreprise' });
+    rows.push({ label: 'Valorisation', d1: p.peeD1 > 0 ? e0(p.peeD1) : '—', d2: p.peeD2 > 0 ? e0(p.peeD2) : '—' });
+    rows.push({ label: 'Blocage 5 ans', d1: 'Sauf déblocage anticipé', d2: '—', sub: true });
   }
 
   if (rows.length === 0) return null;
