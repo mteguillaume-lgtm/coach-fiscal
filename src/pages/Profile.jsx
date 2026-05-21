@@ -33,7 +33,28 @@ Si le profil ne contient aucune situation particulière sur un thème, ne l'abor
 
 == OBJECTIFS PRIORITAIRES ==
 3 à 8 actions concrètes pour ce foyer, classées par impact décroissant.
-Pour chaque action : quoi faire, avant quelle date, gain estimé en €, et pourquoi c'est prioritaire compte tenu de la situation de ce foyer.`;
+Pour chaque action : quoi faire, avant quelle date, gain estimé en €, et pourquoi c'est prioritaire compte tenu de la situation de ce foyer.
+
+== STRATÉGIE PATRIMONIALE ==
+Analyse la situation patrimoniale globale de ce foyer en tant que CGP.
+
+1. ALLOCATION ACTUELLE : décris la répartition observée (% par enveloppe)
+   et identifie les déséquilibres.
+
+2. ALLOCATION CIBLE : propose une allocation optimisée selon le profil
+   de risque, l'âge estimé, et l'horizon. Justifie avec les règles du
+   skill GCP (art. 163 quinquies D pour PEA, art. 990 I pour AV, etc.)
+
+3. ARBITRAGES RECOMMANDÉS : liste 3-5 mouvements concrets avec montants
+   et gain fiscal estimé.
+
+4. PROJECTION FIRE : si les données le permettent, estime le taux d'épargne
+   et l'horizon d'indépendance financière (tableau Trinity, rendement 5%).
+
+5. RISQUES PATRIMONIAUX : concentration, liquidité, IFI potentiel,
+   absence de diversification.
+
+N'aborde que les points pour lesquels le profil contient des données réelles.`;
 
 export default function Profile() {
   const { state, dispatch, getApiKey } = useApp();

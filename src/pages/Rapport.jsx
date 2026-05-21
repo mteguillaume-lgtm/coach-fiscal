@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
 import Button from '../components/Button';
 import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 // ─── Float parser ─────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ function decote(brut, isCouple) {
 
 // ─── Sections IA ─────────────────────────────────────────────────────────────
 
-const AI_TITLES = ['DÉCLARATION', 'ANALYSE DES SITUATIONS', "POINTS D'ATTENTION", 'OBJECTIFS PRIORITAIRES'];
+const AI_TITLES = ['DÉCLARATION', 'ANALYSE DES SITUATIONS', "POINTS D'ATTENTION", 'OBJECTIFS PRIORITAIRES', 'STRATÉGIE PATRIMONIALE'];
 const isAiSection = t => AI_TITLES.some(k => t.toUpperCase().includes(k));
 
 function parseProfileSections(text) {
@@ -1884,6 +1885,184 @@ function PelModule({ p }) {
   );
 }
 
+// ─── Module PA-A : Allocation d'actifs ───────────────────────────────────────
+
+const PIE_COLORS_ALLOC = [
+  '#0d9488', // PEA
+  '#14b8a6', // Assurance-vie
+  '#8b5cf6', // PER/PERCO
+  '#f59e0b', // PEL
+  '#94a3b8', // Livrets
+  '#f97316', // Crypto
+  '#3b82f6', // Immobilier
+];
+
+function diversificationScorePA(p) {
+  let score = 0;
+  if ((p.epargneLiquide  || 0) > 0) score += 2;
+  if ((p.peaD1   || 0) + (p.peaD2   || 0) > 0) score += 2;
+  if ((p.avD1    || 0) + (p.avD2    || 0) > 0) score += 2;
+  if ((p.percoD1 || 0) > 0) score += 1;
+  if ((p.peeD1   || 0) + (p.peeD2   || 0) > 0) score += 1;
+  if ((p.patrimoineImmoNet || 0) > 0) score += 2;
+  if ((p.cryptoTotal || 0) > 0) score += 1;
+  return Math.min(score, 10);
+}
+
+function AllocationActifsModule({ p }) {
+  const pieData = [
+    { name: 'PEA',             value: (p.peaD1   || 0) + (p.peaD2   || 0) },
+    { name: 'Assurance-vie',   value: (p.avD1    || 0) + (p.avD2    || 0) },
+    { name: 'PER / PERCO',    value: (p.percoD1 || 0) + (p.percoD2 || 0) },
+    { name: 'PEL',             value: (p.pelD1   || 0) + (p.pelD2   || 0) },
+    { name: 'Livrets',         value:  p.epargneLiquide || 0 },
+    { name: 'Crypto',          value:  p.cryptoTotal    || 0 },
+    { name: 'Immobilier net',  value:  p.patrimoineImmoNet || 0 },
+  ].filter(d => d.value > 0);
+
+  const total = pieData.reduce((s, d) => s + d.value, 0);
+  const score = diversificationScorePA(p);
+  const scoreColor = score >= 7 ? 'text-teal-700'  : score >= 4 ? 'text-amber-600' : 'text-red-600';
+  const scoreBg    = score >= 7 ? 'bg-teal-50 border-teal-200' : score >= 4 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+  const scoreLabel = score >= 7 ? 'Bonne diversification' : score >= 4 ? 'Diversification partielle' : 'Concentration élevée';
+
+  return (
+    <SectionBox title="Allocation d'actifs" num="PA-A" badge={total > 0 ? e0(total) : undefined}>
+      {total === 0 ? (
+        <p className="text-xs text-gray-400 p-5">Non renseigné</p>
+      ) : (
+        <div className="p-4">
+          <div className="flex flex-col sm:flex-row gap-6 items-start">
+            <div className="shrink-0">
+              <ResponsiveContainer width={220} height={220}>
+                <PieChart>
+                  <Pie data={pieData} cx={110} cy={110} innerRadius={65} outerRadius={100}
+                    dataKey="value" nameKey="name" paddingAngle={2}>
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS_ALLOC[i % PIE_COLORS_ALLOC.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => e0(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                {pieData.map((entry, i) => {
+                  const share = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0';
+                  return (
+                    <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-sm shrink-0 inline-block"
+                          style={{ backgroundColor: PIE_COLORS_ALLOC[i % PIE_COLORS_ALLOC.length] }} />
+                        <span className="text-gray-700">{entry.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-400">{share} %</span>
+                        <span className="font-semibold text-gray-800 tabular-nums w-24 text-right">{e0(entry.value)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className={`rounded-xl border p-3 ${scoreBg}`}>
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Score de diversification</p>
+                <p className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
+                  {score}<span className="text-sm font-normal opacity-60"> / 10</span>
+                </p>
+                <p className={`text-xs font-medium mt-0.5 ${scoreColor}`}>{scoreLabel}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionBox>
+  );
+}
+
+// ─── Module PA-B : Diagnostic fiscal ─────────────────────────────────────────
+
+function DiagnosticFiscalModule({ p, d }) {
+  const tmiActuel   = d.tmi || 0;
+  const tmiRetraite = Math.min(
+    p.tmiRetraiteD1 ?? tmiActuel,
+    p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? tmiActuel),
+  );
+  const tauxEffectif = d.rniFoyer > 0 ? (d.irNetFoyer / d.rniFoyer) * 100 : null;
+
+  const fParts   = p.parts || (d.isCouple ? 2 : 1);
+  const stopRate = tmiRetraite / 100;
+  const opt = computePerOptimumCascade(
+    d.rniFoyer, fParts,
+    p.plafondPerD1 || 0, p.plafondPerD2 || 0,
+    d.isCouple, p.rniD1 || 0, p.rniD2 || 0,
+    stopRate,
+  );
+
+  const hasDividendes = (p.dividendes || 0) > 0;
+  const tmiRate  = tmiActuel / 100;
+  const pfuTax   = hasDividendes ? Math.round(p.dividendes * 0.30) : 0;
+  const baremeTax = hasDividendes ? Math.round(
+    p.dividendes * 0.60 * tmiRate
+    - p.dividendes * 0.068 * tmiRate
+    + p.dividendes * 0.172,
+  ) : 0;
+  const pfuWins  = pfuTax <= baremeTax;
+
+  const tmiDelta = tmiRetraite - tmiActuel;
+
+  return (
+    <SectionBox title="Diagnostic fiscal" num="PA-B">
+      <div className="p-4 flex flex-col gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard
+            label="TMI actuel"
+            value={`${tmiActuel} %`}
+            color={tmiActuel >= 41 ? 'amber' : tmiActuel >= 30 ? 'violet' : 'teal'}
+          />
+          <KpiCard
+            label="TMI estimé retraite"
+            value={`${tmiRetraite} %`}
+            sub={tmiDelta < 0 ? `↓ ${-tmiDelta} pts` : tmiDelta === 0 ? 'Stable' : `↑ ${tmiDelta} pts`}
+            color="gray"
+          />
+          <KpiCard
+            label="Taux effectif"
+            value={tauxEffectif != null ? `${tauxEffectif.toFixed(1)} %` : 'Non renseigné'}
+            sub={tauxEffectif != null ? 'IR net / RNI' : undefined}
+            color="gray"
+          />
+          <KpiCard
+            label="Marge PER disponible"
+            value={opt.optimumTotal > 0 ? e0(opt.optimumTotal) : 'Optimisé'}
+            sub={opt.optimumTotal > 0 ? `Écon. ${e0(opt.economieOptimum)}` : undefined}
+            color={opt.optimumTotal > 0 ? 'teal' : 'gray'}
+          />
+        </div>
+        {hasDividendes && (
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs font-semibold text-gray-700 mb-3">
+              PFU vs barème — dividendes {e0(p.dividendes)}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className={`rounded-lg border p-3 ${pfuWins ? 'border-teal-300 bg-teal-50' : 'border-gray-200 bg-white'}`}>
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Flat Tax 30 %</p>
+                <p className="text-base font-bold text-gray-800 tabular-nums">{e0(pfuTax)}</p>
+                {pfuWins && <p className="text-[10px] text-teal-600 font-semibold mt-0.5">Option recommandée</p>}
+              </div>
+              <div className={`rounded-lg border p-3 ${!pfuWins ? 'border-teal-300 bg-teal-50' : 'border-gray-200 bg-white'}`}>
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Option barème ({tmiActuel} %)</p>
+                <p className="text-base font-bold text-gray-800 tabular-nums">{e0(baremeTax)}</p>
+                {!pfuWins && <p className="text-[10px] text-teal-600 font-semibold mt-0.5">Option recommandée</p>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </SectionBox>
+  );
+}
+
 // ─── Module 09 : Feuille de route ────────────────────────────────────────────
 
 function FeuilleRouteModule({ p, d }) {
@@ -1893,44 +2072,37 @@ function FeuilleRouteModule({ p, d }) {
   const epargneLiquide = p.epargneLiquide || 0;
 
   const fParts = p.parts || (isCouple ? 2 : 1);
-  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
+  const tmiRetraite = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11));
+  const stopRate = tmiRetraite / 100;
   const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
 
-  const priorities = [];
+  // ── Court terme (< 1 an) ──
+  const ct = [];
 
   if (opt.optimumTotal > 0 && opt.tmiDepart > 11) {
-    priorities.push({
+    ct.push({
       title: 'Versement PER avant 31/12/2025',
       levier: `Efface la tranche ${opt.tmiDepart} % — économie IR réelle : ${e0(opt.economieOptimum)} (effort net : ${e0(opt.effortNet)})`,
       gain: `${e0(opt.economieOptimum)} d'économie IR`,
-      deadline: '31 décembre 2025',
+      deadline: '31 déc. 2025',
       color: 'teal',
     });
   }
-  if (peaD1 === 0 && peaD2 === 0) {
-    priorities.push({
-      title: 'Ouvrir un PEA (ou deux pour le couple)',
-      levier: 'Démarrer l\'horloge fiscale 5 ans — exonération IR future',
-      gain: 'Exonération plus-values à terme',
-      deadline: 'Dès que possible',
-      color: 'teal',
-    });
-  }
+
   if (d.solde > 500) {
     const hasPonctuel =
       (p.recurrentRente1BsD1 === false && (p.rniRenteD1 || 0) > 0) ||
       (p.recurrentRente1BsD2 === false && (p.rniRenteD2 || 0) > 0);
-
     if (hasPonctuel) {
-      priorities.push({
+      ct.push({
         title: 'PAS 2026 — aucune modification nécessaire',
-        levier: 'Le complément 2025 découle d\'un revenu exceptionnel non récurrent (rente liquidée). En 2026 ce revenu disparaît : votre PAS sera automatiquement recalibré par l\'administration sans intervention de votre part.',
+        levier: 'Le complément 2025 découle d\'un revenu exceptionnel non récurrent (rente liquidée). En 2026 ce revenu disparaît : votre PAS sera automatiquement recalibré.',
         gain: `Complément 2025 : ${e0(d.solde)} — non représentatif de 2026`,
         deadline: 'Aucune action requise',
         color: 'gray',
       });
     } else {
-      priorities.push({
+      ct.push({
         title: 'Ajuster le taux PAS',
         levier: 'Éviter le complément à payer en septembre',
         gain: `${e0(Math.abs(d.solde))} de solde à régulariser`,
@@ -1939,53 +2111,128 @@ function FeuilleRouteModule({ p, d }) {
       });
     }
   }
+
+  // ── Moyen terme (1–5 ans) ──
+  const mt = [];
+
+  if (peaD1 === 0 && peaD2 === 0) {
+    mt.push({
+      title: 'Ouvrir un PEA' + (isCouple ? ' (deux pour le couple)' : ''),
+      levier: 'Démarrer l\'horloge fiscale 5 ans — exonération IR sur plus-values après 5 ans',
+      gain: 'Exonération IR à terme',
+      deadline: 'Dès que possible',
+      color: 'teal',
+    });
+  }
+
   if (epargneLiquide > 10000) {
-    priorities.push({
+    mt.push({
       title: 'Réallouer l\'épargne liquide dormante',
-      levier: 'Investir le surplus en PEA ou AV pour améliorer le rendement net',
-      gain: `${e0(epargneLiquide)} disponibles`,
-      deadline: 'Avant fin d\'année',
+      levier: 'Investir le surplus en PEA ou AV UC pour améliorer le rendement net long terme',
+      gain: `${e0(epargneLiquide)} à déployer`,
+      deadline: 'Dans les 12 mois',
       color: 'gray',
     });
   }
 
-  const displayed = priorities.slice(0, 4);
+  if ((p.avD1 || 0) + (p.avD2 || 0) === 0 && epargneLiquide > 5000) {
+    mt.push({
+      title: 'Ouvrir une assurance-vie',
+      levier: 'Prendre date pour bénéficier de l\'abattement de 4 600 € / 9 200 € après 8 ans',
+      gain: 'Abattement et souplesse de transmission',
+      deadline: 'Dans les 12 mois',
+      color: 'teal',
+    });
+  }
+
+  // ── Long terme (> 5 ans) ──
+  const lt = [];
+
+  const revenuMensuel = p.revenuMensuelFoyer || 0;
+  const tauxEpargne = p.tauxEpargneFoyer || 0;
+  if (revenuMensuel > 0 && tauxEpargne > 0) {
+    const depensesAnnuelles = revenuMensuel * 12 * (1 - tauxEpargne / 100);
+    const capitalFire = depensesAnnuelles * 25;
+    const patrimoineActuel = p.patrimoineNet || 0;
+    const gap = Math.max(0, capitalFire - patrimoineActuel);
+    const epargneAnnuelle = p.capaciteEpargneFoyer ? p.capaciteEpargneFoyer * 12 : revenuMensuel * 12 * (tauxEpargne / 100);
+    const anneesEstimees = epargneAnnuelle > 0 ? Math.ceil(gap / epargneAnnuelle) : null;
+    lt.push({
+      title: 'Trajectoire indépendance financière (FIRE)',
+      levier: `Capital cible (règle des 25×) : ${e0(capitalFire)} — patrimoine actuel : ${e0(patrimoineActuel)}${gap > 0 ? ` — gap : ${e0(gap)}` : ' ✓ objectif atteint'}`,
+      gain: anneesEstimees != null && gap > 0 ? `~${anneesEstimees} ans au rythme actuel` : gap === 0 ? 'Objectif atteint' : 'Calculer l\'effort net',
+      deadline: 'Horizon > 5 ans',
+      color: 'violet',
+    });
+  }
+
+  if ((p.tmiRetraiteD1 ?? null) !== null && tmiRetraite < (d.tmi || 0)) {
+    lt.push({
+      title: 'Alimenter le PER avant la retraite',
+      levier: `Déduction à ${d.tmi} % aujourd'hui, retrait imposé à ${tmiRetraite} % — gain net par tranche ${d.tmi - tmiRetraite} pts de TMI`,
+      gain: `Spread TMI : ${d.tmi - tmiRetraite} pts`,
+      deadline: 'Avant départ en retraite',
+      color: 'teal',
+    });
+  }
 
   const colorMap = {
-    teal:  { border: 'border-teal-200',  bg: 'bg-teal-50',  num: 'bg-teal-600',  text: 'text-teal-800',  sub: 'text-teal-600' },
-    amber: { border: 'border-amber-200', bg: 'bg-amber-50', num: 'bg-amber-500', text: 'text-amber-800', sub: 'text-amber-600' },
-    gray:  { border: 'border-gray-200',  bg: 'bg-gray-50',  num: 'bg-gray-500',  text: 'text-gray-800',  sub: 'text-gray-600' },
+    teal:   { border: 'border-teal-200',   bg: 'bg-teal-50',   dot: 'bg-teal-600',   text: 'text-teal-800',   sub: 'text-teal-600' },
+    amber:  { border: 'border-amber-200',  bg: 'bg-amber-50',  dot: 'bg-amber-500',  text: 'text-amber-800',  sub: 'text-amber-600' },
+    gray:   { border: 'border-gray-200',   bg: 'bg-gray-50',   dot: 'bg-gray-400',   text: 'text-gray-800',   sub: 'text-gray-500' },
+    violet: { border: 'border-violet-200', bg: 'bg-violet-50', dot: 'bg-violet-500', text: 'text-violet-800', sub: 'text-violet-600' },
   };
 
-  return (
-    <SectionBox title="Feuille de route 2026 — priorités d'action" num="09">
-      <div className="p-4 flex flex-col gap-3">
-        {displayed.length === 0 ? (
-          <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
-        ) : displayed.map((pr, i) => {
-          const c = colorMap[pr.color] || colorMap.gray;
-          return (
-            <div key={i} className={`rounded-xl border ${c.border} ${c.bg} p-4 flex gap-3 items-start`}>
-              <div className={`shrink-0 w-8 h-8 rounded-full ${c.num} text-white text-xs font-bold flex items-center justify-center`}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-              <div className="flex-1">
-                <p className={`text-sm font-bold ${c.text}`}>{pr.title}</p>
-                <p className={`text-xs ${c.sub} mt-0.5`}>{pr.levier}</p>
-                <div className="flex flex-wrap gap-4 mt-2">
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Impact estimé</p>
-                    <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Deadline</p>
-                    <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
+  const Horizon = ({ label, badge, items }) => {
+    if (items.length === 0) return null;
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
+          <span className="text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{badge}</span>
+        </div>
+        <div className="flex flex-col gap-2">
+          {items.map((pr, i) => {
+            const c = colorMap[pr.color] || colorMap.gray;
+            return (
+              <div key={i} className={`rounded-xl border ${c.border} ${c.bg} p-4 flex gap-3 items-start`}>
+                <div className={`shrink-0 mt-0.5 w-2.5 h-2.5 rounded-full ${c.dot}`} />
+                <div className="flex-1">
+                  <p className={`text-sm font-bold ${c.text}`}>{pr.title}</p>
+                  <p className={`text-xs ${c.sub} mt-0.5 leading-relaxed`}>{pr.levier}</p>
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Impact</p>
+                      <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Échéance</p>
+                      <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const hasAny = ct.length + mt.length + lt.length > 0;
+
+  return (
+    <SectionBox title="Feuille de route — priorités d'action" num="09">
+      <div className="p-4 flex flex-col gap-5">
+        {!hasAny ? (
+          <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
+        ) : (
+          <>
+            <Horizon label="Court terme" badge="< 1 an" items={ct} />
+            <Horizon label="Moyen terme" badge="1 – 5 ans" items={mt} />
+            <Horizon label="Long terme" badge="> 5 ans" items={lt} />
+          </>
+        )}
       </div>
     </SectionBox>
   );
@@ -2742,6 +2989,10 @@ export default function Rapport() {
             </p>
           </div>
         )}
+
+        {/* ── Analyse patrimoniale (PA-A + PA-B) ── */}
+        <AllocationActifsModule p={p} />
+        <DiagnosticFiscalModule p={p} d={d} />
 
         {/* ── Sections IA ── */}
         {aiSections.length > 0 && (
