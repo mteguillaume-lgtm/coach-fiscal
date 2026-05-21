@@ -113,14 +113,14 @@ export default function Profile() {
     const apiKey = getApiKey();
     if (!apiKey) { toast.error('Clé API manquante — configurez-la dans Paramètres.'); return; }
     setEnriching(true);
-    toast('Analyse en cours avec Claude Sonnet…', { icon: '🤖' });
+    toast('Analyse en cours avec Claude Opus…', { icon: '🤖' });
     try {
       const skills  = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation');
-      const system  = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'sonnet' });
+      const system  = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'opus' });
       let enriched  = '';
       await chatWithClaude({
         apiKey,
-        model: 'sonnet',
+        model: 'opus',
         system,
         messages: [{ role: 'user', content: ENRICHMENT_PROMPT }],
         onChunk: chunk => { enriched += chunk; },
