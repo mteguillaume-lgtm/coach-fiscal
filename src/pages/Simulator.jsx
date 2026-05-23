@@ -2078,14 +2078,14 @@ export default function Simulator() {
       )}
 
       {/* Tabs simulateur */}
-      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl">
+      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl overflow-x-auto">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
             className={[
-              'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
+              'shrink-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
               tab === id
                 ? 'bg-ink-700 text-kapio-300'
                 : 'text-ink-300 hover:text-ink-0',
