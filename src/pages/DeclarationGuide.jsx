@@ -4,12 +4,20 @@ import toast from 'react-hot-toast';
 import {
   CheckSquare, Square, Copy, Check, ExternalLink,
   HelpCircle, ArrowLeft, ArrowRight, AlertTriangle,
-  Info, Sparkles, Trophy, Save,
+  Info, Sparkles, Trophy, Save, BookOpen,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import { useApp }   from '../context/AppContext';
 import Button       from '../components/Button';
 import { computeFoyerSummary } from '../lib/taxCalculator';
+
+import AuroraBackground from '../components/motion/AuroraBackground';
+import SpotlightCursor  from '../components/motion/SpotlightCursor';
+import Grain            from '../components/motion/Grain';
+import SplitText        from '../components/motion/SplitText';
+import GlowCard         from '../components/motion/GlowCard';
+import ScrollReveal     from '../components/motion/ScrollReveal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -759,49 +767,88 @@ export default function DeclarationGuide() {
     <>
       <Confetti active={showConfetti} />
 
+      <div className="relative bg-ink-900 overflow-x-hidden">
+        <AuroraBackground showGrid intensity={0.7} />
+        <SpotlightCursor size={500} intensity={0.14} />
+        <Grain opacity={0.02} />
+
+        <div className="relative z-10 max-w-4xl mx-auto px-6 py-12">
       <div className="flex flex-col gap-5">
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: -14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-start justify-between gap-4"
+        >
           <div>
-            <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Wizard déclaration</span>
-            <h1 className="text-2xl font-bold text-gray-900 mt-1">Guide déclaration 2025</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-dark text-ink-50 text-xs font-medium mb-4">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-kapio-300 opacity-75 animate-pulse2" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-kapio-300" />
+              </span>
+              Wizard déclaration
+              <BookOpen size={11} className="text-kapio-300" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ letterSpacing: '-0.03em' }}>
+              <SplitText text="Guide déclaration " delay={0.2} stagger={0.04} />
+              <SplitText text="2025" gradient delay={0.5} stagger={0.06} />
+            </h1>
+            <p className="text-sm text-ink-100">
               Saisissez les valeurs case par case sur impots.gouv.fr en parallèle.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="secondary" size="sm" onClick={handleSave}>
-              <Save size={13} /> Sauvegarder
-            </Button>
+            <motion.button
+              type="button"
+              onClick={handleSave}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-ink-700 border border-white/[0.06] text-ink-100 hover:text-ink-0 hover:bg-ink-600 transition-all duration-200"
+            >
+              <Save size={12} /> Sauvegarder
+            </motion.button>
             <a href={IMPOTS} target="_blank" rel="noreferrer">
-              <Button variant="ghost" size="sm">
-                <ExternalLink size={13} /> impots.gouv
-              </Button>
+              <motion.span
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-ink-200 hover:text-ink-0 hover:bg-white/[0.05] transition-all duration-200"
+              >
+                <ExternalLink size={12} /> impots.gouv
+              </motion.span>
             </a>
           </div>
-        </div>
+        </motion.div>
 
         {/* Barre de progression */}
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Progression</span>
-            <span className={`text-xs font-bold font-mono ${pct === 100 ? 'text-teal-600' : 'text-gray-600'}`}>
-              {doneCount} / {allItemIds.length} points
-            </span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-teal-gradient transition-all duration-500"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          {pct === 100 && (
-            <p className="text-xs text-teal-600 font-semibold mt-2 flex items-center gap-1">
-              <Trophy size={12} /> Tous les points traités — votre déclaration est complète !
-            </p>
-          )}
-        </div>
+        <ScrollReveal delay={0.15}>
+          <GlowCard className="p-4" liftOnHover={false} glowColor="rgba(46,184,138,0.12)">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-semibold text-ink-300 uppercase tracking-wide">Progression</span>
+              <span className={`text-xs font-bold font-mono ${pct === 100 ? 'text-kapio-300' : 'text-ink-100'}`}>
+                {doneCount} / {allItemIds.length} points
+              </span>
+            </div>
+            <div className="h-2 bg-ink-700 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-kapio-gradient"
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </div>
+            {pct === 100 && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs text-kapio-300 font-semibold mt-2 flex items-center gap-1"
+              >
+                <Trophy size={12} /> Tous les points traités — votre déclaration est complète !
+              </motion.p>
+            )}
+          </GlowCard>
+        </ScrollReveal>
 
         {/* Banner profil manquant */}
         {!state.profile && (
@@ -874,6 +921,8 @@ export default function DeclarationGuide() {
             </div>
           </div>
 
+        </div>
+      </div>
         </div>
       </div>
     </>

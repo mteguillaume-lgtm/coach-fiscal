@@ -1,0 +1,294 @@
+/* ============================================================================
+   Kapio — Dark Overrides (transition layer)
+   ============================================================================
+   Ce fichier transforme automatiquement toutes les pages encore en light vers
+   le thème dark, en attendant leur refonte propre lot par lot.
+
+   À supprimer une fois TOUTES les pages refondues proprement.
+
+   Ne PAS modifier les pages déjà refondues (Home, Dashboard) — elles utilisent
+   directement les classes ink-XXX et kapio-XXX du design system.
+   ============================================================================ */
+
+@layer utilities {
+
+  /* ─── BACKGROUNDS ─────────────────────────────────────────────────────── */
+
+  /* Backgrounds principaux des pages */
+  .bg-gray-50  { background-color: #0A0A0B !important; }   /* fond page → ink-900 */
+  .bg-gray-100 { background-color: #111113 !important; }   /* cards niveau 1 → ink-800 */
+  .bg-gray-200 { background-color: #18181B !important; }
+  .bg-white    { background-color: #111113 !important; }   /* cards principales → ink-800 */
+
+  /* Backgrounds avec opacity (slash notation Tailwind) */
+  .bg-white\/60     { background-color: rgba(17, 17, 19, 0.7) !important; }
+  .bg-white\/80     { background-color: rgba(17, 17, 19, 0.85) !important; }
+  .bg-white\/90     { background-color: rgba(17, 17, 19, 0.9) !important; }
+  .bg-gray-50\/30   { background-color: rgba(10, 10, 11, 0.5) !important; }
+  .bg-gray-50\/40   { background-color: rgba(10, 10, 11, 0.55) !important; }
+  .bg-gray-50\/50   { background-color: rgba(10, 10, 11, 0.6) !important; }
+  .bg-gray-50\/60   { background-color: rgba(10, 10, 11, 0.7) !important; }
+  .bg-gray-50\/80   { background-color: rgba(10, 10, 11, 0.85) !important; }
+
+  /* Backgrounds colorés "tendre" (fond de bandeaux d'info) — versions tamisées dark */
+  .bg-teal-50    { background-color: rgba(46, 184, 138, 0.08) !important; }
+  .bg-teal-50\/40 { background-color: rgba(46, 184, 138, 0.04) !important; }
+  .bg-teal-50\/50 { background-color: rgba(46, 184, 138, 0.05) !important; }
+  .bg-teal-50\/60 { background-color: rgba(46, 184, 138, 0.06) !important; }
+  .bg-teal-100   { background-color: rgba(46, 184, 138, 0.15) !important; }
+
+  .bg-amber-50   { background-color: rgba(245, 158, 11, 0.08) !important; }
+  .bg-amber-50\/60 { background-color: rgba(245, 158, 11, 0.06) !important; }
+  .bg-amber-100  { background-color: rgba(245, 158, 11, 0.15) !important; }
+
+  .bg-red-50     { background-color: rgba(239, 68, 68, 0.08) !important; }
+  .bg-red-50\/40  { background-color: rgba(239, 68, 68, 0.04) !important; }
+  .bg-red-100    { background-color: rgba(239, 68, 68, 0.15) !important; }
+
+  .bg-blue-50    { background-color: rgba(59, 130, 246, 0.08) !important; }
+  .bg-blue-50\/40 { background-color: rgba(59, 130, 246, 0.05) !important; }
+  .bg-blue-50\/60 { background-color: rgba(59, 130, 246, 0.06) !important; }
+  .bg-blue-100   { background-color: rgba(59, 130, 246, 0.15) !important; }
+  .bg-blue-100\/50 { background-color: rgba(59, 130, 246, 0.08) !important; }
+
+  .bg-violet-50  { background-color: rgba(139, 92, 246, 0.08) !important; }
+  .bg-violet-50\/40 { background-color: rgba(139, 92, 246, 0.04) !important; }
+  .bg-violet-50\/50 { background-color: rgba(139, 92, 246, 0.05) !important; }
+  .bg-violet-100 { background-color: rgba(139, 92, 246, 0.15) !important; }
+
+  .bg-slate-50   { background-color: rgba(148, 163, 184, 0.06) !important; }
+  .bg-slate-100  { background-color: rgba(148, 163, 184, 0.12) !important; }
+
+  .bg-purple-50  { background-color: rgba(168, 85, 247, 0.08) !important; }
+  .bg-purple-100 { background-color: rgba(168, 85, 247, 0.15) !important; }
+
+  /* ─── TEXTE ─────────────────────────────────────────────────────────────── */
+
+  /* Texte principal */
+  .text-gray-900 { color: #FAFAFA !important; }
+  .text-gray-800 { color: #D4D4D8 !important; }
+  .text-gray-700 { color: #A1A1AA !important; }
+  .text-gray-600 { color: #A1A1AA !important; }
+  .text-gray-500 { color: #71717A !important; }
+  .text-gray-400 { color: #71717A !important; }
+  .text-gray-300 { color: #52525B !important; }
+
+  /* Texte teal (accent Kapio) — déjà bon en dark, on ajuste légèrement */
+  .text-teal-900 { color: #5ECFAE !important; }
+  .text-teal-800 { color: #2EB88A !important; }
+  .text-teal-700 { color: #2EB88A !important; }
+  .text-teal-600 { color: #2EB88A !important; }
+  .text-teal-500 { color: #34D399 !important; }
+
+  /* Texte coloré sémantique */
+  .text-amber-900 { color: #FBBF24 !important; }
+  .text-amber-800 { color: #FBBF24 !important; }
+  .text-amber-700 { color: #F59E0B !important; }
+  .text-amber-600 { color: #F59E0B !important; }
+  .text-amber-500 { color: #F59E0B !important; }
+
+  .text-red-900   { color: #F87171 !important; }
+  .text-red-800   { color: #F87171 !important; }
+  .text-red-700   { color: #EF4444 !important; }
+  .text-red-600   { color: #EF4444 !important; }
+  .text-red-500   { color: #EF4444 !important; }
+
+  .text-blue-900  { color: #93C5FD !important; }
+  .text-blue-800  { color: #93C5FD !important; }
+  .text-blue-700  { color: #60A5FA !important; }
+  .text-blue-600  { color: #60A5FA !important; }
+  .text-blue-500  { color: #3B82F6 !important; }
+
+  .text-violet-900 { color: #C4B5FD !important; }
+  .text-violet-700 { color: #A78BFA !important; }
+  .text-violet-600 { color: #A78BFA !important; }
+
+  .text-slate-800 { color: #CBD5E1 !important; }
+  .text-slate-700 { color: #94A3B8 !important; }
+
+  /* ─── BORDURES ──────────────────────────────────────────────────────────── */
+
+  .border-gray-50  { border-color: rgba(255, 255, 255, 0.04) !important; }
+  .border-gray-100 { border-color: rgba(255, 255, 255, 0.05) !important; }
+  .border-gray-200 { border-color: rgba(255, 255, 255, 0.08) !important; }
+  .border-gray-300 { border-color: rgba(255, 255, 255, 0.12) !important; }
+
+  /* Bordures colorées — tamisées en dark */
+  .border-teal-100   { border-color: rgba(46, 184, 138, 0.2) !important; }
+  .border-teal-200   { border-color: rgba(46, 184, 138, 0.3) !important; }
+  .border-teal-300   { border-color: rgba(46, 184, 138, 0.4) !important; }
+
+  .border-amber-100  { border-color: rgba(245, 158, 11, 0.2) !important; }
+  .border-amber-200  { border-color: rgba(245, 158, 11, 0.3) !important; }
+
+  .border-red-100    { border-color: rgba(239, 68, 68, 0.2) !important; }
+  .border-red-200    { border-color: rgba(239, 68, 68, 0.3) !important; }
+
+  .border-blue-100   { border-color: rgba(59, 130, 246, 0.2) !important; }
+  .border-blue-200   { border-color: rgba(59, 130, 246, 0.3) !important; }
+
+  .border-violet-100 { border-color: rgba(139, 92, 246, 0.2) !important; }
+  .border-violet-200 { border-color: rgba(139, 92, 246, 0.3) !important; }
+
+  .border-slate-200  { border-color: rgba(148, 163, 184, 0.2) !important; }
+
+  /* ─── HOVER STATES ─────────────────────────────────────────────────────── */
+
+  .hover\:bg-gray-50:hover  { background-color: #18181B !important; }
+  .hover\:bg-gray-100:hover { background-color: #18181B !important; }
+  .hover\:bg-gray-200:hover { background-color: #27272A !important; }
+  .hover\:bg-white:hover    { background-color: #18181B !important; }
+
+  .hover\:text-gray-700:hover { color: #FAFAFA !important; }
+  .hover\:text-gray-800:hover { color: #FAFAFA !important; }
+  .hover\:text-gray-900:hover { color: #FAFAFA !important; }
+  .hover\:text-teal-600:hover { color: #34D399 !important; }
+  .hover\:text-teal-700:hover { color: #34D399 !important; }
+
+  .hover\:border-gray-200:hover { border-color: rgba(255, 255, 255, 0.12) !important; }
+  .hover\:border-teal-200:hover { border-color: rgba(46, 184, 138, 0.4) !important; }
+
+  /* ─── PLACEHOLDER ──────────────────────────────────────────────────────── */
+
+  .placeholder-gray-400::placeholder { color: #52525B !important; }
+  .placeholder-gray-500::placeholder { color: #71717A !important; }
+
+  /* ─── INPUTS, TEXTAREA, SELECT ─────────────────────────────────────────── */
+
+  /* Tous les inputs/textareas natifs deviennent dark par défaut */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    background-color: #18181B !important;
+    color: #FAFAFA !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    border-color: #2EB88A !important;
+    box-shadow: 0 0 0 3px rgba(46, 184, 138, 0.2) !important;
+    outline: none !important;
+  }
+
+  /* Checkbox custom dark */
+  input[type="checkbox"] {
+    accent-color: #2EB88A !important;
+  }
+
+  /* ─── DIVIDERS ─────────────────────────────────────────────────────────── */
+
+  .divide-gray-100 > * + * { border-color: rgba(255, 255, 255, 0.05) !important; }
+  .divide-gray-200 > * + * { border-color: rgba(255, 255, 255, 0.08) !important; }
+
+  /* ─── RING (focus) ─────────────────────────────────────────────────────── */
+
+  .ring-gray-200    { --tw-ring-color: rgba(255, 255, 255, 0.12) !important; }
+  .ring-teal-100    { --tw-ring-color: rgba(46, 184, 138, 0.2) !important; }
+  .ring-teal-200    { --tw-ring-color: rgba(46, 184, 138, 0.3) !important; }
+  .focus\:ring-teal-500:focus { --tw-ring-color: rgba(46, 184, 138, 0.4) !important; }
+
+  /* ─── SHADOW ───────────────────────────────────────────────────────────── */
+
+  /* Atténuer les shadow-sm qui paraissent étranges sur dark */
+  .shadow-sm {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  }
+  .shadow {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 8px rgba(0, 0, 0, 0.35) !important;
+  }
+  .shadow-md {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 8px 16px rgba(0, 0, 0, 0.4) !important;
+  }
+  .shadow-lg {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 12px 24px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* ─── BUTTONS LEGACY ───────────────────────────────────────────────────── */
+
+  /* Boutons teal "ancien style" → version dark cohérente */
+  .bg-teal-gradient {
+    background: linear-gradient(135deg, #1D9E75 0%, #2EB88A 50%, #34D399 100%) !important;
+  }
+
+  /* Card-gradient (ancien) → version dark */
+  .bg-card-gradient {
+    background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), #111113 !important;
+  }
+
+  /* Hero-gradient (déjà dark) — on s'assure que ça reste cohérent */
+  .bg-hero-gradient {
+    background: linear-gradient(135deg, #021F1A 0%, #04342C 40%, #063C30 70%, #021F1A 100%) !important;
+  }
+
+  /* ─── TABLES ───────────────────────────────────────────────────────────── */
+
+  table th {
+    color: #A1A1AA !important;
+  }
+
+  table td {
+    color: #D4D4D8 !important;
+  }
+
+  /* ─── SCROLLBAR ────────────────────────────────────────────────────────── */
+
+  /* Pages héritées : appliquer le scrollbar dark partout */
+  *::-webkit-scrollbar       { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: #27272A;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #3F3F46;
+    background-clip: content-box;
+  }
+}
+
+/* ============================================================================
+   Composants spécifiques à patcher
+   ============================================================================ */
+
+/* React-Hot-Toast — déjà géré par le Layout, mais au cas où */
+[data-sonner-toaster],
+[data-react-hot-toast] {
+  --color-bg: #18181B !important;
+  --color-text: #FAFAFA !important;
+}
+
+/* Markdown content (utilisé dans Chat, Rapport, Documents) */
+.prose {
+  color: #D4D4D8 !important;
+}
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: #FAFAFA !important;
+}
+.prose strong { color: #FAFAFA !important; }
+.prose a { color: #2EB88A !important; }
+.prose a:hover { color: #34D399 !important; }
+.prose code {
+  color: #5ECFAE !important;
+  background-color: rgba(46, 184, 138, 0.1) !important;
+  padding: 0.125em 0.375em !important;
+  border-radius: 0.25rem !important;
+}
+.prose pre {
+  background-color: #18181B !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #D4D4D8 !important;
+}
+.prose blockquote {
+  border-left-color: #2EB88A !important;
+  color: #A1A1AA !important;
+}
+.prose ul, .prose ol { color: #D4D4D8 !important; }
+.prose li::marker { color: #71717A !important; }
+.prose hr { border-color: rgba(255, 255, 255, 0.08) !important; }
+.prose table { color: #D4D4D8 !important; }
+.prose thead { border-bottom-color: rgba(255, 255, 255, 0.12) !important; }
+.prose th { color: #A1A1AA !important; }
+.prose tr { border-color: rgba(255, 255, 255, 0.05) !important; }

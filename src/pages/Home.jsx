@@ -13,6 +13,9 @@ import ScrollReveal from '../components/motion/ScrollReveal';
 import MagneticButton from '../components/motion/MagneticButton';
 import GlowCard from '../components/motion/GlowCard';
 import AuroraBackground from '../components/motion/AuroraBackground';
+import SpotlightCursor from '../components/motion/SpotlightCursor';
+import Grain from '../components/motion/Grain';
+import SplitText from '../components/motion/SplitText';
 
 const STORAGE_KEY = 'coachFiscal.state';
 
@@ -54,7 +57,7 @@ const STEPS = [
     Icon: FileSearch,
     n: '03',
     title: 'Profil',
-    desc: 'Un profil fiscal synthétique est généré localement. C\u2019est ce texte qui sera transmis à l\u2019IA.',
+    desc: 'Un profil fiscal synthétique est généré localement. C’est ce texte qui sera transmis à l’IA.',
   },
   {
     Icon: Bot,
@@ -74,12 +77,12 @@ const FEATURES = [
   {
     Icon: Brain,
     title: 'Alimenté par Claude',
-    desc: 'L\u2019IA la plus avancée pour le raisonnement fiscal. Barèmes 2025 à jour, références CGI et BOFiP intégrées.',
+    desc: 'L’IA la plus avancée pour le raisonnement fiscal. Barèmes 2025 à jour, références CGI et BOFiP intégrées.',
     bullets: ['Modèles Sonnet 4.5 / Opus 4.5', 'Skills experts contextuels', 'Citations sources juridiques'],
   },
   {
     Icon: Zap,
-    title: 'Pensé pour l\u2019action',
+    title: 'Pensé pour l’action',
     desc: 'Chaque conseil est chiffré, sourcé, et débouche sur une case fiscale à remplir ou une action à mener.',
     bullets: ['Cases 2042 pré-remplies', 'Simulateurs PER, fonciers, AV', 'Checklist personnalisée'],
   },
@@ -92,7 +95,7 @@ const SKILLS = [
   { name: 'Contrôleur fiscal',  Icon: ShieldCheck, desc: 'Redressement, prescription, pénalités' },
   { name: 'CAC',                Icon: Award,       desc: 'Audit légal, NEP, certification' },
   { name: 'Syndic',             Icon: Layers,      desc: 'Copropriété, AG, loi 1965' },
-  { name: 'GCP',                Icon: TrendingUp,  desc: 'Patrimoine global, allocation d\u2019épargne' },
+  { name: 'GCP',                Icon: TrendingUp,  desc: 'Patrimoine global, allocation d’épargne' },
 ];
 
 function MockDashboard() {
@@ -216,6 +219,12 @@ export default function Home() {
   return (
     <div className="bg-ink-900 text-ink-0 overflow-x-hidden">
 
+      {/* SPOTLIGHT CURSEUR — halo qui suit la souris sur toute la page */}
+      <SpotlightCursor size={550} intensity={0.16} />
+
+      {/* GRAIN OVERLAY — texture noise subtile en fixed */}
+      <Grain opacity={0.025} />
+
       {/* HERO */}
       <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden">
         <AuroraBackground showGrid showBeam intensity={1} />
@@ -260,15 +269,14 @@ export default function Home() {
 
           {/* Headline */}
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
             className="text-display-sm sm:text-display lg:text-display-lg text-gradient-hero mb-6"
             style={{ letterSpacing: '-0.03em' }}
           >
-            Votre patrimoine,
+            <SplitText text="Votre patrimoine," delay={0.3} stagger={0.035} />
             <br />
-            <span className="text-gradient">optimisé par l\u2019IA.</span>
+            <SplitText text="optimisé par l’IA." gradient delay={0.75} stagger={0.035} />
           </motion.h1>
 
           {/* Sous-titre */}
@@ -327,7 +335,7 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-1.5">
               <Lock size={12} className="text-kapio-300" />
-              Aucune donnée n\u2019est envoyée
+              Aucune donnée n’est envoyée
             </div>
             <span className="text-ink-400">·</span>
             <div className="inline-flex items-center gap-1.5">
@@ -364,7 +372,7 @@ export default function Home() {
                 Dashboard
               </span>
               <h2 className="text-3xl sm:text-5xl font-bold text-ink-0 mb-4 tracking-tight">
-                Une vue d\u2019ensemble,
+                Une vue d’ensemble,
                 <br />
                 <span className="text-gradient">limpide et actionnable.</span>
               </h2>
@@ -408,7 +416,7 @@ export default function Home() {
                 4 étapes, 30 minutes.
               </h2>
               <p className="text-base sm:text-lg text-ink-100 max-w-2xl mx-auto leading-relaxed">
-                Du document brut au conseil expert. Tout en local, sauf l\u2019IA finale.
+                Du document brut au conseil expert. Tout en local, sauf l’IA finale.
               </p>
             </div>
           </ScrollReveal>
@@ -518,9 +526,9 @@ export default function Home() {
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <ScrollReveal>
             <h2 className="text-4xl sm:text-6xl font-bold text-ink-0 mb-6 tracking-tight">
-              Prêt à reprendre
+              <SplitText text="Prêt à reprendre" delay={0.1} stagger={0.03} />
               <br />
-              <span className="text-gradient">le contrôle ?</span>
+              <SplitText text="le contrôle ?" gradient delay={0.5} stagger={0.04} />
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={0.15}>
@@ -540,7 +548,7 @@ export default function Home() {
           </ScrollReveal>
           <ScrollReveal delay={0.45}>
             <p className="mt-6 text-xs text-ink-200">
-              Coût d\u2019utilisation : 5 à 15 €/mois via l\u2019API Anthropic. Vous payez directement, pas d\u2019intermédiaire.
+              Coût d’utilisation : 5 à 15 €/mois via l’API Anthropic. Vous payez directement, pas d’intermédiaire.
             </p>
           </ScrollReveal>
         </div>

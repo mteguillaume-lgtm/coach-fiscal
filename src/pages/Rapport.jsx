@@ -2,9 +2,17 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Button from '../components/Button';
 import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+
+import AuroraBackground from '../components/motion/AuroraBackground';
+import SpotlightCursor from '../components/motion/SpotlightCursor';
+import Grain from '../components/motion/Grain';
+import SplitText from '../components/motion/SplitText';
+import MagneticButton from '../components/motion/MagneticButton';
+import ScrollReveal from '../components/motion/ScrollReveal';
 
 // ─── Float parser ─────────────────────────────────────────────────────────────
 
@@ -2808,7 +2816,7 @@ export default function Rapport() {
   const cehr = calcCEHR(p.rfr || d.rniFoyer, isCouple);
 
   return (
-    <>
+    <div className="relative bg-ink-900 overflow-x-hidden">
       <style>{`
         @media print {
           @page { size: A4; margin: 2cm 1.5cm; }
@@ -2843,6 +2851,11 @@ export default function Rapport() {
         }
       `}</style>
 
+      <AuroraBackground showGrid intensity={0.65} className="print:hidden" />
+      <SpotlightCursor size={500} intensity={0.13} />
+      <Grain opacity={0.02} />
+
+      <div className="relative z-10 max-w-[1100px] mx-auto px-6 py-12">
       <div className="flex flex-col gap-5">
 
         {/* ── Header print ── */}
@@ -2854,16 +2867,31 @@ export default function Rapport() {
           <p className="rp-header-meta">Document personnel — ne pas diffuser</p>
         </div>
 
-        {/* ── Header écran ── */}
-        <div className="print:hidden">
-          <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 4 / 5</span>
-          <h1 className="text-2xl font-bold text-gray-900 mt-1">Rapport fiscal — Déclaration 2025</h1>
-          <p className="text-sm text-gray-500 mt-1">
+        {/* ── Hero écran ── */}
+        <motion.div
+          initial={{ opacity: 0, y: -14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="print:hidden mb-8"
+        >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-dark text-ink-50 text-xs font-medium mb-5">
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inline-flex w-full h-full rounded-full bg-kapio-300 opacity-75 animate-pulse2" />
+              <span className="relative inline-flex w-2 h-2 rounded-full bg-kapio-300" />
+            </span>
+            Étape 4 / 5
+            <FileText size={11} className="text-kapio-300" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3" style={{ letterSpacing: '-0.03em' }}>
+            <SplitText text="Rapport fiscal " delay={0.2} stagger={0.04} />
+            <SplitText text="2025" gradient delay={0.5} stagger={0.06} />
+          </h1>
+          <p className="text-base text-ink-100 leading-relaxed max-w-2xl">
             {d.hasAi
               ? 'Profil enrichi IA — synthèse du foyer, calculs détaillés, analyse complète.'
               : 'Synthèse du foyer + calculs détaillés. Enrichissez avec l\'IA pour l\'analyse complète.'}
           </p>
-        </div>
+        </motion.div>
 
         {/* ── Banner non enrichi ── */}
         {!d.hasAi && (
@@ -3097,6 +3125,7 @@ export default function Rapport() {
         </div>
 
       </div>
-    </>
+      </div>
+    </div>
   );
 }

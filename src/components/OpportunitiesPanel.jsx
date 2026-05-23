@@ -5,15 +5,15 @@ import { TrendingUp, AlertTriangle, Zap, MessageCircle, Euro } from 'lucide-reac
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const TYPE_CFG = {
-  gain:   { label: 'Gain',   Icon: TrendingUp,   color: 'text-teal-600',  bg: 'bg-teal-50',  border: 'border-teal-200',  badge: 'bg-teal-100 text-teal-700'  },
-  risque: { label: 'Risque', Icon: AlertTriangle, color: 'text-red-600',   bg: 'bg-red-50',   border: 'border-red-200',   badge: 'bg-red-100 text-red-700'    },
-  action: { label: 'Action', Icon: Zap,           color: 'text-blue-600',  bg: 'bg-blue-50',  border: 'border-blue-200',  badge: 'bg-blue-100 text-blue-700'  },
+  gain:   { label: 'Gain',   Icon: TrendingUp,   color: 'text-kapio-300',   bg: 'bg-kapio-500/[0.08]',  border: 'border-kapio-500/30',   badge: 'bg-kapio-500/15 text-kapio-300'   },
+  risque: { label: 'Risque', Icon: AlertTriangle, color: 'text-danger-400',  bg: 'bg-danger-500/[0.08]', border: 'border-danger-500/30',  badge: 'bg-danger-500/10 text-danger-400'  },
+  action: { label: 'Action', Icon: Zap,           color: 'text-blue-400',   bg: 'bg-blue-500/[0.08]',   border: 'border-blue-500/30',    badge: 'bg-blue-500/10 text-blue-400'     },
 };
 
 const URGENCE_CFG = {
-  immediate:      { label: 'Urgent — À faire maintenant', color: 'text-red-500'   },
-  avant_decembre: { label: 'À faire avant le 31/12',      color: 'text-amber-500' },
-  long_terme:     { label: 'Long terme',                  color: 'text-gray-400'  },
+  immediate:      { label: 'Urgent — À faire maintenant', color: 'text-danger-400'  },
+  avant_decembre: { label: 'À faire avant le 31/12',      color: 'text-warning-400' },
+  long_terme:     { label: 'Long terme',                  color: 'text-ink-200'     },
 };
 
 // ─── Carte opportunité ────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ function OpportunityCard({ opp }) {
   const urgence  = URGENCE_CFG[opp.urgence];
 
   return (
-    <div className={`rounded-2xl border ${cfg.border} bg-white shadow-sm`}>
+    <div className={`rounded-2xl border ${cfg.border} bg-ink-800/60 shadow-sm`}>
       <div className="p-4 flex flex-col gap-3">
 
         {/* En-tête */}
@@ -41,8 +41,8 @@ function OpportunityCard({ opp }) {
                 {urgence.label}
               </span>
             </div>
-            <p className="text-sm font-semibold text-gray-800 mt-1.5 leading-snug">{opp.titre}</p>
-            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{opp.description}</p>
+            <p className="text-sm font-semibold text-ink-50 mt-1.5 leading-snug">{opp.titre}</p>
+            <p className="text-xs text-ink-200 mt-1 leading-relaxed">{opp.description}</p>
           </div>
         </div>
 
@@ -53,15 +53,15 @@ function OpportunityCard({ opp }) {
         </div>
 
         {/* Action */}
-        <div className="text-xs text-gray-500 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
-          <span className="font-semibold text-gray-700">Action : </span>{opp.action}
+        <div className="text-xs text-ink-200 bg-ink-700/50 rounded-xl px-3 py-2 border border-white/[0.06]">
+          <span className="font-semibold text-ink-50">Action : </span>{opp.action}
         </div>
 
         {/* CTA */}
         <button
           type="button"
           onClick={() => navigate('/chat', { state: { prefill: opp.questionChat } })}
-          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-teal-200 text-teal-600 text-xs font-semibold hover:bg-teal-50 transition-colors"
+          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-kapio-500/30 text-kapio-300 text-xs font-semibold hover:bg-kapio-500/[0.08] transition-colors"
         >
           <MessageCircle size={13} />
           En discuter avec Coach Fiscal
@@ -97,9 +97,9 @@ export default function OpportunitiesPanel({ opportunities }) {
 
   const FILTERS = [
     { id: 'all',    label: `Tous (${opportunities.length})` },
-    { id: 'gain',   label: `💡 Gains (${gains.length})` },
-    { id: 'risque', label: `🔴 Risques (${risques.length})` },
-    { id: 'action', label: `🔵 Actions (${actions.length})` },
+    { id: 'gain',   label: `Gains (${gains.length})` },
+    { id: 'risque', label: `Risques (${risques.length})` },
+    { id: 'action', label: `Actions (${actions.length})` },
   ];
 
   return (
@@ -107,25 +107,25 @@ export default function OpportunitiesPanel({ opportunities }) {
 
       {/* Titre + badge */}
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-bold text-gray-900">Opportunités détectées</h2>
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 text-teal-700 text-xs font-bold">
+        <h2 className="text-lg font-bold text-ink-0">Opportunités détectées</h2>
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-kapio-500/15 text-kapio-300 text-xs font-bold">
           {opportunities.length}
         </span>
       </div>
 
       {/* Bannière gains potentiels */}
       {totalGains > 0 && (
-        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 px-4 py-3 flex items-center gap-3">
+        <div className="rounded-2xl border border-kapio-500/30 bg-kapio-500/[0.06] px-4 py-3 flex items-center gap-3">
           <span className="text-2xl" aria-hidden="true">💰</span>
           <div>
-            <p className="text-[10px] text-teal-600 font-bold uppercase tracking-widest">Gains potentiels identifiés</p>
-            <p className="text-xl font-bold text-teal-700">{totalGains.toLocaleString('fr-FR')} €</p>
+            <p className="text-[10px] text-kapio-300 font-bold uppercase tracking-widest">Gains potentiels identifiés</p>
+            <p className="text-xl font-bold text-kapio-200">{totalGains.toLocaleString('fr-FR')} €</p>
           </div>
         </div>
       )}
 
       {/* Filtres */}
-      <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-2xl overflow-x-auto">
+      <div className="flex items-center gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl overflow-x-auto">
         {FILTERS.map(tab => (
           <button
             key={tab.id}
@@ -134,8 +134,8 @@ export default function OpportunitiesPanel({ opportunities }) {
             className={[
               'flex-1 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200',
               filter === tab.id
-                ? 'bg-white text-gray-800 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700',
+                ? 'bg-ink-700 text-kapio-300 shadow-sm'
+                : 'text-ink-300 hover:text-ink-0',
             ].join(' ')}
           >
             {tab.label}

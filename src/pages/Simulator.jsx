@@ -6,12 +6,19 @@ import {
 } from 'recharts';
 import toast                       from 'react-hot-toast';
 import { TrendingUp, Layers, Home, Building2, Briefcase, MessageCircle, Save, ChevronRight, FileText, PenLine, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import { useApp }       from '../context/AppContext';
 import Button           from '../components/Button';
 import EvolutionChart   from '../components/EvolutionChart';
 import SimImmobilier    from '../components/SimImmobilier';
 import { getTMI, baseIRFoyer, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcIR, TRANCHES, computePerOptimumCascade, calcCEHR } from '../lib/taxCalculator';
+
+import AuroraBackground from '../components/motion/AuroraBackground';
+import SpotlightCursor  from '../components/motion/SpotlightCursor';
+import Grain            from '../components/motion/Grain';
+import SplitText        from '../components/motion/SplitText';
+import ScrollReveal     from '../components/motion/ScrollReveal';
 
 const TMI_OPTIONS = [0, 11, 30, 41, 45];
 const MIN_PLAFOND = MIN_PLAFOND_PER; // 4 710 €
@@ -250,7 +257,7 @@ function ToggleGroup({ label, options, value, onChange, format }) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-gray-600">{label}</span>
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-xl">
         {options.map(opt => (
           <button
             key={opt}
@@ -259,8 +266,8 @@ function ToggleGroup({ label, options, value, onChange, format }) {
             className={[
               'flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
               value === opt
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700',
+                ? 'bg-ink-700 text-kapio-300 shadow-sm'
+                : 'text-ink-300 hover:text-ink-0',
             ].join(' ')}
           >
             {format ? format(opt) : opt}
@@ -570,27 +577,27 @@ function SimPER({ data }) {
 
       {/* ── Décomposition par tranche ── */}
       {totalVerse > 0 && res.bracketBreakdown.length > 0 && (
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/40 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-blue-100 bg-blue-100/50">
-            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Décomposition par tranche</p>
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-blue-500/20 bg-blue-500/[0.08]">
+            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Décomposition par tranche</p>
           </div>
-          <div className="divide-y divide-blue-100/60">
+          <div className="divide-y divide-white/[0.04]">
             {res.bracketBreakdown.map(({ rate, amount, saving }) => (
               <div key={rate} className="flex items-center justify-between px-4 py-2.5">
                 <div className="flex items-center gap-3">
-                  <span className="w-10 text-right font-bold text-blue-700 font-mono text-xs shrink-0">{rate} %</span>
-                  <span className="text-xs text-blue-600">{fmt(amount)} € effacés dans cette tranche</span>
+                  <span className="w-10 text-right font-bold text-blue-400 font-mono text-xs shrink-0">{rate} %</span>
+                  <span className="text-xs text-ink-200">{fmt(amount)} € effacés dans cette tranche</span>
                 </div>
-                <span className="text-xs font-bold text-teal-700 font-mono">→ {fmt(saving)} €</span>
+                <span className="text-xs font-bold text-kapio-300 font-mono">→ {fmt(saving)} €</span>
               </div>
             ))}
-            <div className="flex items-center justify-between px-4 py-3 bg-blue-50">
-              <span className="text-xs font-bold text-gray-700">Économie totale réelle</span>
-              <span className="text-sm font-bold text-teal-700 font-mono">{fmt(res.economie)} €</span>
+            <div className="flex items-center justify-between px-4 py-3 bg-blue-500/[0.04]">
+              <span className="text-xs font-bold text-ink-100">Économie totale réelle</span>
+              <span className="text-sm font-bold text-kapio-300 font-mono">{fmt(res.economie)} €</span>
             </div>
           </div>
           {res.bracketBreakdown.length > 1 && (
-            <div className="px-4 py-2 border-t border-blue-100">
+            <div className="px-4 py-2 border-t border-blue-500/20">
               <p className="text-[10px] text-blue-400">
                 ≠ {fmt(totalVerse)} € × {profData.tmi} % = {fmt(Math.round(totalVerse * profData.tmi / 100))} €
                 {' '}(méthode TMI fixe — incorrecte car {res.bracketBreakdown.length} tranches traversées)
@@ -1826,18 +1833,40 @@ export default function Simulator() {
   }, [mode, manualTMI, manualParts, perCalc, state.parsedProfile, perDeclarant]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="relative bg-ink-900 overflow-x-hidden">
+      <AuroraBackground showGrid intensity={0.7} />
+      <SpotlightCursor size={500} intensity={0.14} />
+      <Grain opacity={0.02} />
 
-      <div>
-        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Outils interactifs</span>
-        <h1 className="text-2xl font-bold text-gray-900 mt-1">Simulateurs fiscaux</h1>
-        <p className="text-sm text-gray-500 mt-1">
+      <div className="relative z-10 max-w-[1100px] mx-auto px-6 py-12">
+      <div className="flex flex-col gap-6">
+
+      {/* Hero */}
+      <motion.div
+        initial={{ opacity: 0, y: -14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="mb-4"
+      >
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-dark text-ink-50 text-xs font-medium mb-5">
+          <span className="relative flex w-2 h-2">
+            <span className="absolute inline-flex w-full h-full rounded-full bg-kapio-300 opacity-75 animate-pulse2" />
+            <span className="relative inline-flex w-2 h-2 rounded-full bg-kapio-300" />
+          </span>
+          Outils interactifs
+          <TrendingUp size={11} className="text-kapio-300" />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3" style={{ letterSpacing: '-0.03em' }}>
+          <SplitText text="Simulateurs " delay={0.2} stagger={0.04} />
+          <SplitText text="fiscaux" gradient delay={0.48} stagger={0.05} />
+        </h1>
+        <p className="text-base text-ink-100 leading-relaxed">
           Visualisez l'impact de vos décisions en temps réel.
         </p>
-      </div>
+      </motion.div>
 
       {/* Toggle mode */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl">
+      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl">
         {MODES.map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -1846,8 +1875,8 @@ export default function Simulator() {
             className={[
               'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200',
               mode === id
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700',
+                ? 'bg-ink-700 text-kapio-300'
+                : 'text-ink-300 hover:text-ink-0',
             ].join(' ')}
           >
             <Icon size={13} /> {label}
@@ -2049,7 +2078,7 @@ export default function Simulator() {
       )}
 
       {/* Tabs simulateur */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl">
+      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -2058,8 +2087,8 @@ export default function Simulator() {
             className={[
               'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
               tab === id
-                ? 'bg-white text-gray-800 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700',
+                ? 'bg-ink-700 text-kapio-300'
+                : 'text-ink-300 hover:text-ink-0',
             ].join(' ')}
           >
             <Icon size={13} />
@@ -2069,14 +2098,18 @@ export default function Simulator() {
       </div>
 
       {/* Contenu simulateur */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5">
-        {tab === 'per'        && <SimPER        data={profileData} />}
-        {tab === 'enveloppes' && <SimEnveloppes data={profileData} />}
-        {tab === 'foncier'    && <SimFoncier    data={profileData} />}
-        {tab === 'immo'       && <SimImmobilier />}
-        {tab === 'frais'      && <SimFrais      data={profileData} />}
-      </div>
+      <ScrollReveal delay={0.1}>
+        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 backdrop-blur-sm shadow-sm p-5">
+          {tab === 'per'        && <SimPER        data={profileData} />}
+          {tab === 'enveloppes' && <SimEnveloppes data={profileData} />}
+          {tab === 'foncier'    && <SimFoncier    data={profileData} />}
+          {tab === 'immo'       && <SimImmobilier />}
+          {tab === 'frais'      && <SimFrais      data={profileData} />}
+        </div>
+      </ScrollReveal>
 
+      </div>
+      </div>
     </div>
   );
 }

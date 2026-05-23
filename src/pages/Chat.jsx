@@ -1,99 +1,153 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate, useLocation, Link }  from 'react-router-dom';
-import toast            from 'react-hot-toast';
-import Markdown         from 'react-markdown';
-import remarkGfm        from 'remark-gfm';
-import { Send, Menu, X, Trash2, Download, ArrowLeft, Zap, Sparkles, Bot, Calculator } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  Send, Menu, X, Trash2, Download, ArrowLeft, Zap,
+  Sparkles, Bot, Calculator, MessageCircle,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-import { useApp }                                    from '../context/AppContext';
-import { chatWithClaude, detectComplexity }           from '../lib/claudeApi';
-import { detectRelevantSkills, buildSystemPrompt }   from '../lib/skillRouter';
-import { MASTER_PROMPT }                             from '../data/masterPrompt';
-import Button                                        from '../components/Button';
-import PERBandeau                                    from '../components/PERBandeau';
+import { useApp } from '../context/AppContext';
+import { chatWithClaude, detectComplexity } from '../lib/claudeApi';
+import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
+import { MASTER_PROMPT } from '../data/masterPrompt';
+import PERBandeau from '../components/PERBandeau';
+
+import MagneticButton from '../components/motion/MagneticButton';
 
 // ─── Suggestions ──────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
-  { category: '💰 Fiscal', questions: [
-    'Optimiser ma déclaration 2026', 'Vérifier mon taux PAS', 'PFU vs barème pour mes dividendes ?',
-  ]},
-  { category: '🏦 Patrimoine', questions: [
-    'Allocation optimale de mon épargne', 'Faut-il ouvrir un PER ?', 'Stratégie crypto et fiscalité',
-  ]},
-  { category: '📜 Succession', questions: [
-    'Préparer ma succession', 'Donations aux enfants', 'Démembrement de propriété',
-  ]},
-  { category: '🎯 Retraite', questions: [
-    'Combien épargner pour ma retraite ?', 'PEA vs Assurance-vie vs PER',
-  ]},
+  {
+    category: '💰 Fiscal',
+    questions: [
+      'Optimiser ma déclaration 2026',
+      'Vérifier mon taux PAS',
+      'PFU vs barème pour mes dividendes ?',
+    ],
+  },
+  {
+    category: '🏦 Patrimoine',
+    questions: [
+      'Allocation optimale de mon épargne',
+      'Faut-il ouvrir un PER ?',
+      'Stratégie crypto et fiscalité',
+    ],
+  },
+  {
+    category: '📜 Succession',
+    questions: [
+      'Préparer ma succession',
+      'Donations aux enfants',
+      'Démembrement de propriété',
+    ],
+  },
+  {
+    category: '🎯 Retraite',
+    questions: [
+      'Combien épargner pour ma retraite ?',
+      'PEA vs Assurance-vie vs PER',
+    ],
+  },
 ];
 
 // ─── Markdown ─────────────────────────────────────────────────────────────────
 
 const MD_COMPONENTS = {
-  p:          ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-  ul:         ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5">{children}</ul>,
-  ol:         ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5">{children}</ol>,
-  li:         ({ children }) => <li className="leading-relaxed">{children}</li>,
-  strong:     ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-  h1:         ({ children }) => <h1 className="text-base font-bold mb-2 mt-3 text-gray-900">{children}</h1>,
-  h2:         ({ children }) => <h2 className="text-sm font-bold mb-1.5 mt-3 text-gray-900">{children}</h2>,
-  h3:         ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2 text-gray-800">{children}</h3>,
-  pre:        ({ children }) => <pre className="bg-gray-900 text-gray-100 rounded-xl p-3 text-xs overflow-x-auto my-2 font-mono">{children}</pre>,
-  code:       ({ children }) => <code className="bg-gray-100 px-1.5 py-0.5 rounded-md text-xs font-mono text-teal-700">{children}</code>,
-  blockquote: ({ children }) => <blockquote className="border-l-2 border-teal-300 pl-3 text-gray-500 italic my-2 bg-teal-50/50 py-1 rounded-r-lg">{children}</blockquote>,
-  a:          ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-teal-600 underline underline-offset-2 hover:text-teal-700">{children}</a>,
+  p:          ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-ink-50">{children}</p>,
+  ul:         ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-0.5 text-ink-50">{children}</ul>,
+  ol:         ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-0.5 text-ink-50">{children}</ol>,
+  li:         ({ children }) => <li className="leading-relaxed text-ink-50">{children}</li>,
+  strong:     ({ children }) => <strong className="font-semibold text-ink-0">{children}</strong>,
+  h1:         ({ children }) => <h1 className="text-base font-bold mb-2 mt-3 text-ink-0">{children}</h1>,
+  h2:         ({ children }) => <h2 className="text-sm font-bold mb-1.5 mt-3 text-ink-0">{children}</h2>,
+  h3:         ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2 text-ink-50">{children}</h3>,
+  pre:        ({ children }) => <pre className="bg-ink-950 text-ink-50 rounded-xl p-3 text-xs overflow-x-auto my-2 font-mono border border-white/[0.05]">{children}</pre>,
+  code:       ({ children }) => <code className="bg-kapio-500/10 px-1.5 py-0.5 rounded-md text-xs font-mono text-kapio-300">{children}</code>,
+  blockquote: ({ children }) => <blockquote className="border-l-2 border-kapio-300 pl-3 text-ink-100 italic my-2 bg-kapio-500/[0.04] py-1 rounded-r-lg">{children}</blockquote>,
+  a:          ({ href, children }) => (
+    <a href={href} target="_blank" rel="noreferrer" className="text-kapio-300 underline underline-offset-2 hover:text-kapio-200 transition-colors">
+      {children}
+    </a>
+  ),
 };
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 function Sidebar({ onSelect, onClose }) {
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-ink-850/95 backdrop-blur-xl border-r border-white/[0.05]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-teal-gradient flex items-center justify-center">
-            <Bot size={12} className="text-white" />
-          </div>
-          <span className="text-sm font-semibold text-gray-800">Suggestions</span>
+      <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.05] shrink-0">
+        <div className="flex items-center gap-2.5">
+          <motion.div
+            animate={{
+              boxShadow: [
+                '0 0 0 0 rgba(46,184,138,0)',
+                '0 0 16px rgba(46,184,138,0.4)',
+                '0 0 0 0 rgba(46,184,138,0)',
+              ],
+            }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+            className="w-7 h-7 rounded-lg bg-kapio-gradient flex items-center justify-center"
+          >
+            <Bot size={13} className="text-ink-900" />
+          </motion.div>
+          <span className="text-sm font-bold text-ink-0">Suggestions</span>
         </div>
-        {onClose && (
-          <button onClick={onClose} aria-label="Fermer"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors md:hidden">
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-200 hover:text-ink-0 hover:bg-white/[0.06] transition-colors md:hidden"
+          >
             <X size={16} />
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Categories */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
-        {SUGGESTIONS.map(cat => (
-          <div key={cat.category}>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-2">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        {SUGGESTIONS.map((cat, catIdx) => (
+          <motion.div
+            key={cat.category}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: catIdx * 0.08, duration: 0.4 }}
+          >
+            <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-2 px-2">
               {cat.category}
             </p>
             <div className="space-y-0.5">
-              {cat.questions.map(q => (
-                <button key={q} onClick={() => { onSelect(q); onClose?.(); }}
-                  className="w-full text-left text-xs text-gray-600 hover:text-teal-700 hover:bg-teal-50 px-2.5 py-2 rounded-xl transition-all duration-150 leading-relaxed">
+              {cat.questions.map((q, i) => (
+                <motion.button
+                  key={q}
+                  type="button"
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => { onSelect(q); onClose && onClose(); }}
+                  className="w-full text-left text-xs text-ink-100 hover:text-kapio-300 hover:bg-kapio-500/[0.08] px-2.5 py-2 rounded-xl transition-all duration-200 leading-relaxed group"
+                >
+                  <span className="inline-block w-0 group-hover:w-2 transition-all duration-200 overflow-hidden text-kapio-300">→ </span>
                   {q}
-                </button>
+                </motion.button>
               ))}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {/* Lien simulateurs */}
-      <div className="shrink-0 px-3 py-3 border-t border-gray-100">
+      <div className="shrink-0 px-3 py-3 border-t border-white/[0.05]">
         <Link
           to="/simulator"
           onClick={onClose}
-          className="flex items-center gap-2 w-full text-xs font-semibold text-gray-500 hover:text-teal-600 hover:bg-teal-50 px-2.5 py-2.5 rounded-xl transition-all duration-150"
+          className="flex items-center gap-2 w-full text-xs font-semibold text-ink-100 hover:text-kapio-300 hover:bg-kapio-500/[0.08] px-3 py-2.5 rounded-xl transition-all duration-200 group"
         >
-          <Calculator size={13} className="shrink-0" />
+          <Calculator size={13} className="shrink-0 transition-transform duration-300 group-hover:rotate-12" />
           Simulateurs fiscaux interactifs
         </Link>
       </div>
@@ -101,14 +155,26 @@ function Sidebar({ onSelect, onClose }) {
   );
 }
 
-// ─── Typing dots ──────────────────────────────────────────────────────────────
+// ─── Typing dots premium ──────────────────────────────────────────────────────
 
 function TypingDots() {
   return (
-    <span className="inline-flex items-center gap-1 py-0.5">
+    <span className="inline-flex items-center gap-1.5 py-1">
       {[0, 1, 2].map(i => (
-        <span key={i} className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce"
-          style={{ animationDelay: `${i * 0.18}s`, animationDuration: '0.9s' }} />
+        <motion.span
+          key={i}
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.4, 1, 0.4],
+          }}
+          transition={{
+            duration: 1.2,
+            repeat: Infinity,
+            delay: i * 0.2,
+            ease: 'easeInOut',
+          }}
+          className="w-1.5 h-1.5 rounded-full bg-kapio-300"
+        />
       ))}
     </span>
   );
@@ -121,16 +187,15 @@ export default function Chat() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [messages,     setMessages]     = useState(() => state.chatHistory || []);
-  const [input,        setInput]        = useState(location.state?.prefill ?? '');
-  const [streaming,    setStreaming]     = useState(false);
+  const [messages, setMessages] = useState(() => state.chatHistory || []);
+  const [input, setInput] = useState(location.state?.prefill || '');
+  const [streaming, setStreaming] = useState(false);
   const [activeSkills, setActiveSkills] = useState([]);
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const textareaRef    = useRef(null);
+  const textareaRef = useRef(null);
 
-  // Guard : attend l'hydratation
   useEffect(() => {
     const t = setTimeout(() => {
       if (!state.profile) {
@@ -139,10 +204,12 @@ export default function Chat() {
       }
     }, 80);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -151,7 +218,6 @@ export default function Chat() {
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
   }, [input]);
 
-  // Complexité temps réel (pour indicateur + bannière — recalcul à chaque frappe)
   const inputComplexity = useMemo(() => {
     const text = input.trim();
     if (!text) return null;
@@ -159,14 +225,12 @@ export default function Chat() {
     return { ...detectComplexity(text, skills), skills };
   }, [input]);
 
-  // state.model sert de plancher de qualité : l'auto-router ne peut pas descendre en-dessous
   const MODEL_RANK = { haiku: 0, sonnet: 1, opus: 2 };
 
-  // Modèle réellement utilisé (auto-détecté OU plancher state.model, le plus élevé des deux)
   const effectiveModel = useMemo(() => {
-    const auto = inputComplexity?.model ?? 'haiku';
+    const auto = inputComplexity?.model || 'haiku';
     return MODEL_RANK[auto] >= MODEL_RANK[state.model] ? auto : state.model;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputComplexity, state.model]);
 
   const handleSend = useCallback(async (forceModel = null) => {
@@ -178,15 +242,14 @@ export default function Chat() {
     setInput('');
     const prevMessages = messages;
 
-    const skills           = detectRelevantSkills(text);
+    const skills = detectRelevantSkills(text);
     setActiveSkills(skills);
     const { model: autoModel } = detectComplexity(text, skills);
-    const modelToUse = forceModel ?? (
+    const modelToUse = forceModel || (
       MODEL_RANK[autoModel] >= MODEL_RANK[state.model] ? autoModel : state.model
     );
-    console.log(`[Chat] Envoi → modèle retenu : ${modelToUse}`);
 
-    const userMsg  = { role: 'user',      content: text };
+    const userMsg = { role: 'user', content: text };
     const draftMsg = { role: 'assistant', content: '', streaming: true, model: modelToUse };
     setMessages(prev => [...prev, userMsg, draftMsg]);
     setStreaming(true);
@@ -226,25 +289,41 @@ export default function Chat() {
     } finally {
       setStreaming(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, streaming, messages, state.profile, state.model, getApiKey, dispatch]);
 
-  const handleKeyDown    = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-  const handleSuggestion = q => { setInput(q); textareaRef.current?.focus(); };
+  const handleKeyDown = e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+  const handleSuggestion = q => {
+    setInput(q);
+    textareaRef.current?.focus();
+  };
 
   const handleClear = () => {
     if (!window.confirm('Effacer la conversation ?')) return;
-    setMessages([]); setActiveSkills([]);
+    setMessages([]);
+    setActiveSkills([]);
     dispatch({ type: 'CLEAR_CHAT' });
     toast.success('Conversation effacée.');
   };
 
   const handleExport = () => {
-    if (messages.length === 0) { toast.error('Aucun message à exporter.'); return; }
+    if (messages.length === 0) {
+      toast.error('Aucun message à exporter.');
+      return;
+    }
     const date = new Date().toISOString().slice(0, 10);
-    const body = messages.map(m => `**${m.role === 'user' ? 'Vous' : 'Coach Fiscal'}**\n\n${m.content}`).join('\n\n---\n\n');
-    const blob = new Blob([`# Conversation Coach Fiscal — ${date}\n\n${body}`], { type: 'text/markdown;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    Object.assign(document.createElement('a'), { href: url, download: `conversation-fiscal-${date}.md` }).click();
+    const body = messages.map(m => `**${m.role === 'user' ? 'Vous' : 'Kapio'}**\n\n${m.content}`).join('\n\n---\n\n');
+    const blob = new Blob([`# Conversation Kapio — ${date}\n\n${body}`], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), {
+      href: url,
+      download: `conversation-kapio-${date}.md`,
+    }).click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast.success('Export téléchargé.');
   };
@@ -252,61 +331,137 @@ export default function Chat() {
   if (!state.profile) return null;
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-ink-900">
 
-      {/* ── Sidebar desktop ─────────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-64 shrink-0 border-r border-gray-100 bg-white overflow-hidden">
+      {/* AURORA ULTRA-SUBTILE EN FOND */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          aria-hidden="true"
+          className="absolute -top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
+          style={{
+            background: 'radial-gradient(circle, rgba(46,184,138,0.12) 0%, rgba(46,184,138,0) 65%)',
+            filter: 'blur(80px)',
+          }}
+          animate={{
+            x: [0, 40, -20, 0],
+            y: [0, -20, 10, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          aria-hidden="true"
+          className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-25"
+          style={{
+            background: 'radial-gradient(circle, rgba(29,158,117,0.1) 0%, rgba(29,158,117,0) 60%)',
+            filter: 'blur(90px)',
+          }}
+          animate={{
+            x: [0, -30, 20, 0],
+            y: [0, 20, -15, 0],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+        />
+      </div>
+
+      {/* Sidebar desktop */}
+      <aside className="hidden md:flex flex-col w-64 shrink-0 overflow-hidden relative z-10">
         <Sidebar onSelect={handleSuggestion} />
       </aside>
 
-      {/* ── Sidebar mobile overlay ───────────────────────────────── */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="w-72 flex flex-col shadow-2xl">
-            <Sidebar onSelect={handleSuggestion} onClose={() => setSidebarOpen(false)} />
-          </div>
-          <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-        </div>
-      )}
+      {/* Sidebar mobile overlay */}
+      <AnimatePresence>
+        {sidebarOpen ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex md:hidden"
+          >
+            <motion.div
+              initial={{ x: -288 }}
+              animate={{ x: 0 }}
+              exit={{ x: -288 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="w-72 flex flex-col shadow-2xl"
+            >
+              <Sidebar onSelect={handleSuggestion} onClose={() => setSidebarOpen(false)} />
+            </motion.div>
+            <div
+              className="flex-1 bg-black/60 backdrop-blur-sm"
+              onClick={() => setSidebarOpen(false)}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      {/* ── Zone chat principale ─────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50">
+      {/* Zone chat principale */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative z-10">
 
         {/* Header */}
-        <div className="shrink-0 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 py-2.5 flex items-center gap-3">
-          <button className="md:hidden text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-            onClick={() => setSidebarOpen(true)} aria-label="Suggestions">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="shrink-0 glass-darker border-b border-white/[0.05] px-4 py-3 flex items-center gap-3"
+        >
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Suggestions"
+            className="md:hidden text-ink-200 hover:text-ink-0 transition-colors p-1.5 rounded-lg hover:bg-white/[0.06]"
+          >
             <Menu size={18} />
           </button>
 
-          {/* Avatar */}
-          <div className="w-8 h-8 rounded-xl bg-teal-gradient flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm">
-            CF
-          </div>
+          <motion.div
+            animate={{
+              boxShadow: [
+                '0 0 0 0 rgba(46,184,138,0)',
+                '0 0 20px rgba(46,184,138,0.4)',
+                '0 0 0 0 rgba(46,184,138,0)',
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="w-9 h-9 rounded-xl bg-kapio-gradient flex items-center justify-center text-ink-900 text-xs font-bold shrink-0"
+          >
+            K
+          </motion.div>
 
-          {/* Titre + skills */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 leading-none">Coach Fiscal</p>
-            <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-              {activeSkills.length > 0
-                ? `Skills : ${activeSkills.join(' · ')}`
-                : 'Expert fiscal IA · 7 skills disponibles'}
-            </p>
+            <p className="text-sm font-bold text-ink-0 leading-none">Kapio</p>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={activeSkills.join('-')}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.3 }}
+                className="text-[10px] text-ink-200 mt-1 truncate"
+              >
+                {activeSkills.length > 0
+                  ? `Skills : ${activeSkills.join(' · ')}`
+                  : 'Expert fiscal IA · 7 skills disponibles'}
+              </motion.p>
+            </AnimatePresence>
           </div>
 
           {/* Toggle modèle */}
-          <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50/80 p-0.5 gap-0.5 shrink-0">
+          <div className="flex items-center rounded-xl border border-white/[0.06] bg-ink-700/60 backdrop-blur-sm p-0.5 gap-0.5 shrink-0">
             {[
-              { key: 'sonnet', label: 'Sonnet', Icon: Zap,      activeClass: 'bg-teal-gradient text-white shadow-sm' },
-              { key: 'opus',   label: 'Opus',   Icon: Sparkles, activeClass: 'bg-purple-600 text-white shadow-sm'    },
+              { key: 'sonnet', label: 'Sonnet', Icon: Zap,      activeClass: 'bg-kapio-gradient text-ink-900 shadow-glow-soft' },
+              { key: 'opus',   label: 'Opus',   Icon: Sparkles, activeClass: 'bg-violet-600 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)]' },
             ].map(({ key, label, Icon, activeClass }) => (
-              <button key={key}
+              <button
+                key={key}
+                type="button"
                 onClick={() => dispatch({ type: 'SET_MODEL', payload: key })}
                 title={`Modèle ${label}`}
-                className={[
-                  'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-200',
-                  state.model === key ? activeClass : 'text-gray-400 hover:text-gray-600',
-                ].join(' ')}>
+                className={
+                  'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-300 ' +
+                  (state.model === key ? activeClass : 'text-ink-200 hover:text-ink-0')
+                }
+              >
                 <Icon size={10} /> {label}
               </button>
             ))}
@@ -314,152 +469,265 @@ export default function Chat() {
 
           {/* Actions */}
           <div className="flex items-center gap-0.5">
-            <button onClick={() => navigate('/profile')} title="Profil"
-              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              title="Profil"
+              className="w-8 h-8 flex items-center justify-center text-ink-200 hover:text-ink-0 rounded-lg hover:bg-white/[0.06] transition-colors"
+            >
               <ArrowLeft size={15} />
             </button>
-            <button onClick={handleExport} title="Exporter"
-              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              type="button"
+              onClick={handleExport}
+              title="Exporter"
+              className="w-8 h-8 flex items-center justify-center text-ink-200 hover:text-ink-0 rounded-lg hover:bg-white/[0.06] transition-colors"
+            >
               <Download size={15} />
             </button>
-            <button onClick={handleClear} title="Effacer"
-              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+            <button
+              type="button"
+              onClick={handleClear}
+              title="Effacer"
+              className="w-8 h-8 flex items-center justify-center text-ink-200 hover:text-danger-400 rounded-lg hover:bg-danger-500/10 transition-colors"
+            >
               <Trash2 size={15} />
             </button>
           </div>
-        </div>
+        </motion.div>
 
-        {/* ── PER bandeau ───────────────────────────────────────── */}
+        {/* PER bandeau */}
         <div className="shrink-0 px-4 pt-3">
           <PERBandeau />
         </div>
 
-        {/* ── Messages ──────────────────────────────────────────── */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5">
+        {/* Messages */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center gap-4 select-none">
-              <div className="w-14 h-14 rounded-2xl bg-teal-gradient flex items-center justify-center text-2xl shadow-md">
-                💬
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700">Posez votre première question</p>
-                <p className="text-xs text-gray-400 mt-1.5 max-w-xs leading-relaxed">
-                  Utilisez les suggestions à gauche ou tapez directement. Les skills fiscaux s&apos;activent automatiquement.
+            <div className="h-full flex flex-col items-center justify-center text-center gap-5 select-none px-6">
+
+              {/* Logo géant avec glow */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="relative"
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 blur-2xl"
+                  style={{ background: 'radial-gradient(circle, rgba(46,184,138,0.5), transparent 60%)' }}
+                />
+                <motion.div
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                  className="relative w-20 h-20 rounded-3xl bg-kapio-gradient flex items-center justify-center text-3xl shadow-glow-kapio"
+                >
+                  <MessageCircle size={32} className="text-ink-900" />
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+              >
+                <h2 className="text-2xl font-bold text-ink-0 mb-2 tracking-tight">
+                  Posez votre <span className="text-gradient">première question</span>
+                </h2>
+                <p className="text-sm text-ink-100 max-w-md leading-relaxed">
+                  Utilisez les suggestions ou tapez directement.<br />
+                  Les skills fiscaux s'activent automatiquement.
                 </p>
-              </div>
-              {/* Quick suggestions */}
-              <div className="flex flex-wrap gap-2 justify-center mt-2 max-w-sm">
-                {SUGGESTIONS[0].questions.slice(0, 2).map(q => (
-                  <button key={q} onClick={() => handleSuggestion(q)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-teal-200 text-teal-600 hover:bg-teal-50 transition-colors">
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+                className="flex flex-wrap gap-2 justify-center mt-2 max-w-md"
+              >
+                {SUGGESTIONS[0].questions.slice(0, 3).map((q, i) => (
+                  <motion.button
+                    key={q}
+                    type="button"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 + i * 0.1, duration: 0.4 }}
+                    whileHover={{ y: -3, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSuggestion(q)}
+                    className="text-xs px-4 py-2 rounded-full border border-kapio-500/30 text-kapio-300 hover:bg-kapio-500/[0.08] hover:border-kapio-500/50 hover:shadow-glow-soft transition-all"
+                  >
                     {q}
-                  </button>
+                  </motion.button>
                 ))}
-              </div>
+              </motion.div>
             </div>
           ) : (
             <div className="space-y-5 max-w-2xl mx-auto">
               {messages.map((msg, idx) => (
-                <div key={idx} className={`flex flex-col gap-0.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div
-                  className={`flex gap-3 items-end ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 16, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 25,
+                    delay: idx === messages.length - 1 ? 0 : 0,
+                  }}
+                  className={'flex flex-col gap-1.5 ' + (msg.role === 'user' ? 'items-end' : 'items-start')}
+                >
+                  <div className={'flex gap-3 items-end ' + (msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
 
-                  {/* Avatar */}
-                  {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-xl bg-teal-gradient flex items-center justify-center text-white text-[10px] font-bold shrink-0 mb-0.5 shadow-sm">
-                      CF
-                    </div>
-                  )}
-                  {msg.role === 'user' && (
-                    <div className="w-7 h-7 rounded-xl bg-gray-800 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mb-0.5">
-                      U
-                    </div>
-                  )}
-
-                  {/* Bubble */}
-                  <div className={[
-                    'max-w-[78%] rounded-2xl px-4 py-3 text-sm shadow-sm',
-                    msg.role === 'user'
-                      ? 'bg-teal-gradient text-white rounded-br-sm'
-                      : msg.error
-                        ? 'bg-red-50 border border-red-200 text-red-700 rounded-bl-sm'
-                        : 'bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm',
-                  ].join(' ')}>
+                    {/* Avatar */}
+                    {msg.role === 'assistant' ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                        className="w-8 h-8 rounded-xl bg-kapio-gradient flex items-center justify-center text-ink-900 text-[11px] font-bold shrink-0 mb-0.5 shadow-glow-soft"
+                      >
+                        K
+                      </motion.div>
+                    ) : null}
                     {msg.role === 'user' ? (
-                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                    ) : msg.streaming && msg.content === '' ? (
-                      <TypingDots />
-                    ) : (
-                      <div className="prose-sm max-w-none">
-                        <Markdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
-                          {msg.content}
-                        </Markdown>
-                        {msg.streaming && (
-                          <span className="inline-block w-0.5 h-3.5 bg-teal-400 ml-0.5 animate-pulse align-middle rounded-full" />
-                        )}
+                      <div className="w-8 h-8 rounded-xl bg-ink-700 border border-white/[0.08] flex items-center justify-center text-ink-0 text-[11px] font-bold shrink-0 mb-0.5">
+                        U
                       </div>
-                    )}
+                    ) : null}
+
+                    {/* Bubble */}
+                    <motion.div
+                      whileHover={{ scale: 1.005 }}
+                      transition={{ duration: 0.2 }}
+                      className={
+                        'max-w-[78%] rounded-2xl px-4 py-3 text-sm transition-all ' +
+                        (msg.role === 'user'
+                          ? 'bg-kapio-gradient text-ink-900 rounded-br-sm shadow-glow-soft'
+                          : msg.error
+                            ? 'bg-danger-500/[0.08] border border-danger-500/30 text-danger-400 rounded-bl-sm'
+                            : 'bg-ink-800/80 backdrop-blur-sm border border-white/[0.05] text-ink-50 rounded-bl-sm hover:border-white/[0.08]')
+                      }
+                    >
+                      {msg.role === 'user' ? (
+                        <p className="whitespace-pre-wrap leading-relaxed font-medium">{msg.content}</p>
+                      ) : msg.streaming && msg.content === '' ? (
+                        <TypingDots />
+                      ) : (
+                        <div className="prose-sm max-w-none">
+                          <Markdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                            {msg.content}
+                          </Markdown>
+                          {msg.streaming ? (
+                            <motion.span
+                              animate={{ opacity: [1, 0.3, 1] }}
+                              transition={{ duration: 1, repeat: Infinity }}
+                              className="inline-block w-0.5 h-3.5 bg-kapio-300 ml-0.5 align-middle rounded-full"
+                            />
+                          ) : null}
+                        </div>
+                      )}
+                    </motion.div>
                   </div>
-                </div>
-                {/* Badge modèle — sous chaque bulle assistant */}
-                {msg.role === 'assistant' && !msg.streaming && msg.content && (
-                  <span className={[
-                    'ml-10 text-[10px] font-bold px-2 py-0.5 rounded-full border',
-                    !msg.model || msg.model === 'haiku'  ? 'bg-gray-100 text-gray-600 border-gray-300' : '',
-                    msg.model === 'sonnet' ? 'bg-teal-50 text-teal-700 border-teal-300' : '',
-                    msg.model === 'opus'   ? 'bg-purple-50 text-purple-700 border-purple-300' : '',
-                  ].filter(Boolean).join(' ')}>
-                    {(!msg.model || msg.model === 'haiku') && '⚡ Haiku'}
-                    {msg.model === 'sonnet' && '🧠 Sonnet'}
-                    {msg.model === 'opus'   && '🔮 Opus'}
-                  </span>
-                )}
-                </div>
+
+                  {/* Badge modèle */}
+                  {msg.role === 'assistant' && !msg.streaming && msg.content ? (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3, duration: 0.3 }}
+                      className={
+                        'ml-11 text-[10px] font-bold px-2 py-0.5 rounded-full border ' +
+                        (
+                          !msg.model || msg.model === 'haiku'
+                            ? 'bg-ink-700 text-ink-100 border-white/[0.08]'
+                            : msg.model === 'sonnet'
+                              ? 'bg-kapio-500/[0.12] text-kapio-300 border-kapio-500/30'
+                              : 'bg-violet-500/[0.12] text-violet-400 border-violet-500/30'
+                        )
+                      }
+                    >
+                      {(!msg.model || msg.model === 'haiku') ? '⚡ Haiku' : null}
+                      {msg.model === 'sonnet' ? '🧠 Sonnet' : null}
+                      {msg.model === 'opus' ? '🔮 Opus' : null}
+                    </motion.span>
+                  ) : null}
+                </motion.div>
               ))}
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
-        {/* ── Zone de saisie ────────────────────────────────────── */}
-        <div className="shrink-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 px-4 pt-3 pb-4">
+        {/* Zone de saisie */}
+        <div className="shrink-0 glass-darker border-t border-white/[0.05] px-4 pt-3 pb-4">
           <div className="max-w-2xl mx-auto flex flex-col gap-2">
 
             {/* Bannière Opus */}
-            {inputComplexity?.model === 'opus' && input.trim() && (
-              <div className="rounded-xl border border-purple-200 bg-purple-50/80 px-4 py-3 flex flex-col gap-2.5">
-                <div>
-                  <p className="text-sm font-semibold text-purple-800">
-                    🔮 Question complexe détectée
-                  </p>
-                  <p className="text-xs text-purple-600 mt-0.5 leading-relaxed">
-                    Notre meilleur modèle sera utilisé.<br />
-                    Coût estimé : ~0,05–0,10 $ sur votre crédit API.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSend()}
-                    disabled={streaming}
-                    className="px-3 py-1.5 text-xs font-semibold bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-                  >
-                    Envoyer quand même
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSend('sonnet')}
-                    disabled={streaming}
-                    className="px-3 py-1.5 text-xs font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50"
-                  >
-                    Simplifier
-                  </button>
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {inputComplexity?.model === 'opus' && input.trim() ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative rounded-xl border border-violet-500/40 px-4 py-3 flex flex-col gap-2.5 overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(145deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%)',
+                  }}
+                >
+                  {/* Border conique animée */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-xl pointer-events-none opacity-50"
+                    style={{
+                      background: 'conic-gradient(from 0deg, transparent 0%, rgba(139,92,246,0.4) 25%, transparent 50%, rgba(139,92,246,0.2) 75%, transparent 100%)',
+                      animation: 'spin 8s linear infinite',
+                      WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+                      WebkitMaskComposite: 'xor',
+                      maskComposite: 'exclude',
+                      padding: '1px',
+                    }}
+                  />
+
+                  <div className="relative">
+                    <p className="text-sm font-bold text-violet-400">
+                      🔮 Question complexe détectée
+                    </p>
+                    <p className="text-xs text-violet-300/80 mt-0.5 leading-relaxed">
+                      Notre meilleur modèle sera utilisé.<br />
+                      Coût estimé : ~0,05–0,10 $ sur votre crédit API.
+                    </p>
+                  </div>
+                  <div className="relative flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSend()}
+                      disabled={streaming}
+                      className="px-3 py-1.5 text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Envoyer quand même
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSend('sonnet')}
+                      disabled={streaming}
+                      className="px-3 py-1.5 text-xs font-medium text-violet-400 bg-white/[0.04] border border-violet-500/30 hover:bg-violet-500/10 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Simplifier
+                    </button>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
 
             {/* Zone de saisie principale */}
-            <div className="flex items-end gap-2 bg-white rounded-2xl border border-gray-200 shadow-sm px-3 py-2 focus-within:border-teal-300 focus-within:ring-2 focus-within:ring-teal-100 transition-all">
+            <motion.div
+              whileFocus={{ scale: 1.005 }}
+              className="flex items-end gap-2 bg-ink-800/80 backdrop-blur-sm rounded-2xl border border-white/[0.06] px-3 py-2 focus-within:border-kapio-500/40 focus-within:ring-2 focus-within:ring-kapio-500/20 focus-within:shadow-glow-soft transition-all duration-300"
+            >
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -468,44 +736,39 @@ export default function Chat() {
                 placeholder="Posez votre question… (Entrée pour envoyer)"
                 rows={1}
                 disabled={streaming}
-                className="flex-1 resize-none bg-transparent text-sm focus:outline-none disabled:text-gray-400 leading-relaxed py-1.5"
+                className="flex-1 resize-none bg-transparent text-sm focus:outline-none disabled:text-ink-300 leading-relaxed py-1.5 text-ink-0 placeholder:text-ink-300"
                 style={{ maxHeight: '120px', overflowY: 'auto' }}
               />
-              <button
+              <MagneticButton
                 onClick={() => handleSend()}
                 disabled={!input.trim() || streaming}
+                strength={input.trim() && !streaming ? 0.3 : 0}
                 aria-label="Envoyer"
-                className={[
-                  'shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
-                  input.trim() && !streaming
-                    ? 'bg-teal-gradient text-white shadow-sm hover:brightness-110'
-                    : 'bg-gray-100 text-gray-400',
-                ].join(' ')}
+                className={
+                  'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ' +
+                  (input.trim() && !streaming
+                    ? 'bg-kapio-gradient text-ink-900 shadow-glow-kapio hover:brightness-110'
+                    : 'bg-ink-700 text-ink-300 cursor-not-allowed')
+                }
               >
                 {streaming
-                  ? <span className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  : <Send size={14} />
+                  ? <span className="w-3.5 h-3.5 border-2 border-ink-300 border-t-transparent rounded-full animate-spin" />
+                  : <Send size={15} />
                 }
-              </button>
-            </div>
+              </MagneticButton>
+            </motion.div>
 
-            {/* Ligne bas : disclaimer + indicateur de modèle */}
+            {/* Ligne bas */}
             <div className="flex items-center justify-between px-1">
-              <p className="text-[10px] text-gray-400 leading-relaxed">
+              <p className="text-[10px] text-ink-200 leading-relaxed">
                 💡 Conseil indicatif — consultez un professionnel agréé.
               </p>
-              <span className={[
-                'text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ml-2',
-                effectiveModel === 'haiku'  && 'bg-gray-100 text-gray-600 border-gray-300',
-                effectiveModel === 'sonnet' && 'bg-teal-50 text-teal-700 border-teal-300',
-                effectiveModel === 'opus'   && 'bg-purple-50 text-purple-700 border-purple-300',
-              ].filter(Boolean).join(' ')}>
-                {effectiveModel === 'haiku'  && '⚡ Haiku'}
-                {effectiveModel === 'sonnet' && '🧠 Sonnet'}
-                {effectiveModel === 'opus'   && '🔮 Opus'}
-              </span>
+              {inputComplexity ? (
+                <span className="text-[10px] text-ink-200 font-mono">
+                  Modèle : <span className="text-kapio-300 font-semibold">{effectiveModel}</span>
+                </span>
+              ) : null}
             </div>
-
           </div>
         </div>
 

@@ -17,6 +17,10 @@ import { detectOpportunities } from '../lib/opportunitiesDetector';
 import { calcIR, computeFoyerSummary } from '../lib/taxCalculator';
 import AnimatedNumber from '../components/motion/AnimatedNumber';
 import GlowCard from '../components/motion/GlowCard';
+import AuroraBackground from '../components/motion/AuroraBackground';
+import SpotlightCursor from '../components/motion/SpotlightCursor';
+import Grain from '../components/motion/Grain';
+import SplitText from '../components/motion/SplitText';
 
 // ============================================================================
 // HELPERS — strictement alignés sur l'ancien Dashboard qui marchait
@@ -542,7 +546,7 @@ function FoyerView({ p, summary, opps }) {
             <div>
               <h3 className="text-base font-bold text-ink-0 mb-1">Synthèse fiscale</h3>
               <p className="text-xs text-ink-200">
-                {summary ? 'Calculée d\u2019après le barème 2025' : 'Profil à compléter'}
+                {summary ? 'Calculée d’après le barème 2025' : 'Profil à compléter'}
               </p>
             </div>
             {!p.isEnriched && summary ? (
@@ -570,7 +574,7 @@ function FoyerView({ p, summary, opps }) {
                 <InfoRow label="Acomptes versés" value={fmtE(summary.acomptesIR + summary.acomptesPS)} />
               ) : null}
               {summary.creditsImpot > 0 ? (
-                <InfoRow label="Crédits d\u2019impôt" value={fmtE(summary.creditsImpot)} />
+                <InfoRow label="Crédits d’impôt" value={fmtE(summary.creditsImpot)} />
               ) : null}
             </div>
           ) : (
@@ -708,7 +712,11 @@ function QuickLink({ to, Icon, label, desc, accent }) {
   const iconClass = accent ? 'text-kapio-300' : 'text-ink-50';
 
   return (
-    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+    <motion.div
+      whileHover={{ y: -4, rotateX: 6, rotateY: 4 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      style={{ transformStyle: 'preserve-3d', transformPerspective: 800 }}
+    >
       <Link
         to={to}
         className="card-dark p-5 h-full flex flex-col items-start gap-3 hover:border-kapio-500/30 transition-colors group block"
@@ -743,23 +751,49 @@ export default function Dashboard() {
   // Empty state — aucun profil
   if (!p || (!p.mode && !p.rniFoyer && !p.patrimoineTotal)) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-10 bg-ink-900 text-ink-0 min-h-screen">
-        <div className="card-dark p-10 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-kapio-500/10 border border-kapio-500/30 flex items-center justify-center mx-auto mb-5">
-            <Target size={28} className="text-kapio-300" />
-          </div>
-          <h2 className="text-2xl font-bold text-ink-0 mb-2">Aucun profil détecté</h2>
-          <p className="text-sm text-ink-100 mb-6 max-w-md mx-auto">
-            Pour voir votre tableau de bord, commencez par renseigner vos informations fiscales et patrimoniales.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/setup')}
-            className="btn-kapio shimmer-btn !text-sm !px-6 !py-3"
+      <div className="relative bg-ink-900 text-ink-0 overflow-hidden min-h-screen">
+
+        {/* Aurora + Spotlight + Grain en fond */}
+        <AuroraBackground showGrid intensity={0.8} />
+        <SpotlightCursor size={500} intensity={0.18} />
+        <Grain opacity={0.025} />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            Démarrer mon bilan
-            <ArrowRight size={14} />
-          </button>
+            <GlowCard className="p-10 text-center" glowColor="rgba(46,184,138,0.2)" glowSize={500}>
+              <motion.div
+                animate={{ boxShadow: [
+                  '0 0 0 0 rgba(46,184,138,0)',
+                  '0 0 40px rgba(46,184,138,0.4)',
+                  '0 0 0 0 rgba(46,184,138,0)',
+                ] }}
+                transition={{ duration: 2.8, repeat: Infinity }}
+                className="w-16 h-16 rounded-2xl bg-kapio-500/10 border border-kapio-500/30 flex items-center justify-center mx-auto mb-5"
+              >
+                <Target size={28} className="text-kapio-300" />
+              </motion.div>
+              <h2 className="text-2xl font-bold text-ink-0 mb-2">Aucun profil détecté</h2>
+              <p className="text-sm text-ink-100 mb-6 max-w-md mx-auto">
+                Pour voir votre tableau de bord, commencez par renseigner vos informations fiscales et patrimoniales.
+              </p>
+              <motion.button
+                type="button"
+                onClick={() => navigate('/setup')}
+                whileHover={{ y: -2, rotateX: 6, rotateY: 4 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformStyle: 'preserve-3d', transformPerspective: 800 }}
+                className="btn-kapio shimmer-btn !text-sm !px-6 !py-3"
+              >
+                Démarrer mon bilan
+                <ArrowRight size={14} />
+              </motion.button>
+            </GlowCard>
+          </motion.div>
         </div>
       </div>
     );
@@ -792,95 +826,130 @@ export default function Dashboard() {
   const d2Fis = { rni: p.rniD2, plafondPer: p.plafondPerD2 };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 bg-ink-900 text-ink-0 min-h-screen">
+    <div className="relative bg-ink-900 text-ink-0 overflow-hidden min-h-screen">
 
-      {/* HEADER */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="mb-8"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <span className="text-xs font-semibold text-kapio-300 uppercase tracking-widest mb-2 inline-block">
-              Tableau de bord
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-bold text-ink-0 tracking-tight">
-              Vue d'ensemble
-            </h1>
-            <p className="text-sm text-ink-100 mt-1">
-              {isCouple
-                ? 'Synthèse de la situation du foyer + vues individuelles D1 / D2'
-                : 'Synthèse de votre situation patrimoniale et fiscale'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/chat')}
-              className="btn-ghost-dark !text-xs !px-4 !py-2"
-            >
-              <MessageSquare size={13} />
-              Question à Claude
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/profile')}
-              className="btn-kapio !text-xs !px-4 !py-2"
-            >
-              <FileText size={13} />
-              Profil complet
-            </button>
-          </div>
-        </div>
-      </motion.div>
+      {/* AURORA ANIMÉE (3 blobs en mouvement continu, grille, beam) */}
+      <AuroraBackground showGrid showBeam intensity={0.7} />
 
-      {/* TAB BAR (couple uniquement) */}
-      {isCouple ? (
-        <TabBar active={activeTab} onChange={setActiveTab} />
-      ) : null}
+      {/* SPOTLIGHT CURSEUR — halo qui suit la souris */}
+      <SpotlightCursor size={500} intensity={0.15} />
 
-      {/* CONTENU SELON TAB */}
-      {(!isCouple || activeTab === 'foyer') ? (
-        <FoyerView p={p} summary={summary} opps={opps} />
-      ) : null}
+      {/* GRAIN OVERLAY — texture noise subtile */}
+      <Grain opacity={0.025} />
 
-      {isCouple && activeTab === 'd1' ? (
-        <DeclarantView label="Déclarant 1" rev={d1Rev} ep={d1Ep} fiscal={d1Fis} />
-      ) : null}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-10">
 
-      {isCouple && activeTab === 'd2' ? (
-        <DeclarantView label="Déclarant 2" rev={d2Rev} ep={d2Ep} fiscal={d2Fis} />
-      ) : null}
-
-      {/* LIENS RAPIDES (toujours en bas) */}
-      <section className="mt-10">
-        <h3 className="text-base font-bold text-ink-0 mb-5 flex items-center gap-2">
-          <Zap size={15} className="text-kapio-300" />
-          Accès rapide
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <QuickLink to="/simulator"    Icon={Calculator}    label="Simulateurs"   desc="PER, AV, foncier" accent />
-          <QuickLink to="/checklist"    Icon={ClipboardList} label="Checklist"     desc="Documents, cases" />
-          <QuickLink to="/declaration"  Icon={BookOpen}      label="Déclaration"   desc="Guide impots.gouv" />
-          <QuickLink to="/chat"         Icon={MessageSquare} label="Conseil IA"    desc="Question à Claude" />
-          <QuickLink to="/rapport"      Icon={FileText}      label="Rapport"       desc="Bilan détaillé" />
-          <QuickLink to="/opportunites" Icon={Sparkles}      label="Opportunités"  desc="Toutes les actions" />
-        </div>
-      </section>
-
-      {/* Lien profil complet */}
-      <div className="flex justify-center pt-8 pb-4">
-        <Link
-          to="/profile"
-          className="flex items-center gap-2 text-xs text-ink-200 hover:text-kapio-300 transition-colors"
+        {/* HEADER */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-8"
         >
-          <FileText size={13} />
-          Voir le profil fiscal complet
-        </Link>
-      </div>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <motion.span
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-xs font-semibold text-kapio-300 uppercase tracking-widest mb-2 inline-block"
+              >
+                Tableau de bord
+              </motion.span>
+              <h1 className="text-3xl sm:text-4xl font-bold text-ink-0 tracking-tight">
+                <SplitText text="Vue d’ensemble" delay={0.2} stagger={0.04} />
+              </h1>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.55 }}
+                className="text-sm text-ink-100 mt-1"
+              >
+                {isCouple
+                  ? 'Synthèse de la situation du foyer + vues individuelles D1 / D2'
+                  : 'Synthèse de votre situation patrimoniale et fiscale'}
+              </motion.p>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="flex items-center gap-2"
+            >
+              <motion.button
+                type="button"
+                onClick={() => navigate('/chat')}
+                whileHover={{ y: -2, rotateX: 6, rotateY: 4 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformStyle: 'preserve-3d', transformPerspective: 800 }}
+                className="btn-ghost-dark !text-xs !px-4 !py-2"
+              >
+                <MessageSquare size={13} />
+                Question à Claude
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => navigate('/profile')}
+                whileHover={{ y: -2, rotateX: 6, rotateY: 4 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformStyle: 'preserve-3d', transformPerspective: 800 }}
+                className="btn-kapio !text-xs !px-4 !py-2"
+              >
+                <FileText size={13} />
+                Profil complet
+              </motion.button>
+            </motion.div>
+          </div>
+        </motion.div>
 
+        {/* TAB BAR (couple uniquement) */}
+        {isCouple ? (
+          <TabBar active={activeTab} onChange={setActiveTab} />
+        ) : null}
+
+        {/* CONTENU SELON TAB */}
+        {(!isCouple || activeTab === 'foyer') ? (
+          <FoyerView p={p} summary={summary} opps={opps} />
+        ) : null}
+
+        {isCouple && activeTab === 'd1' ? (
+          <DeclarantView label="Déclarant 1" rev={d1Rev} ep={d1Ep} fiscal={d1Fis} />
+        ) : null}
+
+        {isCouple && activeTab === 'd2' ? (
+          <DeclarantView label="Déclarant 2" rev={d2Rev} ep={d2Ep} fiscal={d2Fis} />
+        ) : null}
+
+        {/* LIENS RAPIDES (toujours en bas) */}
+        <section className="mt-10">
+          <h3 className="text-base font-bold text-ink-0 mb-5 flex items-center gap-2">
+            <Zap size={15} className="text-kapio-300" />
+            Accès rapide
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <QuickLink to="/simulator"    Icon={Calculator}    label="Simulateurs"   desc="PER, AV, foncier" accent />
+            <QuickLink to="/checklist"    Icon={ClipboardList} label="Checklist"     desc="Documents, cases" />
+            <QuickLink to="/declaration"  Icon={BookOpen}      label="Déclaration"   desc="Guide impots.gouv" />
+            <QuickLink to="/chat"         Icon={MessageSquare} label="Conseil IA"    desc="Question à Claude" />
+            <QuickLink to="/rapport"      Icon={FileText}      label="Rapport"       desc="Bilan détaillé" />
+            <QuickLink to="/opportunites" Icon={Sparkles}      label="Opportunités"  desc="Toutes les actions" />
+          </div>
+        </section>
+
+        {/* Lien profil complet */}
+        <div className="flex justify-center pt-8 pb-4">
+          <Link
+            to="/profile"
+            className="flex items-center gap-2 text-xs text-ink-200 hover:text-kapio-300 transition-colors"
+          >
+            <FileText size={13} />
+            Voir le profil fiscal complet
+          </Link>
+        </div>
+
+      </div>
     </div>
   );
 }
