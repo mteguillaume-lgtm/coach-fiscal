@@ -15,20 +15,22 @@ export default function AuroraBackground({
   intensity = 1,
   className = '',
 }) {
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
   return (
     <div
       aria-hidden="true"
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity: intensity }}
     >
-      {/* Aurora orbs */}
+      {/* Orb principal — toujours affiché, blur réduit sur mobile */}
       <motion.div
         className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] rounded-full"
         style={{
           background: 'radial-gradient(circle, rgba(46,184,138,0.25) 0%, rgba(46,184,138,0) 60%)',
-          filter: 'blur(60px)',
+          filter: isTouch ? 'blur(40px)' : 'blur(60px)',
         }}
-        animate={{
+        animate={isTouch ? {} : {
           x: [0, 50, -30, 0],
           y: [0, -40, 20, 0],
           scale: [1, 1.1, 0.95, 1],
@@ -40,42 +42,47 @@ export default function AuroraBackground({
         }}
       />
 
-      <motion.div
-        className="absolute top-1/3 right-0 w-[600px] h-[600px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(29,158,117,0.2) 0%, rgba(29,158,117,0) 60%)',
-          filter: 'blur(80px)',
-        }}
-        animate={{
-          x: [0, -40, 30, 0],
-          y: [0, 30, -20, 0],
-          scale: [1, 0.9, 1.05, 1],
-        }}
-        transition={{
-          duration: 22,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
+      {/* Orbs secondaires — desktop uniquement */}
+      {!isTouch && (
+        <>
+          <motion.div
+            className="absolute top-1/3 right-0 w-[600px] h-[600px] rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(29,158,117,0.2) 0%, rgba(29,158,117,0) 60%)',
+              filter: 'blur(80px)',
+            }}
+            animate={{
+              x: [0, -40, 30, 0],
+              y: [0, 30, -20, 0],
+              scale: [1, 0.9, 1.05, 1],
+            }}
+            transition={{
+              duration: 22,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
 
-      <motion.div
-        className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(52,211,153,0.15) 0%, rgba(52,211,153,0) 60%)',
-          filter: 'blur(70px)',
-        }}
-        animate={{
-          x: [0, 30, -20, 0],
-          y: [0, -25, 15, 0],
-          scale: [1, 1.05, 0.95, 1],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: 'easeInOut',
-          delay: 3,
-        }}
-      />
+          <motion.div
+            className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(52,211,153,0.15) 0%, rgba(52,211,153,0) 60%)',
+              filter: 'blur(70px)',
+            }}
+            animate={{
+              x: [0, 30, -20, 0],
+              y: [0, -25, 15, 0],
+              scale: [1, 1.05, 0.95, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: 3,
+            }}
+          />
+        </>
+      )}
 
       {/* Grille de points en overlay */}
       {showGrid && (

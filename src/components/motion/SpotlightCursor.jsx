@@ -22,7 +22,11 @@ export default function SpotlightCursor({
   const [pos, setPos] = useState({ x: -2000, y: -2000 });
   const [visible, setVisible] = useState(false);
 
+  // Pas de curseur sur touch — inutile et GPU-intensif
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
   useEffect(() => {
+    if (isTouch) return;
     const move = (e) => {
       setPos({ x: e.clientX, y: e.clientY });
       if (!visible) setVisible(true);
@@ -40,7 +44,9 @@ export default function SpotlightCursor({
       window.removeEventListener('pointerenter', enter);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isTouch]);
+
+  if (isTouch) return null;
 
   return (
     <motion.div

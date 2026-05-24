@@ -16,6 +16,10 @@ export default function Grain({
   zIndex = 1,
   fixed = true,
 }) {
+  // feTurbulence + mix-blend-mode = très GPU-intensif — désactivé sur mobile/touch
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+  if (isTouch) return null;
+
   const positionClass = fixed ? 'fixed inset-0' : 'absolute inset-0';
 
   return (
