@@ -26,6 +26,31 @@ export default function SplitText({
     return <span className={className}>{text}</span>;
   }
 
+  // Sur mobile : animation par mot (pas lettre par lettre), sans blur GPU-intensif
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
+  if (isTouch) {
+    const words = text.trim().split(' ');
+    return (
+      <span className={className} aria-label={text}>
+        {words.map((word, wi) => (
+          <motion.span
+            key={`w-${wi}`}
+            className={'inline-block whitespace-nowrap' + (gradient ? ' text-gradient' : '')}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: delay + wi * 0.08, ease: [0.16, 1, 0.3, 1] }}
+            aria-hidden="true"
+          >
+            {word}
+            {wi < words.length - 1 ? '\u00A0' : ''}
+          </motion.span>
+        ))}
+      </span>
+    );
+  }
+
+  // Desktop : animation lettre par lettre avec blur
   const words = text.split(' ');
   let charIndex = 0;
 

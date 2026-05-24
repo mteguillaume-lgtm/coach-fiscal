@@ -99,6 +99,8 @@ const SKILLS = [
 ];
 
 function MockDashboard() {
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
   const opportunities = [
     { tag: 'PER',     gain: '+2 400 €', color: 'danger',  label: 'Versement PER avant 31/12' },
     { tag: 'PEA',     gain: '18 mois',  color: 'warning', label: 'Exonération PV proche' },
@@ -113,11 +115,11 @@ function MockDashboard() {
         style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(46,184,138,0.3), transparent 70%)' }}
       />
       <motion.div
-        initial={{ opacity: 0, y: 60, rotateX: 8 }}
-        whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+        initial={isTouch ? { opacity: 0, y: 20 } : { opacity: 0, y: 60, rotateX: 8 }}
+        whileInView={isTouch ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, rotateX: 0 }}
         viewport={{ once: true, margin: '-15% 0px' }}
-        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-        style={{ transformPerspective: 1200 }}
+        transition={{ duration: isTouch ? 0.5 : 1.2, ease: [0.16, 1, 0.3, 1] }}
+        style={isTouch ? undefined : { transformPerspective: 1200 }}
         className="card-dark-elevated p-1 rounded-2xl overflow-hidden"
       >
         <div className="relative bg-ink-850 rounded-xl p-6 sm:p-8">

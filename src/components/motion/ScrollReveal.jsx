@@ -24,6 +24,8 @@ export default function ScrollReveal({
   as = 'div',
   ...rest
 }) {
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
   const directions = {
     up:    { y: distance,  x: 0 },
     down:  { y: -distance, x: 0 },
@@ -32,8 +34,9 @@ export default function ScrollReveal({
     none:  { x: 0,         y: 0 },
   };
 
-  const initial = { opacity: 0, ...directions[direction] };
-  const animate = { opacity: 1, x: 0, y: 0 };
+  // On mobile: opacity-only fade (no translation = no GPU compositing layer per element)
+  const initial = isTouch ? { opacity: 0 } : { opacity: 0, ...directions[direction] };
+  const animate = isTouch ? { opacity: 1 } : { opacity: 1, x: 0, y: 0 };
 
   const MotionTag = motion[as] || motion.div;
 
@@ -43,9 +46,9 @@ export default function ScrollReveal({
       whileInView={animate}
       viewport={{ once, margin: '-10% 0px' }}
       transition={{
-        duration,
-        delay,
-        ease: [0.16, 1, 0.3, 1], // ease-kapio
+        duration: isTouch ? 0.4 : duration,
+        delay: isTouch ? delay * 0.5 : delay,
+        ease: [0.16, 1, 0.3, 1],
       }}
       className={className}
       {...rest}
