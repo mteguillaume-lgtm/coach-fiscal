@@ -225,8 +225,8 @@ function SimSlider({ label, value, min, max, step, onChange, format }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-baseline">
-        <span className="text-xs font-medium text-gray-600">{label}</span>
-        <span className="text-sm font-bold text-teal-700 font-mono tabular-nums">
+        <span className="text-xs font-medium text-ink-200">{label}</span>
+        <span className="text-sm font-bold text-kapio-300 font-mono tabular-nums">
           {format ? format(value) : value}
         </span>
       </div>
@@ -243,7 +243,7 @@ function SimSlider({ label, value, min, max, step, onChange, format }) {
           accentColor: '#0d9488',
         }}
       />
-      <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+      <div className="flex justify-between text-[10px] text-ink-300 font-mono">
         <span>{format ? format(min) : min}</span>
         <span>{format ? format(max) : max}</span>
       </div>
@@ -256,7 +256,7 @@ function SimSlider({ label, value, min, max, step, onChange, format }) {
 function ToggleGroup({ label, options, value, onChange, format }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <span className="text-xs font-medium text-ink-200">{label}</span>
       <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-xl">
         {options.map(opt => (
           <button
@@ -282,17 +282,17 @@ function ToggleGroup({ label, options, value, onChange, format }) {
 
 function ProfileBanner({ items, isDefault, sub }) {
   return (
-    <div className="rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3">
+    <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
       <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Données du profil</p>
       <div className="grid grid-cols-3 gap-3">
         {items.map(({ label, value }) => (
           <div key={label} className="text-center">
             <p className="text-[10px] text-blue-400">{label}</p>
-            <p className="text-sm font-bold text-blue-800 font-mono tabular-nums">{value}</p>
+            <p className="text-sm font-bold text-blue-200 font-mono tabular-nums">{value}</p>
           </div>
         ))}
       </div>
-      {sub && <p className="text-[10px] text-blue-500 mt-2 text-center">{sub}</p>}
+      {sub && <p className="text-[10px] text-blue-400 mt-2 text-center">{sub}</p>}
       {isDefault && (
         <p className="text-[10px] text-blue-300 mt-2 text-center">
           Valeurs d'exemple — générez un profil pour les personnaliser
@@ -307,12 +307,12 @@ function ProfileBanner({ items, isDefault, sub }) {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-xl p-3 text-xs min-w-[160px]">
-      <p className="font-bold text-gray-700 mb-1.5">Année {label}</p>
+    <div className="rounded-xl border border-white/[0.08] bg-ink-900 shadow-2xl border border-white/[0.06] p-3 text-xs min-w-[160px]">
+      <p className="font-bold text-ink-100 mb-1.5">Année {label}</p>
       {payload.map(({ name, value, color }) => (
         <div key={name} className="flex items-center justify-between gap-4 py-0.5">
           <span style={{ color }} className="font-medium">{name}</span>
-          <span className="font-bold font-mono tabular-nums text-gray-800">{fmt(value)} €</span>
+          <span className="font-bold font-mono tabular-nums text-ink-0">{fmt(value)} €</span>
         </div>
       ))}
     </div>
@@ -468,7 +468,7 @@ function SimPER({ data }) {
       {showTwoSliders ? (
         <div className="flex flex-col gap-5">
           {/* Répartition plafonds D1/D2 */}
-          <div className="flex items-center justify-center gap-6 rounded-xl bg-blue-50 border border-blue-100 px-4 py-2 text-xs text-blue-700">
+          <div className="flex items-center justify-center gap-6 rounded-xl bg-blue-500/[0.06] border border-blue-500/20 px-4 py-2 text-xs text-blue-300">
             <span>Plafond D1&nbsp;: <strong className="font-mono tabular-nums">{fmt(plafondD1)}&nbsp;€</strong></span>
             <span className="text-blue-300">·</span>
             <span>Plafond D2&nbsp;: <strong className="font-mono tabular-nums">{fmt(plafondD2)}&nbsp;€</strong></span>
@@ -487,9 +487,9 @@ function SimPER({ data }) {
               format={v => `${fmt(v)} €`}
             />
             {versementD1 > 0 && (
-              <div className="flex items-center justify-end gap-2 text-xs text-teal-600">
+              <div className="flex items-center justify-end gap-2 text-xs text-kapio-400">
                 <span>Économie D1 : <strong className="font-mono">{fmt(res.economieD1)} €</strong></span>
-                <span className="text-gray-400">(rendement {rendD1} %)</span>
+                <span className="text-ink-300">(rendement {rendD1} %)</span>
               </div>
             )}
           </div>
@@ -505,9 +505,9 @@ function SimPER({ data }) {
               format={v => `${fmt(v)} €`}
             />
             {versementD2 > 0 && (
-              <div className="flex items-center justify-end gap-2 text-xs text-teal-600">
+              <div className="flex items-center justify-end gap-2 text-xs text-kapio-400">
                 <span>Économie marginale D2 : <strong className="font-mono">{fmt(res.economieD2)} €</strong></span>
-                <span className="text-gray-400">(rendement {rendD2} %)</span>
+                <span className="text-ink-300">(rendement {rendD2} %)</span>
               </div>
             )}
           </div>
@@ -529,45 +529,45 @@ function SimPER({ data }) {
         <button
           type="button"
           onClick={handleAutoOptimize}
-          className="rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 active:bg-teal-200 px-4 py-2.5 text-xs font-semibold text-teal-700 transition-colors flex items-center justify-center gap-1.5"
+          className="rounded-xl border border-kapio-500/30 bg-kapio-500/[0.08] hover:bg-kapio-500/[0.12] active:bg-kapio-500/20 px-4 py-2.5 text-xs font-semibold text-kapio-300 transition-colors flex items-center justify-center gap-1.5"
         >
           ⚡ Optimiser — effacer entièrement la tranche {profData.tmi} %
-          <span className="ml-1 text-teal-500">({fmt(Math.min(plafondTotal, fractionInTopBracket))} € nécessaires)</span>
+          <span className="ml-1 text-kapio-300">({fmt(Math.min(plafondTotal, fractionInTopBracket))} € nécessaires)</span>
         </button>
       )}
       {topBracketDone && (
-        <div className="rounded-xl border border-teal-200 bg-teal-50/60 px-4 py-2.5 text-xs font-semibold text-teal-700 flex items-center gap-2">
+        <div className="rounded-xl border border-kapio-500/30 bg-kapio-500/[0.08] px-4 py-2.5 text-xs font-semibold text-kapio-300 flex items-center gap-2">
           ✅ Tranche {profData.tmi} % entièrement effacée.
           {nextLowerRate > 0 && ` Versements supplémentaires s'imputent sur la tranche ${nextLowerRate} %.`}
         </div>
       )}
 
       {/* ── Résultats foyer ── */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Impact fiscal foyer</p>
-          <span className="text-xs font-mono text-gray-400">
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+        <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06] flex items-center justify-between">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Impact fiscal foyer</p>
+          <span className="text-xs font-mono text-ink-300">
             {showTwoSliders ? `D1 ${fmt(versementD1)} + D2 ${fmt(versementD2)} =` : 'Versement :'} {fmt(totalVerse)} €
           </span>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-white/[0.04]">
           {[
-            { label: 'Économie IR totale (barème réel)', value: `${fmt(res.economie)} €`, color: 'text-teal-700', hi: true },
-            { label: 'Effort net réel (versé − économie)', value: `${fmt(res.effort)} €`, color: 'text-gray-800' },
-            { label: 'RNI foyer résiduel', value: `${fmt(res.rniApres)} €`, color: 'text-gray-800' },
-            { label: 'Rendement fiscal', value: `${res.rendement} %`, color: 'text-teal-600' },
+            { label: 'Économie IR totale (barème réel)', value: `${fmt(res.economie)} €`, color: 'text-kapio-300', hi: true },
+            { label: 'Effort net réel (versé − économie)', value: `${fmt(res.effort)} €`, color: 'text-ink-0' },
+            { label: 'RNI foyer résiduel', value: `${fmt(res.rniApres)} €`, color: 'text-ink-0' },
+            { label: 'Rendement fiscal', value: `${res.rendement} %`, color: 'text-kapio-400' },
           ].map(({ label, value, color, hi }) => (
-            <div key={label} className={`flex items-center justify-between px-4 py-3 ${hi ? 'bg-teal-50/40' : ''}`}>
-              <span className="text-sm text-gray-600">{label}</span>
+            <div key={label} className={`flex items-center justify-between px-4 py-3 ${hi ? 'bg-kapio-500/[0.05]' : ''}`}>
+              <span className="text-sm text-ink-200">{label}</span>
               <span className={`text-sm font-bold font-mono tabular-nums ${color}`}>{value}</span>
             </div>
           ))}
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">TMI résiduelle après PER</span>
+            <span className="text-sm text-ink-200">TMI résiduelle après PER</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-mono text-gray-400">{profData.tmi} %</span>
+              <span className="text-sm font-mono text-ink-300">{profData.tmi} %</span>
               <ChevronRight size={12} className="text-gray-300" />
-              <span className={`text-sm font-bold font-mono tabular-nums ${res.newTMI < profData.tmi ? 'text-teal-600' : 'text-gray-800'}`}>
+              <span className={`text-sm font-bold font-mono tabular-nums ${res.newTMI < profData.tmi ? 'text-kapio-400' : 'text-ink-0'}`}>
                 {res.newTMI} %{res.newTMI < profData.tmi ? ' ✨' : ''}
               </span>
             </div>
@@ -609,17 +609,17 @@ function SimPER({ data }) {
 
       {/* ── Courbe d'économie IR ── */}
       {chartData.length > 2 && (
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Courbe d'économie IR</p>
+        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-1">Courbe d'économie IR</p>
           {fractionInTopBracket > 0 && plafondTotal > fractionInTopBracket && (
-            <p className="text-[10px] text-amber-600 mb-3 leading-snug">
+            <p className="text-[10px] text-warning-400 mb-3 leading-snug">
               Rupture de pente à {fmt(fractionInTopBracket)} € : tranche {profData.tmi} % entièrement effacée
               {nextLowerRate > 0 && ` → rendement passe à ${nextLowerRate} %`}
             </p>
           )}
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData} margin={{ top: 8, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis
                 dataKey="versement"
                 tick={{ fontSize: 10, fill: '#9ca3af' }}
@@ -634,9 +634,9 @@ function SimPER({ data }) {
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div className="rounded-xl border border-gray-200 bg-white shadow-xl p-3 text-xs">
-                      <p className="font-bold text-gray-700">Versement : {fmt(payload[0].payload.versement)} €</p>
-                      <p className="text-teal-700 font-bold">Économie IR : {fmt(payload[0].value)} €</p>
+                    <div className="rounded-xl border border-white/[0.08] bg-ink-900 shadow-2xl border border-white/[0.06] p-3 text-xs">
+                      <p className="font-bold text-ink-100">Versement : {fmt(payload[0].payload.versement)} €</p>
+                      <p className="text-kapio-300 font-bold">Économie IR : {fmt(payload[0].value)} €</p>
                     </div>
                   );
                 }}
@@ -664,12 +664,12 @@ function SimPER({ data }) {
       )}
 
       {/* ── Bloc pédagogique ── */}
-      <details className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden group">
-        <summary className="px-5 py-3.5 text-xs font-bold text-gray-500 uppercase tracking-widest cursor-pointer flex items-center justify-between select-none hover:bg-gray-50 transition-colors">
+      <details className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden group">
+        <summary className="px-5 py-3.5 text-xs font-bold text-ink-300 uppercase tracking-widest cursor-pointer flex items-center justify-between select-none hover:bg-ink-700/40 transition-colors">
           <span>Comment fonctionne le PER fiscalement ?</span>
-          <span className="text-gray-400 text-[10px] group-open:rotate-180 transition-transform">▼</span>
+          <span className="text-ink-300 text-[10px] group-open:rotate-180 transition-transform">▼</span>
         </summary>
-        <div className="px-5 py-4 flex flex-col gap-3 text-xs text-gray-700 leading-relaxed border-t border-gray-100">
+        <div className="px-5 py-4 flex flex-col gap-3 text-xs text-ink-100 leading-relaxed border-t border-white/[0.06]">
           <p>
             <strong>Principe :</strong> chaque euro versé sur un PER réduit directement le revenu net imposable.
             L'économie d'IR dépend de la tranche dans laquelle ce versement s'impute.
@@ -679,21 +679,21 @@ function SimPER({ data }) {
             <em>tranche marginale la plus haute</em>. L'économie par euro versé = taux de la tranche effacée.
           </p>
           {fractionInTopBracket > 0 && rniFoyer > 0 && (
-            <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-              <p className="font-semibold text-blue-800 mb-2">Votre profil — calcul détaillé</p>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-blue-700">
+            <div className="rounded-xl bg-blue-500/[0.06] border border-blue-500/20 px-4 py-3">
+              <p className="font-semibold text-blue-300 mb-2">Votre profil — calcul détaillé</p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-blue-300">
                 <span>RNI foyer avant PER</span>
                 <span className="font-mono text-right">{fmt(rniFoyer)} €</span>
                 <span>Seuil tranche {profData.tmi} % ({parts} part{parts > 1 ? 's' : ''})</span>
                 <span className="font-mono text-right">{fmt(Math.round(rniFoyer - fractionInTopBracket))} €</span>
-                <span className="font-semibold border-t border-blue-200 pt-1 mt-0.5">Fraction dans la tranche {profData.tmi} %</span>
-                <span className="font-mono font-bold text-right border-t border-blue-200 pt-1 mt-0.5">{fmt(fractionInTopBracket)} €</span>
+                <span className="font-semibold border-t border-white/[0.06] pt-1 mt-0.5">Fraction dans la tranche {profData.tmi} %</span>
+                <span className="font-mono font-bold text-right border-t border-white/[0.06] pt-1 mt-0.5">{fmt(fractionInTopBracket)} €</span>
               </div>
-              <div className="mt-3 pt-2 border-t border-blue-200 space-y-1.5">
+              <div className="mt-3 pt-2 border-t border-white/[0.06] space-y-1.5 text-ink-200">
                 <p>→ Pour effacer entièrement la tranche {profData.tmi} % : verser <strong>{fmt(fractionInTopBracket)} €</strong></p>
                 <p>→ Économie : {fmt(fractionInTopBracket)} × {profData.tmi} % = <strong>{fmt(Math.round(fractionInTopBracket * profData.tmi / 100))} €</strong></p>
                 {nextLowerRate > 0 && (
-                  <p className="text-blue-500">
+                  <p className="text-blue-400">
                     → Au-delà de {fmt(fractionInTopBracket)} €, chaque euro s'impute sur la tranche{' '}
                     {nextLowerRate} % → économie = {nextLowerRate} centimes par euro versé
                   </p>
@@ -715,7 +715,7 @@ function SimPER({ data }) {
         </Button>
       </div>
 
-      <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+      <p className="text-[10px] text-ink-300 text-center leading-relaxed">
         Barème progressif réel 2025 · {parts} part{parts > 1 ? 's' : ''} fiscale{parts > 1 ? 's' : ''}
         {showTwoSliders ? ` · Plafond foyer ${fmt(plafondTotal)} €` : ` · Plafond ${fmt(plafondD1)} €`}
       </p>
@@ -776,13 +776,13 @@ function RateExplainerTooltip() {
         onMouseLeave={() => setOpen(false)}
         onClick={() => setOpen(v => !v)}
         aria-label="Convention de taux"
-        className="text-gray-400 hover:text-teal-600 transition-colors ml-1 leading-none"
+        className="text-ink-300 hover:text-kapio-400 transition-colors ml-1 leading-none"
       >
         ⓘ
       </button>
       {open && (
-        <div className="absolute left-0 bottom-full mb-2 z-50 w-72 rounded-xl border border-gray-200 bg-white shadow-xl p-3.5 text-xs leading-relaxed text-gray-700">
-          <p className="font-bold text-gray-800 mb-2">Convention de taux</p>
+        <div className="absolute left-0 bottom-full mb-2 z-50 w-72 rounded-xl border border-white/[0.08] bg-ink-900 shadow-2xl border border-white/[0.06] p-3.5 text-xs leading-relaxed text-ink-100">
+          <p className="font-bold text-ink-0 mb-2">Convention de taux</p>
           <p>
             Le rendement saisi est interprété comme{' '}
             <strong>taux annuel équivalent</strong> : 5 % saisi = 5,000 % réellement appliqué chaque année.
@@ -793,7 +793,7 @@ function RateExplainerTooltip() {
             un rendement annuel effectif de 5,116 %. Sur 20 ans, cela gonfle le capital final
             d'environ +1,4 %.
           </p>
-          <p className="mt-2 text-teal-700 font-medium">
+          <p className="mt-2 text-kapio-300 font-medium">
             Coach-fiscal privilégie la rigueur : le taux saisi est le taux réel.
           </p>
         </div>
@@ -913,7 +913,7 @@ function SimEnveloppes({ data }) {
     navigate('/chat', { state: { prefill: msg } });
   };
 
-  const colorMap = { teal: 'border-teal-200 bg-teal-50 text-teal-800', amber: 'border-amber-200 bg-amber-50 text-amber-800', blue: 'border-blue-200 bg-blue-50 text-blue-800', gray: 'border-gray-200 bg-gray-50 text-gray-700' };
+  const colorMap = { teal: 'border-kapio-500/30 bg-kapio-500/[0.08] text-kapio-300', amber: 'border-warning-500/30 bg-warning-500/[0.08] text-warning-300', blue: 'border-blue-500/30 bg-blue-500/[0.08] text-blue-300', gray: 'border-white/[0.06] bg-ink-800/60 text-ink-200' };
 
   return (
     <div className="flex flex-col gap-5">
@@ -935,7 +935,7 @@ function SimEnveloppes({ data }) {
         />
         {/* Info déclarant PER — visible en mode couple uniquement */}
         {perEnvInfo.declarant && (
-          <div className={`rounded-lg border px-3 py-2 text-[11px] leading-snug ${perEnvInfo.fallback ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-blue-100 bg-blue-50 text-blue-700'}`}>
+          <div className={`rounded-lg border px-3 py-2 text-[11px] leading-snug ${perEnvInfo.fallback ? 'border-warning-500/30 bg-warning-500/[0.08] text-warning-300' : 'border-blue-500/20 bg-blue-500/[0.06] text-blue-300'}`}>
             {perEnvInfo.fallback
               ? perEnvInfo.fallbackReason
               : `PER simulé sur le plafond de ${perEnvInfo.declarant} (salaire le plus élevé) : ${fmt(perEnvInfo.plafond)} €. Réglez le capital à cette valeur pour comparer à votre plafond réel.`}
@@ -953,10 +953,10 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* Paramètres PER */}
-      <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-4 flex flex-col gap-3">
+      <div className="rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-bold text-violet-700 uppercase tracking-wide">Hypothèses PER</p>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tmiDiff > 0 ? 'bg-teal-100 text-teal-700' : tmiDiff < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+          <p className="text-xs font-bold text-violet-300 uppercase tracking-wide">Hypothèses PER</p>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tmiDiff > 0 ? 'bg-kapio-500/20 text-kapio-300' : tmiDiff < 0 ? 'bg-red-500/20 text-red-400' : 'bg-ink-700 text-ink-200'}`}>
             Différentiel fiscal : {tmiDiff > 0 ? '+' : ''}{tmiDiff} %
           </span>
         </div>
@@ -970,18 +970,18 @@ function SimEnveloppes({ data }) {
               onChange={setTmiS} format={v => `${v} %`} />
           </div>
         </div>
-        <div className="flex items-center justify-between pt-1 border-t border-violet-200">
-          <span className="text-xs text-violet-700">Réinvestir l'économie IR ({fmt(econoIR)} €) en PEA</span>
+        <div className="flex items-center justify-between pt-1 border-t border-violet-500/30">
+          <span className="text-xs text-violet-300">Réinvestir l'économie IR ({fmt(econoIR)} €) en PEA</span>
           <button
             type="button"
             onClick={() => setReinvest(v => !v)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${reinvest ? 'bg-teal-500' : 'bg-gray-300'}`}
+            className={`relative w-10 h-5 rounded-full transition-colors ${reinvest ? 'bg-kapio-500' : 'bg-ink-600'}`}
           >
             <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${reinvest ? 'translate-x-5' : ''}`} />
           </button>
         </div>
         {!reinvest && (
-          <p className="text-[10px] text-violet-600 italic">Sans réinvestissement : l'économie IR reste en trésorerie — l'avantage PER est sous-estimé.</p>
+          <p className="text-[10px] text-violet-400 italic">Sans réinvestissement : l'économie IR reste en trésorerie — l'avantage PER est sous-estimé.</p>
         )}
       </div>
 
@@ -991,85 +991,85 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* Headline style Finary — meilleure enveloppe */}
-      <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-5">
-        <p className="text-[10px] font-semibold text-teal-500 uppercase tracking-widest mb-1">
+      <div className="rounded-2xl border border-kapio-500/20 bg-kapio-500/[0.06] p-5">
+        <p className="text-[10px] font-semibold text-kapio-300 uppercase tracking-widest mb-1">
           Capital net · {bestRow.name}
         </p>
-        <p className="text-4xl font-bold text-gray-900 font-mono tabular-nums leading-none mb-3">
+        <p className="text-4xl font-bold text-ink-0 font-mono tabular-nums leading-none mb-3">
           {fmt(bestRow.net)} €
         </p>
         <div className="flex items-center gap-6 text-sm">
           <div>
-            <p className="text-[10px] text-gray-400 mb-0.5">Versements</p>
-            <p className="font-bold text-gray-700 font-mono tabular-nums">{fmt(bestRow.pTotal)} €</p>
+            <p className="text-[10px] text-ink-300 mb-0.5">Versements</p>
+            <p className="font-bold text-ink-100 font-mono tabular-nums">{fmt(bestRow.pTotal)} €</p>
           </div>
-          <span className="text-gray-200">·</span>
+          <span className="text-ink-400">·</span>
           <div>
-            <p className="text-[10px] text-gray-400 mb-0.5">Intérêts nets</p>
-            <p className="font-bold text-teal-600 font-mono tabular-nums">+{fmt(bestRow.gain)} €</p>
+            <p className="text-[10px] text-ink-300 mb-0.5">Intérêts nets</p>
+            <p className="font-bold text-kapio-400 font-mono tabular-nums">+{fmt(bestRow.gain)} €</p>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+        <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06]">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">
             Comparatif après {duration} ans — {fmt(capital)} € à {(rate * 100).toFixed(0)} % — TMI entrée {tmiE} % / sortie {tmiS} %
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/30">
-                <th className="text-left px-4 py-2 text-gray-400 font-semibold">Enveloppe</th>
-                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Brut avant impôt</th>
-                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Impôts / prél.</th>
-                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Capital net</th>
-                <th className="text-right px-3 py-2 text-gray-400 font-semibold whitespace-nowrap">Gain net</th>
+              <tr className="border-b border-white/[0.06] bg-ink-900/30">
+                <th className="text-left px-4 py-2 text-ink-300 font-semibold">Enveloppe</th>
+                <th className="text-right px-3 py-2 text-ink-300 font-semibold whitespace-nowrap">Brut avant impôt</th>
+                <th className="text-right px-3 py-2 text-ink-300 font-semibold whitespace-nowrap">Impôts / prél.</th>
+                <th className="text-right px-3 py-2 text-ink-300 font-semibold whitespace-nowrap">Capital net</th>
+                <th className="text-right px-3 py-2 text-ink-300 font-semibold whitespace-nowrap">Gain net</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-white/[0.04]">
               {tableRows.map(row => (
                 <Fragment key={row.id}>
-                  <tr className={row.id === bestId ? 'bg-teal-50/60' : 'hover:bg-gray-50/40 transition-colors'}>
+                  <tr className={row.id === bestId ? 'bg-kapio-500/[0.08]' : 'hover:bg-ink-700/40 transition-colors'}>
                     <td className="px-4 pt-3 pb-1">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
-                        <span className="font-semibold text-gray-800">{row.name}</span>
+                        <span className="font-semibold text-ink-0">{row.name}</span>
                         {row.id === bestId && (
-                          <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full">Meilleur</span>
+                          <span className="text-[9px] font-bold text-kapio-300 bg-kapio-500/20 px-1.5 py-0.5 rounded-full">Meilleur</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-gray-400 mt-0.5 ml-4">{row.taxLabel}</div>
+                      <div className="text-[10px] text-ink-300 mt-0.5 ml-4">{row.taxLabel}</div>
                     </td>
-                    <td className="px-3 pt-3 pb-1 text-right font-mono tabular-nums text-gray-500 whitespace-nowrap">
+                    <td className="px-3 pt-3 pb-1 text-right font-mono tabular-nums text-ink-300 whitespace-nowrap">
                       {fmt(row.brut)} €
                     </td>
                     <td className="px-3 pt-3 pb-1 text-right font-mono tabular-nums whitespace-nowrap">
                       {row.tax > 0
                         ? <span className="text-red-500">−{fmt(row.tax)} €</span>
-                        : <span className="text-teal-600 font-semibold">0 €</span>}
+                        : <span className="text-kapio-400 font-semibold">0 €</span>}
                       {row.id === 'per' && row.bonus > 0 && (
-                        <div className="text-[10px] text-violet-600 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
+                        <div className="text-[10px] text-violet-400 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
                       )}
                     </td>
-                    <td className="px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums text-gray-800 whitespace-nowrap">
+                    <td className="px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums text-ink-0 whitespace-nowrap">
                       {fmt(row.net)} €
                     </td>
-                    <td className={`px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums whitespace-nowrap ${row.gain >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
+                    <td className={`px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums whitespace-nowrap ${row.gain >= 0 ? 'text-kapio-400' : 'text-red-500'}`}>
                       {row.gain >= 0 ? '+' : ''}{fmt(row.gain)} €
                     </td>
                   </tr>
                   {/* Sous-ligne décomposition Versements / Intérêts */}
-                  <tr className={row.id === bestId ? 'bg-teal-50/40' : ''}>
+                  <tr className={row.id === bestId ? 'bg-kapio-500/[0.05]' : ''}>
                     <td colSpan={5} className="px-4 pb-2.5 pt-0">
-                      <span className="text-[10px] text-gray-400 ml-4">
+                      <span className="text-[10px] text-ink-300 ml-4">
                         Versements&nbsp;
                         <span className="font-semibold" style={{ color: '#5B7CFA' }}>{fmt(row.pTotal)} €</span>
                         &nbsp;·&nbsp;
                         Intérêts bruts&nbsp;
-                        <span className="font-semibold text-gray-500">{fmt(row.brut - row.pTotal)} €</span>
+                        <span className="font-semibold text-ink-300">{fmt(row.brut - row.pTotal)} €</span>
                         &nbsp;·&nbsp;
                         Intérêts nets&nbsp;
                         <span className="font-semibold" style={{ color: '#F5A623' }}>{fmt(row.gain)} €</span>
@@ -1082,7 +1082,7 @@ function SimEnveloppes({ data }) {
           </table>
         </div>
         {crossoverYear && (
-          <p className="px-4 py-2.5 text-[11px] text-violet-700 bg-violet-50/50 border-t border-violet-100">
+          <p className="px-4 py-2.5 text-[11px] text-violet-300 bg-violet-500/[0.06] border-t border-violet-500/20">
             {crossoverYear <= duration
               ? `✓ PER dépasse PEA à ${crossoverYear} ans sur ce graphe`
               : `ℹ PER dépasserait PEA à ${crossoverYear} ans (au-delà de l'horizon affiché)`}
@@ -1091,9 +1091,9 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* EvolutionChart — aire empilée versements + intérêts nets */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">
             Évolution — versements vs intérêts
           </p>
           <div className="flex gap-1 flex-wrap">
@@ -1106,7 +1106,7 @@ function SimEnveloppes({ data }) {
                   'px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border',
                   activeEnvId === env.id
                     ? 'text-white border-transparent'
-                    : 'text-gray-400 border-gray-200 bg-transparent hover:text-gray-600',
+                    : 'text-ink-300 border-white/[0.08] bg-transparent hover:text-ink-200',
                 ].join(' ')}
                 style={activeEnvId === env.id ? { background: env.color, borderColor: env.color } : {}}
               >
@@ -1119,34 +1119,34 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* Chart */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
         <div className="flex items-baseline justify-between mb-1">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Évolution du capital net</p>
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Évolution du capital net</p>
         </div>
         {/* Brut reference callout */}
-        <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
-          <span className="flex-shrink-0 w-6 border-t-2 border-dashed border-gray-400" />
-          <span className="text-[11px] text-gray-500">
+        <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-ink-900/40 border border-white/[0.06]">
+          <span className="flex-shrink-0 w-6 border-t-2 border-dashed border-ink-400" />
+          <span className="text-[11px] text-ink-300">
             Intérêts composés bruts (avant impôts) à {(rate * 100).toFixed(0)} % sur {duration} ans :{' '}
-            <span className="font-mono font-bold text-gray-700">
+            <span className="font-mono font-bold text-ink-100">
               {fmt((capital > 0 ? capital * Math.pow(1 + rate, duration) : 0) + fvMensuel(mensualite, rate, duration))} €
             </span>
             {mensualite > 0 && (
-              <span className="text-gray-400"> · capital {fmt(capital)} € + {fmt(mensualite)} €/mois</span>
+              <span className="text-ink-300"> · capital {fmt(capital)} € + {fmt(mensualite)} €/mois</span>
             )}
             {' '}— les courbes colorées = net après fiscalité
           </span>
         </div>
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="année" tick={{ fontSize: 10, fill: '#9ca3af' }} tickFormatter={v => `${v}a`} />
             <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickFormatter={formatY} width={38} />
             <Tooltip content={<ChartTooltip />} />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
             {crossoverYear && crossoverYear <= duration && (
               <ReferenceLine x={crossoverYear} stroke="#8b5cf6" strokeDasharray="4 2"
-                label={{ value: `PER=PEA (${crossoverYear}a)`, position: 'top', fontSize: 9, fill: '#7c3aed' }} />
+                label={{ value: `PER=PEA (${crossoverYear}a)`, position: 'top', fontSize: 9, fill: '#a78bfa' }} />
             )}
             {/* Ligne brute intérêts composés — référence visuelle (hors légende) */}
             <Line key="brut" type="monotone" dataKey="Brut" stroke="#9ca3af"
@@ -1158,7 +1158,7 @@ function SimEnveloppes({ data }) {
             ))}
           </LineChart>
         </ResponsiveContainer>
-        <p className="text-[10px] text-gray-400 text-center mt-2">
+        <p className="text-[10px] text-ink-300 text-center mt-2">
           Livret A taux garanti 3 % (non lié au curseur). PEA : PS 17,2 % sur gains (≥5 ans) · PFU 30 % avant.
           AV&gt;8 ans : PS 17,2 % + IR 7,5 % sur gains &gt; {isCouple ? '9 200' : '4 600'} € (abattement {isCouple ? 'couple' : 'solo'}).
           CTO : PFU 30 % sur gains.
@@ -1242,8 +1242,8 @@ function SimFoncier({ data }) {
       {/* Recommandation régime */}
       <div className={`rounded-xl px-4 py-2.5 border text-xs flex items-start gap-2 ${
         isOptimal
-          ? 'bg-teal-50 border-teal-200 text-teal-700'
-          : 'bg-amber-50 border-amber-200 text-amber-700'
+          ? 'bg-kapio-500/[0.08] border-kapio-500/30 text-kapio-300'
+          : 'bg-warning-500/[0.08] border-warning-500/30 text-warning-300'
       }`}>
         <span className="mt-0.5 shrink-0">{isOptimal ? '✅' : '⚠️'}</span>
         <span>
@@ -1255,36 +1255,36 @@ function SimFoncier({ data }) {
       </div>
 
       {/* Résultats */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Impact fiscal</p>
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+        <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06]">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Impact fiscal</p>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-white/[0.04]">
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-ink-200">
               {regime === 'micro' ? 'Abattement forfaitaire 30 %' : `Déduction charges (${charges} %)`}
             </span>
-            <span className="text-sm font-bold font-mono tabular-nums text-teal-600">
+            <span className="text-sm font-bold font-mono tabular-nums text-kapio-400">
               − {fmt(regime === 'micro' ? loyers * 0.30 : loyers * charges / 100)} €
             </span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">Revenu net imposable</span>
-            <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(res.net)} €</span>
+            <span className="text-sm text-ink-200">Revenu net imposable</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-ink-0">{fmt(res.net)} €</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">IR supplémentaire (TMI {tmi} %)</span>
+            <span className="text-sm text-ink-200">IR supplémentaire (TMI {tmi} %)</span>
             <span className="text-sm font-bold font-mono tabular-nums text-red-500">{fmt(res.ir)} €</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-gray-600">Prélèvements sociaux (17,2 %)</span>
+            <span className="text-sm text-ink-200">Prélèvements sociaux (17,2 %)</span>
             <span className="text-sm font-bold font-mono tabular-nums text-red-500">{fmt(res.ps)} €</span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-red-50/40">
-            <span className="text-sm font-semibold text-gray-700">Coût fiscal total</span>
+          <div className="flex items-center justify-between px-4 py-3 bg-red-500/[0.05]">
+            <span className="text-sm font-semibold text-ink-100">Coût fiscal total</span>
             <div className="text-right">
-              <span className="text-sm font-bold font-mono tabular-nums text-red-600">{fmt(res.total)} €</span>
-              <span className="text-[10px] text-gray-400 ml-2">({res.tauxEff} % des loyers)</span>
+              <span className="text-sm font-bold font-mono tabular-nums text-red-400">{fmt(res.total)} €</span>
+              <span className="text-[10px] text-ink-300 ml-2">({res.tauxEff} % des loyers)</span>
             </div>
           </div>
         </div>
@@ -1297,15 +1297,15 @@ function SimFoncier({ data }) {
           const tot = Math.round(net * (tmi / 100)) + Math.round(net * 0.172);
           const isBest = r === res.optimal;
           return (
-            <div key={r} className={`rounded-2xl border p-3.5 ${isBest ? 'border-teal-200 bg-teal-50/50' : 'border-gray-100 bg-white shadow-sm'}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${isBest ? 'text-teal-600' : 'text-gray-400'}`}>
+            <div key={r} className={`rounded-2xl border p-3.5 ${isBest ? 'border-kapio-500/30 bg-kapio-500/[0.06]' : 'border-white/[0.06] bg-ink-800/60'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${isBest ? 'text-kapio-400' : 'text-ink-300'}`}>
                 {r === 'micro' ? 'Micro-foncier' : 'Régime réel'}
                 {isBest && ' ✓'}
               </p>
-              <p className="text-xs text-gray-500">
-                Net imposable : <span className="font-bold text-gray-700 font-mono">{fmt(net)} €</span>
+              <p className="text-xs text-ink-300">
+                Net imposable : <span className="font-bold text-ink-100 font-mono">{fmt(net)} €</span>
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-ink-300 mt-0.5">
                 Coût fiscal : <span className="font-bold text-red-500 font-mono">{fmt(tot)} €</span>
               </p>
             </div>
@@ -1323,7 +1323,7 @@ function SimFoncier({ data }) {
         </Button>
       </div>
 
-      <p className="text-[10px] text-gray-400 text-center">
+      <p className="text-[10px] text-ink-300 text-center">
         Simulation indicative. Loyers meublés (BIC/LMNP) non inclus dans ce simulateur.
       </p>
     </div>
@@ -1392,13 +1392,13 @@ function fraisTeletravail(jours, allocationDejaExoneree) {
 function FraisNum({ label, value, onChange, placeholder = '0' }) {
   return (
     <div>
-      <label className="block text-[11px] font-medium text-gray-600 mb-1">{label}</label>
+      <label className="block text-[11px] font-medium text-ink-200 mb-1">{label}</label>
       <input
         type="number"
         value={value || ''}
         placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-300/50 placeholder:text-gray-300 font-mono tabular-nums"
+        className="w-full rounded-xl border border-white/[0.08] px-3 py-2 text-sm bg-ink-800 text-ink-0 focus:outline-none focus:ring-2 focus:ring-kapio-300/50 placeholder:text-ink-400 font-mono tabular-nums"
       />
     </div>
   );
@@ -1529,7 +1529,7 @@ function SimFrais({ data }) {
 
       {/* 1. Trajet domicile-travail */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">1 · Trajet domicile ↔ travail</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">1 · Trajet domicile ↔ travail</p>
         <div className="flex flex-col gap-4">
           <SimSlider label="Distance aller simple"        value={distance} min={0} max={150} step={1}  onChange={setDistance} format={v => `${v} km`} />
           <SimSlider label="Jours travaillés / semaine"   value={joursSem} min={1} max={6}   step={1}  onChange={setJoursSem} format={v => `${v} j`} />
@@ -1539,7 +1539,7 @@ function SimFrais({ data }) {
           <ToggleGroup label="Type de motorisation" options={[false, true]} value={electrique} onChange={setElectrique}
             format={v => v ? '⚡ Électrique (+20 %)' : 'Thermique / hybride'} />
         </div>
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Barème kilométrique 2024. Plafond pratique : 80 km aller-retour/jour sauf justification
           (horaires décalés, double activité, handicap…). Si vous avez changé de véhicule en cours d'année,
           calculez séparément pour chaque véhicule puis additionnez dans « Autres frais ».
@@ -1548,13 +1548,13 @@ function SimFrais({ data }) {
 
       {/* 2. Frais véhicule complémentaires */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">2 · Frais véhicule complémentaires</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">2 · Frais véhicule complémentaires</p>
         <div className="grid grid-cols-2 gap-3">
           <FraisNum label="Péages autoroute / an"       value={peage}           onChange={setPeage} />
           <FraisNum label="Parking habituel / an"       value={parking}         onChange={setParking} />
           <FraisNum label="Intérêts d'emprunt véhicule" value={interetsEmprunt} onChange={setInteretsEmprunt} />
         </div>
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Déductibles <strong>en plus</strong> du barème kilométrique. Carburant, entretien, assurance véhicule
           et dépréciation sont déjà inclus dans le barème — ne les saisissez pas ici.
         </p>
@@ -1562,12 +1562,12 @@ function SimFrais({ data }) {
 
       {/* 3. Repas */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">3 · Repas hors domicile</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">3 · Repas hors domicile</p>
         <div className="flex flex-col gap-4">
           <SimSlider label="Nombre de repas dans l'année" value={joursRepas} min={0} max={250} step={1} onChange={setJoursRepas} format={v => `${v} repas`} />
           <SimSlider label="Coût moyen d'un repas (€)"    value={coutRepas}  min={0} max={30}  step={1} onChange={setCoutRepas}  format={v => `${v} €`} />
         </div>
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Déduction = (coût repas − 5,35 €) × nombre de repas, plafonnée à 15,75 €/repas (BOI-RSA-BASE-30-50-30-20).
           À utiliser uniquement si vous n'avez ni cantine, ni titre-restaurant.
           Si vous avez des titres-restaurant, seule la part employeur excédentaire compte.
@@ -1576,12 +1576,12 @@ function SimFrais({ data }) {
 
       {/* 4. Télétravail */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">4 · Télétravail</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">4 · Télétravail</p>
         <div className="grid grid-cols-2 gap-3">
           <FraisNum label="Jours de télétravail / an"               value={joursTeletravail} onChange={setJoursTeletravail} placeholder="0" />
           <FraisNum label="Allocation employeur déjà exonérée"       value={allocTeletravail} onChange={setAllocTeletravail} placeholder="0" />
         </div>
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Forfait DGFiP : <strong>2,70 €/jour</strong>, plafond 626,40 €/an.
           Si votre employeur vous a versé une <strong>allocation forfaitaire ou un remboursement</strong>
           (exonéré à hauteur de ces mêmes plafonds), <strong>déduisez-le ici</strong> — sinon double déduction.
@@ -1591,9 +1591,9 @@ function SimFrais({ data }) {
 
       {/* 5. Vêtements pro */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">5 · Vêtements pro / EPI / outillage</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">5 · Vêtements pro / EPI / outillage</p>
         <FraisNum label="Total annuel" value={vetements} onChange={setVetements} placeholder="0" />
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Uniquement les vêtements spécifiques à l'activité (uniforme, blouse, chaussures de sécurité…)
           et leur entretien. Les costumes de bureau et tenues passe-partout ne sont pas déductibles.
         </p>
@@ -1601,12 +1601,12 @@ function SimFrais({ data }) {
 
       {/* 6. Documentation / formation */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">6 · Documentation & formation</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">6 · Documentation & formation</p>
         <div className="grid grid-cols-2 gap-3">
           <FraisNum label="Documentation pro / abonnements"  value={documentation} onChange={setDocumentation} placeholder="0" />
           <FraisNum label="Formation pro non remboursée"     value={formation}     onChange={setFormation}     placeholder="0" />
         </div>
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Revues techniques, ouvrages spécialisés, MOOC payants directement liés à l'emploi.
           Les formations remboursées par l'employeur ou OPCO ne sont pas déductibles.
         </p>
@@ -1614,9 +1614,9 @@ function SimFrais({ data }) {
 
       {/* 7. Double résidence */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">7 · Double résidence professionnelle</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">7 · Double résidence professionnelle</p>
         <FraisNum label="Loyer + charges du second logement" value={doubleResidence} onChange={setDoubleResidence} placeholder="0" />
-        <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
           Déductible uniquement si la double résidence est <strong>imposée par l'emploi</strong>
           (mutation, mission temporaire, conjoint travaillant ailleurs) — pas pour convenance personnelle.
           Loyer, charges, taxe d'habitation du second logement.
@@ -1625,15 +1625,15 @@ function SimFrais({ data }) {
 
       {/* 8. Autres frais pro */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">8 · Autres frais professionnels</p>
+        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">8 · Autres frais professionnels</p>
         <FraisNum label="Autres (frais de mission non remboursés, déménagement professionnel imposé…)" value={autres} onChange={setAutres} placeholder="0" />
       </div>
 
       {/* Recommandation */}
       <div className={`rounded-xl px-4 py-2.5 border text-xs flex items-start gap-2 ${
         res.interessant
-          ? 'bg-teal-50 border-teal-200 text-teal-700'
-          : 'bg-gray-50 border-gray-200 text-gray-600'
+          ? 'bg-kapio-500/[0.08] border-kapio-500/30 text-kapio-300'
+          : 'bg-ink-800/60 border-white/[0.08] text-ink-200'
       }`}>
         <span className="mt-0.5 shrink-0">{res.interessant ? '✅' : 'ℹ️'}</span>
         <span>
@@ -1646,11 +1646,11 @@ function SimFrais({ data }) {
       </div>
 
       {/* Détail */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Détail des frais</p>
+      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+        <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06]">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Détail des frais</p>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-white/[0.04]">
           {[
             { label: 'Indemnité kilométrique', value: res.fVehicule,
               sub: `${fmt(res.kmAnnuels)} km/an · barème ${cv === 7 ? '7 CV+' : `${cv} CV`}${electrique ? ' ×1,20' : ''}` },
@@ -1665,20 +1665,20 @@ function SimFrais({ data }) {
           ].filter(r => r.value > 0).map(({ label, value, sub }) => (
             <div key={label} className="flex items-center justify-between px-4 py-3">
               <div>
-                <span className="text-sm text-gray-600">{label}</span>
-                {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+                <span className="text-sm text-ink-200">{label}</span>
+                {sub && <p className="text-[10px] text-ink-300">{sub}</p>}
               </div>
-              <span className="text-sm font-bold font-mono tabular-nums text-gray-800">{fmt(value)} €</span>
+              <span className="text-sm font-bold font-mono tabular-nums text-ink-0">{fmt(value)} €</span>
             </div>
           ))}
-          <div className="flex items-center justify-between px-4 py-3 bg-teal-50/40">
-            <span className="text-sm font-semibold text-gray-700">Total frais réels</span>
-            <span className="text-sm font-bold font-mono tabular-nums text-teal-700">{fmt(res.totalReels)} €</span>
+          <div className="flex items-center justify-between px-4 py-3 bg-kapio-500/[0.05]">
+            <span className="text-sm font-semibold text-ink-100">Total frais réels</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-kapio-300">{fmt(res.totalReels)} €</span>
           </div>
           {salaireBrut > 0 && (
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm text-gray-500">Abattement 10 % (référence)</span>
-              <span className="text-sm font-mono tabular-nums text-gray-500">{fmt(res.abat10)} €</span>
+              <span className="text-sm text-ink-300">Abattement 10 % (référence)</span>
+              <span className="text-sm font-mono tabular-nums text-ink-300">{fmt(res.abat10)} €</span>
             </div>
           )}
         </div>
@@ -1703,12 +1703,12 @@ function SimFrais({ data }) {
       <button
         type="button"
         onClick={handleChat}
-        className="text-xs text-teal-600 hover:text-teal-700 underline self-center"
+        className="text-xs text-kapio-400 hover:text-kapio-300 underline self-center"
       >
         💬 Discuter de cette simulation
       </button>
 
-      <p className="text-[10px] text-gray-400 text-center leading-snug">
+      <p className="text-[10px] text-ink-300 text-center leading-snug">
         Barème kilométrique 2024 (revenus 2024 → déclaration 2025). Plafonds repas : valeur forfaitaire 5,35 € — plafond 21,10 €.
         Frais déductibles uniquement si vous renoncez à l'abattement forfaitaire 10 %.
       </p>
@@ -1886,38 +1886,38 @@ export default function Simulator() {
 
       {/* Saisie manuelle */}
       {mode === 'manual' && (
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Vos paramètres</p>
+        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-5 flex flex-col gap-5">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Vos paramètres</p>
 
           {/* Ligne 1 : TMI + RNI + parts */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-gray-600">TMI actuel</label>
+              <label className="text-xs font-medium text-ink-200">TMI actuel</label>
               <select
                 value={manualTMI}
                 onChange={e => setManualTMI(Number(e.target.value))}
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400 bg-white"
+                className="border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-ink-0 focus:outline-none focus:border-kapio-400 bg-ink-900"
               >
                 {TMI_OPTIONS.map(t => <option key={t} value={t}>{t} %</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-gray-600">RNI foyer (€)</label>
+              <label className="text-xs font-medium text-ink-200">RNI foyer (€)</label>
               <input
                 type="number"
                 value={manualRNI}
                 onChange={e => setManualRNI(e.target.value)}
                 placeholder="65 000"
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+                className="border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-ink-0 focus:outline-none focus:border-teal-400"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-gray-600">Parts fiscales</label>
-              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+              <label className="text-xs font-medium text-ink-200">Parts fiscales</label>
+              <div className="flex gap-1 p-1 bg-ink-700 rounded-xl">
                 {[1, 2].map(n => (
                   <button key={n} type="button" onClick={() => setManualParts(n)}
                     className={['flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
-                      manualParts === n ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                      manualParts === n ? 'bg-ink-600 text-kapio-300 shadow-sm' : 'text-ink-300 hover:text-ink-100',
                     ].join(' ')}>
                     {n} part{n > 1 ? 's' : ''}
                   </button>
@@ -1928,25 +1928,25 @@ export default function Simulator() {
 
           {/* Calcul automatique plafond PER */}
           {perCalc.rni > 0 && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 flex flex-col gap-1.5 text-xs">
-              <p className="font-bold text-blue-600 flex items-center gap-1.5">💡 Plafond PER calculé automatiquement</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-gray-600 mt-0.5">
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3 flex flex-col gap-1.5 text-xs">
+              <p className="font-bold text-blue-300 flex items-center gap-1.5">💡 Plafond PER calculé automatiquement</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-ink-200 mt-0.5">
                 <span>10 % × votre RNI</span>
-                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(Math.round(perCalc.rni * 0.1))} €</span>
+                <span className="font-mono font-semibold text-ink-0 text-right">{fmt(Math.round(perCalc.rni * 0.1))} €</span>
                 <span>Minimum légal (10 % PASS)</span>
-                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(MIN_PLAFOND)} €</span>
-                <span className="font-semibold text-blue-700">→ Plafond brut retenu</span>
-                <span className="font-mono font-bold text-blue-700 text-right">{fmt(perCalc.plafondBrut)} €</span>
+                <span className="font-mono font-semibold text-ink-0 text-right">{fmt(MIN_PLAFOND)} €</span>
+                <span className="font-semibold text-blue-300">→ Plafond brut retenu</span>
+                <span className="font-mono font-bold text-blue-300 text-right">{fmt(perCalc.plafondBrut)} €</span>
                 {parseInt(manualPERO, 10) > 0 && <>
-                  <span className="text-amber-600">− PERO employeur</span>
-                  <span className="font-mono font-semibold text-amber-600 text-right">− {fmt(parseInt(manualPERO, 10))} €</span>
+                  <span className="text-warning-400">− PERO employeur</span>
+                  <span className="font-mono font-semibold text-warning-400 text-right">− {fmt(parseInt(manualPERO, 10))} €</span>
                 </>}
                 {parseInt(manualAnterieurs, 10) > 0 && <>
-                  <span className="text-teal-600">+ Plafonds antérieurs</span>
-                  <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(parseInt(manualAnterieurs, 10))} €</span>
+                  <span className="text-kapio-400">+ Plafonds antérieurs</span>
+                  <span className="font-mono font-semibold text-kapio-400 text-right">+ {fmt(parseInt(manualAnterieurs, 10))} €</span>
                 </>}
-                <span className="font-bold text-teal-700 border-t border-blue-200 pt-1">→ Plafond disponible net</span>
-                <span className="font-mono font-bold text-teal-700 border-t border-blue-200 pt-1 text-right">{fmt(perCalc.plafondTotal)} €</span>
+                <span className="font-bold text-kapio-300 border-t border-white/[0.06] pt-1">→ Plafond disponible net</span>
+                <span className="font-mono font-bold text-kapio-300 border-t border-white/[0.06] pt-1 text-right">{fmt(perCalc.plafondTotal)} €</span>
               </div>
             </div>
           )}
@@ -1954,23 +1954,23 @@ export default function Simulator() {
           {/* Champs optionnels */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-gray-600">
+              <label className="text-xs font-medium text-ink-200">
                 Cotisations PERO employeur (€)
-                <span className="ml-1 text-gray-400 font-normal">— optionnel</span>
+                <span className="ml-1 text-ink-300 font-normal">— optionnel</span>
               </label>
               <input
                 type="number"
                 value={manualPERO}
                 onChange={e => setManualPERO(e.target.value)}
                 placeholder="0"
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+                className="border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-ink-0 focus:outline-none focus:border-teal-400"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+              <label className="text-xs font-medium text-ink-200 flex items-center gap-1">
                 Plafonds antérieurs N-3/N-2/N-1 (€)
                 <span
-                  className="ml-1 text-gray-400 font-normal cursor-help"
+                  className="ml-1 text-ink-300 font-normal cursor-help"
                   title="Vous pouvez mobiliser vos plafonds des 3 années précédentes si non utilisés (art. 163 quatervicies II CGI). Ces plafonds apparaissent sur votre avis d'imposition."
                 >ⓘ</span>
               </label>
@@ -1979,7 +1979,7 @@ export default function Simulator() {
                 value={manualAnterieurs}
                 onChange={e => setManualAnterieurs(e.target.value)}
                 placeholder="0"
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-teal-400"
+                className="border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-ink-0 focus:outline-none focus:border-teal-400"
               />
             </div>
           </div>
@@ -1988,12 +1988,12 @@ export default function Simulator() {
 
       {/* Profil auto — détail plafond PER */}
       {mode === 'profile' && tab === 'per' && !profileData.isDefault && (
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Plafond PER — données du profil</p>
+        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-5 flex flex-col gap-5">
+          <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Plafond PER — données du profil</p>
 
           {/* Toggle D1 / D2 pour couple */}
           {profileData.isCouple && (
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+            <div className="flex gap-1 p-1 bg-ink-700 rounded-xl">
               {[{ id: 'd1', label: 'Déclarant 1' }, { id: 'd2', label: 'Déclarant 2' }].map(({ id, label }) => (
                 <button
                   key={id}
@@ -2001,7 +2001,7 @@ export default function Simulator() {
                   onClick={() => setPerDeclarant(id)}
                   className={[
                     'flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
-                    perDeclarant === id ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                    perDeclarant === id ? 'bg-ink-600 text-kapio-300 shadow-sm' : 'text-ink-300 hover:text-ink-100',
                   ].join(' ')}
                 >
                   {label}
@@ -2011,65 +2011,65 @@ export default function Simulator() {
           )}
 
           {/* Calcul étape par étape */}
-          <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 flex flex-col gap-1.5 text-xs">
-            <p className="font-bold text-blue-600 flex items-center gap-1.5">💡 Plafond PER calculé automatiquement</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-gray-600 mt-0.5">
+          <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3 flex flex-col gap-1.5 text-xs">
+            <p className="font-bold text-blue-300 flex items-center gap-1.5">💡 Plafond PER calculé automatiquement</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-ink-200 mt-0.5">
               <span>RNI {profileData.isCouple ? (perDeclarant === 'd1' ? 'D1' : 'D2') : 'foyer'}</span>
-              <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.selectedCalc.rni)} €</span>
+              <span className="font-mono font-semibold text-ink-0 text-right">{fmt(profileData.selectedCalc.rni)} €</span>
               <span>10 % × RNI</span>
-              <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.selectedCalc.brut10)} €</span>
+              <span className="font-mono font-semibold text-ink-0 text-right">{fmt(profileData.selectedCalc.brut10)} €</span>
               <span>Minimum légal (10 % PASS)</span>
-              <span className="font-mono font-semibold text-gray-800 text-right">{fmt(MIN_PLAFOND)} €</span>
-              <span className="font-semibold text-blue-700">→ Plafond brut retenu</span>
-              <span className="font-mono font-bold text-blue-700 text-right">{fmt(profileData.selectedCalc.plafondBrut)} €</span>
+              <span className="font-mono font-semibold text-ink-0 text-right">{fmt(MIN_PLAFOND)} €</span>
+              <span className="font-semibold text-blue-300">→ Plafond brut retenu</span>
+              <span className="font-mono font-bold text-blue-300 text-right">{fmt(profileData.selectedCalc.plafondBrut)} €</span>
               {profileData.selectedCalc.pero > 0 && <>
-                <span className="text-amber-600">− PERO employeur</span>
-                <span className="font-mono font-semibold text-amber-600 text-right">− {fmt(profileData.selectedCalc.pero)} €</span>
+                <span className="text-warning-400">− PERO employeur</span>
+                <span className="font-mono font-semibold text-warning-400 text-right">− {fmt(profileData.selectedCalc.pero)} €</span>
               </>}
-              <span className="font-bold text-teal-700 border-t border-blue-200 pt-1">→ Plafond disponible net (année N)</span>
-              <span className="font-mono font-bold text-teal-700 border-t border-blue-200 pt-1 text-right">{fmt(profileData.selectedCalc.plafondNet)} €</span>
+              <span className="font-bold text-kapio-300 border-t border-white/[0.06] pt-1">→ Plafond disponible net (année N)</span>
+              <span className="font-mono font-bold text-kapio-300 border-t border-white/[0.06] pt-1 text-right">{fmt(profileData.selectedCalc.plafondNet)} €</span>
               {profileData.selectedCalc.reportN3 > 0 && <>
-                <span className="text-teal-600">+ Report N-3 (art. 163 quatervicies I CGI)</span>
-                <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(profileData.selectedCalc.reportN3)} €</span>
+                <span className="text-kapio-400">+ Report N-3 (art. 163 quatervicies I CGI)</span>
+                <span className="font-mono font-semibold text-kapio-400 text-right">+ {fmt(profileData.selectedCalc.reportN3)} €</span>
               </>}
               {profileData.selectedCalc.reportN2 > 0 && <>
-                <span className="text-teal-600">+ Report N-2</span>
-                <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(profileData.selectedCalc.reportN2)} €</span>
+                <span className="text-kapio-400">+ Report N-2</span>
+                <span className="font-mono font-semibold text-kapio-400 text-right">+ {fmt(profileData.selectedCalc.reportN2)} €</span>
               </>}
               {profileData.selectedCalc.reportN1 > 0 && <>
-                <span className="text-teal-600">+ Report N-1</span>
-                <span className="font-mono font-semibold text-teal-600 text-right">+ {fmt(profileData.selectedCalc.reportN1)} €</span>
+                <span className="text-kapio-400">+ Report N-1</span>
+                <span className="font-mono font-semibold text-kapio-400 text-right">+ {fmt(profileData.selectedCalc.reportN1)} €</span>
               </>}
               {(profileData.selectedCalc.reportTotal || 0) > 0 && <>
-                <span className="font-bold text-teal-800 border-t border-blue-200 pt-1">= Total mobilisable (N + reports)</span>
-                <span className="font-mono font-bold text-teal-800 border-t border-blue-200 pt-1 text-right">{fmt(profileData.selectedCalc.plafondWithReports)} €</span>
+                <span className="font-bold text-kapio-300 border-t border-white/[0.06] pt-1">= Total mobilisable (N + reports)</span>
+                <span className="font-mono font-bold text-kapio-300 border-t border-white/[0.06] pt-1 text-right">{fmt(profileData.selectedCalc.plafondWithReports)} €</span>
               </>}
             </div>
           </div>
 
           {/* Foyer consolidé (couple uniquement) */}
           {profileData.isCouple && profileData.perCalcD1 && profileData.perCalcD2 && (
-            <div className="rounded-xl border border-teal-100 bg-teal-50/40 px-4 py-3">
-              <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-2">
+            <div className="rounded-xl border border-kapio-500/20 bg-kapio-500/[0.05] px-4 py-3">
+              <p className="text-[10px] font-bold text-kapio-400 uppercase tracking-widest mb-2">
                 Plafond PER du foyer consolidé
               </p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink-200">
                 <span>Plafond net D1</span>
-                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.perCalcD1.plafondNet)} €</span>
+                <span className="font-mono font-semibold text-ink-0 text-right">{fmt(profileData.perCalcD1.plafondNet)} €</span>
                 <span>Plafond net D2</span>
-                <span className="font-mono font-semibold text-gray-800 text-right">{fmt(profileData.perCalcD2.plafondNet)} €</span>
+                <span className="font-mono font-semibold text-ink-0 text-right">{fmt(profileData.perCalcD2.plafondNet)} €</span>
                 {((profileData.perCalcD1.reportTotal || 0) + (profileData.perCalcD2.reportTotal || 0)) > 0 && <>
-                  <span className="text-teal-600">+ Reports FIFO foyer (N-3/N-2/N-1)</span>
-                  <span className="font-mono font-semibold text-teal-600 text-right">
+                  <span className="text-kapio-400">+ Reports FIFO foyer (N-3/N-2/N-1)</span>
+                  <span className="font-mono font-semibold text-kapio-400 text-right">
                     + {fmt((profileData.perCalcD1.reportTotal || 0) + (profileData.perCalcD2.reportTotal || 0))} €
                   </span>
                 </>}
-                <span className="font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5">→ Total mobilisable foyer</span>
-                <span className="font-mono font-bold text-teal-700 border-t border-teal-200 pt-1 mt-0.5 text-right">
+                <span className="font-bold text-kapio-300 border-t border-white/[0.06] pt-1 mt-0.5">→ Total mobilisable foyer</span>
+                <span className="font-mono font-bold text-kapio-300 border-t border-white/[0.06] pt-1 mt-0.5 text-right">
                   {fmt(profileData.perCalcD1.plafondWithReports + profileData.perCalcD2.plafondWithReports)} €
                 </span>
               </div>
-              <p className="text-[9px] text-teal-500 mt-2 leading-snug">
+              <p className="text-[9px] text-kapio-300 mt-2 leading-snug">
                 art. 163 quatervicies I-II CGI — plafond individuel + reports des 3 exercices précédents
               </p>
             </div>

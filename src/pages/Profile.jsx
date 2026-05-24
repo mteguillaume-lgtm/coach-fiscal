@@ -232,7 +232,7 @@ export default function Profile() {
           <motion.h1
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
-            className="text-display-sm sm:text-display text-gradient-hero mb-4 text-center"
+            className="text-display-sm sm:text-display mb-4 text-center"
             style={{ letterSpacing: '-0.03em' }}
           >
             <SplitText text="Profil " delay={0.25} stagger={0.04} />
