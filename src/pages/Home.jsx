@@ -246,9 +246,9 @@ export default function Home() {
               style={{ background: 'radial-gradient(circle, rgba(46,184,138,0.6), transparent 60%)' }}
             />
             <motion.img
-              src="/favicon.svg"
+              src="/kapio-logo.png"
               alt="Kapio"
-              className="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto drop-shadow-2xl"
+              className="relative w-40 h-40 sm:w-56 sm:h-56 mx-auto drop-shadow-2xl"
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             />
