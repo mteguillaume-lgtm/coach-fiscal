@@ -23,7 +23,7 @@ function KapioLogo() {
   return (
     <Link to="/" className="flex items-center gap-2.5 group shrink-0">
       <div className="relative w-8 h-8 flex items-center justify-center">
-        <img src="/kapio-mark.svg" alt="Kapio" className="w-full h-full transition-transform duration-300 group-hover:scale-105" />
+        <img src="/favicon.svg" alt="Kapio" className="w-full h-full transition-transform duration-300 group-hover:scale-105" />
       </div>
       <span className="font-bold text-ink-0 tracking-tight text-base group-hover:text-kapio-300 transition-colors">Kapio</span>
     </Link>
@@ -181,7 +181,7 @@ export default function Layout() {
         <footer className="hidden sm:block bg-ink-850/40 backdrop-blur-sm border-t border-white/[0.04]">
           <div className={footerInnerClass}>
             <div className="flex items-center gap-3">
-              <img src="/kapio-mark.svg" alt="" aria-hidden="true" className="w-6 h-6" />
+              <img src="/favicon.svg" alt="" aria-hidden="true" className="w-6 h-6" />
               <span className="text-xs text-ink-100">
                 <span className="font-semibold text-ink-50">Kapio</span> &middot; 100 % local
                 <Lock size={11} className="inline ml-1.5 text-kapio-300 align-text-bottom" />
