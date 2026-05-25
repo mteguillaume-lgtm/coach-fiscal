@@ -1,14 +1,5 @@
 import { motion } from 'framer-motion';
 
-/**
- * Background décoratif "aurora" — mesh gradient animé subtil.
- * À utiliser en absolute fill derrière un hero ou une section premium.
- *
- * @param {boolean} showGrid     Afficher la grille de points en surimpression
- * @param {boolean} showBeam     Afficher un beam lumineux qui traverse
- * @param {number}  intensity    Intensité globale (0-1) — défaut 1
- * @param {string}  className    Classes additionnelles
- */
 export default function AuroraBackground({
   showGrid = true,
   showBeam = false,
@@ -23,76 +14,44 @@ export default function AuroraBackground({
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity: intensity }}
     >
-      {/* Orb principal — toujours affiché, blur réduit sur mobile */}
+      {/* Orb principal */}
       <motion.div
-        className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] rounded-full"
+        className="absolute -top-1/4 -left-1/4 w-[700px] h-[700px] rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(46,184,138,0.25) 0%, rgba(46,184,138,0) 60%)',
-          filter: isTouch ? 'blur(40px)' : 'blur(60px)',
+          background: 'radial-gradient(circle, rgba(46,184,138,0.22) 0%, rgba(46,184,138,0) 60%)',
+          filter: isTouch ? 'blur(30px)' : 'blur(40px)',
           willChange: 'transform',
         }}
         animate={isTouch ? {} : {
-          x: [0, 50, -30, 0],
-          y: [0, -40, 20, 0],
-          scale: [1, 1.1, 0.95, 1],
+          x: [0, 40, -20, 0],
+          y: [0, -30, 15, 0],
         }}
-        transition={{
-          duration: 18,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Orbs secondaires — desktop uniquement */}
+      {/* Orb secondaire — desktop uniquement */}
       {!isTouch && (
-        <>
-          <motion.div
-            className="absolute top-1/3 right-0 w-[600px] h-[600px] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(29,158,117,0.2) 0%, rgba(29,158,117,0) 60%)',
-              filter: 'blur(80px)',
-              willChange: 'transform',
-            }}
-            animate={{
-              x: [0, -40, 30, 0],
-              y: [0, 30, -20, 0],
-              scale: [1, 0.9, 1.05, 1],
-            }}
-            transition={{
-              duration: 22,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-
-          <motion.div
-            className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(52,211,153,0.15) 0%, rgba(52,211,153,0) 60%)',
-              filter: 'blur(70px)',
-              willChange: 'transform',
-            }}
-            animate={{
-              x: [0, 30, -20, 0],
-              y: [0, -25, 15, 0],
-              scale: [1, 1.05, 0.95, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: 3,
-            }}
-          />
-        </>
+        <motion.div
+          className="absolute top-1/3 right-0 w-[500px] h-[500px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(29,158,117,0.15) 0%, rgba(29,158,117,0) 60%)',
+            filter: 'blur(50px)',
+            willChange: 'transform',
+          }}
+          animate={{
+            x: [0, -30, 20, 0],
+            y: [0, 20, -15, 0],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+        />
       )}
 
-      {/* Grille de points en overlay */}
+      {/* Grille de points */}
       {showGrid && (
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)',
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
             backgroundSize: '32px 32px',
             maskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, #000 30%, transparent 80%)',
             WebkitMaskImage: 'radial-gradient(ellipse 80% 50% at 50% 50%, #000 30%, transparent 80%)',
@@ -100,29 +59,20 @@ export default function AuroraBackground({
         />
       )}
 
-      {/* Beam lumineux qui traverse */}
+      {/* Beam lumineux */}
       {showBeam && (
         <motion.div
           className="absolute inset-y-0 w-32 -skew-x-12"
-          style={{
-            background: 'linear-gradient(90deg, transparent, rgba(46,184,138,0.08), transparent)',
-          }}
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(46,184,138,0.07), transparent)' }}
           animate={{ x: ['-20%', '120%'] }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            repeatDelay: 4,
-          }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', repeatDelay: 5 }}
         />
       )}
 
-      {/* Vignette pour ancrer le contenu */}
+      {/* Vignette */}
       <div
         className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse 100% 70% at 50% 50%, transparent 40%, rgba(10,10,11,0.6) 100%)',
-        }}
+        style={{ background: 'radial-gradient(ellipse 100% 70% at 50% 50%, transparent 40%, rgba(10,10,11,0.6) 100%)' }}
       />
     </div>
   );

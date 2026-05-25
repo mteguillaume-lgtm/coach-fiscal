@@ -14,7 +14,6 @@ import MagneticButton from '../components/motion/MagneticButton';
 import GlowCard from '../components/motion/GlowCard';
 import AuroraBackground from '../components/motion/AuroraBackground';
 import SpotlightCursor from '../components/motion/SpotlightCursor';
-import Grain from '../components/motion/Grain';
 import SplitText from '../components/motion/SplitText';
 
 const STORAGE_KEY = 'coachFiscal.state';
@@ -222,10 +221,7 @@ export default function Home() {
     <div className="bg-ink-900 text-ink-0 overflow-x-hidden">
 
       {/* SPOTLIGHT CURSEUR — halo qui suit la souris sur toute la page */}
-      <SpotlightCursor size={550} intensity={0.16} />
-
-      {/* GRAIN OVERLAY — texture noise subtile en fixed */}
-      <Grain opacity={0.025} />
+      <SpotlightCursor size={450} intensity={0.12} />
 
       {/* HERO */}
       <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden">
@@ -249,8 +245,6 @@ export default function Home() {
               src="/kapio-logo.png"
               alt="Kapio"
               className="relative w-40 h-40 sm:w-56 sm:h-56 mx-auto drop-shadow-2xl"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             />
           </motion.div>
 
@@ -355,8 +349,8 @@ export default function Home() {
         {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1, y: [0, 8, 0] }}
-          transition={{ opacity: { delay: 1.4 }, y: { duration: 2, repeat: Infinity, ease: 'easeInOut' } }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.4, duration: 0.6 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 text-ink-300"
         >
           <div className="w-5 h-8 border-2 border-ink-400 rounded-full flex justify-center pt-1.5">

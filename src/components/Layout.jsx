@@ -103,7 +103,7 @@ export default function Layout() {
       />
 
       {/* ─── Header desktop + mobile (logo + nav desktop uniquement) ─── */}
-      <header className="sticky top-0 z-30 bg-ink-900/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <header className="sticky top-0 z-30 bg-ink-900/95 backdrop-blur border-b border-white/[0.06]">
         <div className={headerInnerClass}>
           <KapioLogo />
 
@@ -201,7 +201,7 @@ export default function Layout() {
       )}
 
       {/* ─── Bottom tab bar mobile (cachée sur sm+) ─── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-ink-900/95 backdrop-blur-xl border-t border-white/[0.06]">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-ink-900 border-t border-white/[0.06]">
         <div className="flex items-center justify-around px-2 py-1">
           {NAV_LINKS.map(link => {
             const isActive = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
