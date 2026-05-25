@@ -15,6 +15,7 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     color-scheme: dark;
+    overflow-x: hidden;
   }
 
   body {
@@ -118,6 +119,7 @@
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     animation: shimmer 2.4s ease-in-out infinite;
     pointer-events: none;
+    will-change: transform;
   }
 
   /* ─── Conic gradient border (cards premium) ─── */

@@ -29,6 +29,7 @@ export default function AuroraBackground({
         style={{
           background: 'radial-gradient(circle, rgba(46,184,138,0.25) 0%, rgba(46,184,138,0) 60%)',
           filter: isTouch ? 'blur(40px)' : 'blur(60px)',
+          willChange: 'transform',
         }}
         animate={isTouch ? {} : {
           x: [0, 50, -30, 0],
@@ -50,6 +51,7 @@ export default function AuroraBackground({
             style={{
               background: 'radial-gradient(circle, rgba(29,158,117,0.2) 0%, rgba(29,158,117,0) 60%)',
               filter: 'blur(80px)',
+              willChange: 'transform',
             }}
             animate={{
               x: [0, -40, 30, 0],
@@ -68,6 +70,7 @@ export default function AuroraBackground({
             style={{
               background: 'radial-gradient(circle, rgba(52,211,153,0.15) 0%, rgba(52,211,153,0) 60%)',
               filter: 'blur(70px)',
+              willChange: 'transform',
             }}
             animate={{
               x: [0, 30, -20, 0],
