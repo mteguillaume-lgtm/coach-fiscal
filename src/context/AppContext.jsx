@@ -4,6 +4,29 @@ import { parseProfile } from '../lib/profileParser';
 const STORAGE_KEY = 'coachFiscal.state';
 const API_KEY_STORAGE = 'coachFiscal.apiKey';
 
+const COLLECT_PROFILE_DEFAULT = {
+  foyer: { statut: '', parts: 1, enfants: 0, enfantsGardeAlternee: 0 },
+  declarants: [
+    { id: 'D1', actif: true,  type: '' },
+    { id: 'D2', actif: false, type: '' },
+  ],
+  modules: {
+    salaires:             true,
+    fraisReels:           false,
+    foncier:              false,
+    immobilier:           false,
+    capitauxMobiliers:    false,
+    crypto:               false,
+    epargneSalariale:     false,
+    perVolontaire:        false,
+    pensionsAlimentaires: false,
+    creditsImpot:         false,
+    investissementsLocatifs: false,
+  },
+  onboardingDone: false,
+  expertMode:     false,
+};
+
 const initialState = {
   mode: 'solo',         // "solo" | "couple"
   model: 'sonnet',      // "sonnet" | "opus"
@@ -16,6 +39,7 @@ const initialState = {
   parsedProfile: {},     // résultat de parseProfile(profile) — toujours synchronisé
   chatHistory: [],       // [{ role: "user"|"assistant", content: "" }]
   perSimulation: { versementD1: 0, versementD2: 0 },
+  collectProfile: COLLECT_PROFILE_DEFAULT,
 };
 
 function reducer(state, action) {
@@ -46,6 +70,8 @@ function reducer(state, action) {
       return { ...state, chatHistory: [] };
     case 'SET_PER_SIMULATION':
       return { ...state, perSimulation: action.payload };
+    case 'SET_COLLECT_PROFILE':
+      return { ...state, collectProfile: { ...COLLECT_PROFILE_DEFAULT, ...action.payload } };
     case 'RESET':
     case 'RESET_ALL':
       return initialState;

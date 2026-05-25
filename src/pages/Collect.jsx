@@ -4,7 +4,9 @@ import toast              from 'react-hot-toast';
 import {
   ChevronDown, X, CheckCircle, AlertCircle, Loader2, ArrowLeft,
   Upload, Sparkles, Users, User, Home, TrendingUp, Scissors, Building2, FolderOpen,
+  Settings2, Eye,
 } from 'lucide-react';
+import OnboardingWizard from '../components/OnboardingWizard';
 
 import { useApp }                   from '../context/AppContext';
 import { analyzeDoc, mapExtracted } from '../lib/extractor';
@@ -100,8 +102,10 @@ const INCOME_UI = {
     dependsOn: { key: 'rente_1bs_montant', check: v => parseFloat(v || 0) > 0 } },
   foncier:              { label: 'Revenus fonciers (€)',                 ph: '0' },
   int_mob_2tr:          { label: 'Intérêts Livret+/mobiliers — case 2TR (€)', ph: '0',
+    requires: 'capitauxMobiliers',
     hint: "Intérêts d'un Livret bancaire, CTO ou produit hors Livret A/LDDS/LEP. Prérempli par la banque." },
   int_mob_2ck:          { label: 'PFU 12,8% déjà prélevé — case 2CK (€)',    ph: '0',
+    requires: 'capitauxMobiliers',
     dependsOn: { key: 'int_mob_2tr', check: v => parseFloat(v || 0) > 0 },
     hint: "Crédit d'impôt = PFU 12,8% prélevé à la source. Figurera en case 2CK." },
 };
@@ -155,10 +159,12 @@ const EP_INDIV_FIELDS = [
     dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
   { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
     dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
+  { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0', requires: 'perVolontaire' },
   { key: 'pee',                label: 'PEE — valorisation (€)',         type: 'number', ph: '0',
+    requires: 'epargneSalariale',
     hint: 'Plan d\'Épargne Entreprise. Gains exonérés d\'IR (PS 17,2 % seulement). Abondement employeur exonéré.' },
   { key: 'pee_verse',          label: 'PEE — versements salarié 2025 (€)', type: 'number', ph: '0',
+    requires: 'epargneSalariale',
     dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 },
     hint: 'Vos versements volontaires 2025 sur le PEE (hors abondement employeur et hors intéressement/participation déjà placés). Plafond légal : 25 % de votre rémunération annuelle brute. Ne réduisent PAS l\'IR (le PEE n\'est pas déductible) mais déterminent le plafond restant pour abondement employeur (3 fois votre versement, dans la limite de 8 % du PASS = ~3 770 € en 2025). Les gains à la sortie sont exonérés d\'IR (PS 17,2 % uniquement).' },
   { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
@@ -167,15 +173,19 @@ const EP_INDIV_FIELDS = [
   { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
     dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
     hint: 'Tous contrats AV de ce déclarant. Seuil 150 000 € (art. 125-0 A CGI).' },
-  { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
+  { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0', requires: 'crypto' },
   { key: 'crypto_plateforme',  label: 'Crypto — plateforme',           type: 'select',
+    requires: 'crypto',
     opts: ['Binance', 'Coinbase', 'Kraken', 'Ledger (hardware)', 'Plateforme française', 'Autre'],
     dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
   { key: 'crypto_cessions',    label: 'Cessions crypto 2025 ?',        type: 'select', opts: ['Non', 'Oui'],
+    requires: 'crypto',
     dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
   { key: 'crypto_montant_cede',label: 'Crypto — montant cédé (€)',     type: 'number', ph: '0',
+    requires: 'crypto',
     dependsOn: { key: 'crypto_cessions', value: 'Oui' } },
   { key: 'crypto_pv',          label: 'Crypto — plus-value estimée (€)', type: 'number', ph: '0',
+    requires: 'crypto',
     dependsOn: { key: 'crypto_cessions', value: 'Oui' }, compute: computeCryptoPv },
 ];
 
@@ -191,9 +201,11 @@ const PROFIL_INDIV_FIELDS = [
 
 const SECTION_REV_SOLO = {
   id: 'rev', Icon: TrendingUp, label: 'Revenus 2025', fields: [
-    ...pluginFields(['salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers'], EXCLUDE_REV),
-    { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0' },
-    { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0' },
+    ...pluginFields(['salaires', 'pensions-rentes'], EXCLUDE_REV),
+    ...pluginFields(['foncier-micro'],  EXCLUDE_REV).map(f => ({ ...f, requires: 'foncier' })),
+    ...pluginFields(['mobiliers'],      EXCLUDE_REV).map(f => ({ ...f, requires: 'capitauxMobiliers' })),
+    { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers' },
+    { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
   ],
 };
 
@@ -229,43 +241,49 @@ const SECTION_EP_SOLO = {
     { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
       dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
       hint: 'Tous vos contrats AV confondus. Seuil fiscal : 150 000 € (art. 125-0 A CGI). En dessous = taux 7,5 % IR post-8 ans. Au-delà = PFU 12,8 % sur la fraction excédentaire.' },
-    { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0' },
+    { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0', requires: 'perVolontaire' },
     { key: 'pee',                label: 'PEE — valorisation (€)',         type: 'number', ph: '0',
+      requires: 'epargneSalariale',
       hint: 'Plan d\'Épargne Entreprise. Gains exonérés d\'IR (PS 17,2 % seulement). Abondement employeur exonéré.' },
     { key: 'pee_verse',          label: 'PEE — versements salarié 2025 (€)', type: 'number', ph: '0',
+      requires: 'epargneSalariale',
       dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0' },
+    { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0', requires: 'crypto' },
     { key: 'crypto_plateforme',  label: 'Crypto — plateforme',           type: 'select',
+      requires: 'crypto',
       opts: ['Binance', 'Coinbase', 'Kraken', 'Ledger (hardware)', 'Plateforme française', 'Autre'],
       dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
     { key: 'crypto_cessions',    label: 'Cessions crypto 2025 ?',        type: 'select', opts: ['Non', 'Oui'],
+      requires: 'crypto',
       dependsOn: { key: 'crypto_wallet', check: v => parseFloat(v || 0) > 0 } },
     { key: 'crypto_montant_cede',label: 'Crypto — montant cédé (€)',     type: 'number', ph: '0',
+      requires: 'crypto',
       dependsOn: { key: 'crypto_cessions', value: 'Oui' } },
     { key: 'crypto_pv',          label: 'Crypto — plus-value estimée (€)', type: 'number', ph: '0',
+      requires: 'crypto',
       dependsOn: { key: 'crypto_cessions', value: 'Oui' }, compute: computeCryptoPv },
   ],
 };
 
 const SECTION_DED_SOLO = {
   id: 'ded', Icon: Scissors, label: 'Déductions', fields: [
-    { key: 'dons',     label: 'Dons associations (€)',                  type: 'number', ph: '0' },
-    { key: 'garde',    label: 'Frais garde enfants (€)',                type: 'number', ph: '0' },
-    { key: 'domicile', label: 'Emploi à domicile (€)',                  type: 'number', ph: '0' },
-    { key: 'travaux',  label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0' },
+    { key: 'dons',     label: 'Dons associations (€)',                  type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'garde',    label: 'Frais garde enfants (€)',                type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'domicile', label: 'Emploi à domicile (€)',                  type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'travaux',  label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0', requires: 'creditsImpot' },
     { key: 'frais_r',  label: 'Frais réels (€)',                        type: 'number', ph: 'vide = forfait 10%',
       hint: 'Vide = abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer.' },
-    { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
-    { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true },
+    { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', advanced: true, requires: 'epargneSalariale', hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
+    { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true, requires: 'pensionsAlimentaires' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
-    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true,
+    { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire',
       groupStart: {
         title: 'Plafonds PER reportés des années précédentes',
         hint: 'À remplir uniquement si vous n\'avez pas versé tout votre plafond PER les années précédentes. Visible sur la case 6PS / 6PT / 6PU de votre avis d\'imposition.',
       },
       hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
-    { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true },
-    { key: 'per_n3',      label: 'PER reportable N-3 (€)',      type: 'number', ph: '0', advanced: true },
+    { key: 'per_n2',   label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire' },
+    { key: 'per_n3',      label: 'PER reportable N-3 (€)',      type: 'number', ph: '0', advanced: true, requires: 'perVolontaire' },
     { key: 'acompte_8hw', label: 'Acompte IR — case 8HW (€)',  type: 'number', ph: '0', advanced: true,
       groupStart: {
         title: 'Acomptes IR / PS déjà versés en 2025',
@@ -278,30 +296,31 @@ const SECTION_DED_SOLO = {
 
 const SECTION_REV_FOYER = {
   id: 'rev_foyer', Icon: TrendingUp, label: 'Revenus du foyer', fields: [
-    ...pluginFields(['foncier-micro', 'mobiliers']),
-    { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0' },
-    { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0' },
+    ...pluginFields(['foncier-micro']).map(f => ({ ...f, requires: 'foncier' })),
+    ...pluginFields(['mobiliers']).map(f => ({ ...f, requires: 'capitauxMobiliers' })),
+    { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers' },
+    { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
   ],
 };
 
 const SECTION_DED = {
   id: 'ded', Icon: Scissors, label: 'Déductions du foyer', fields: [
-    { key: 'dons',         label: 'Dons associations (€)',                  type: 'number', ph: '0' },
-    { key: 'garde',        label: 'Frais garde enfants (€)',                type: 'number', ph: '0' },
-    { key: 'domicile',     label: 'Emploi à domicile (€)',                  type: 'number', ph: '0' },
-    { key: 'travaux',      label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0' },
-    { key: 'pero_d1',      label: 'PERO D1 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D1 disponible N+1.' },
-    { key: 'pero_d2',      label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
-    { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true },
+    { key: 'dons',         label: 'Dons associations (€)',                  type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'garde',        label: 'Frais garde enfants (€)',                type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'domicile',     label: 'Emploi à domicile (€)',                  type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'travaux',      label: 'Rénov. énergétique — MaPrimeRénov (€)', type: 'number', ph: '0', requires: 'creditsImpot' },
+    { key: 'pero_d1',      label: 'PERO D1 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, requires: 'epargneSalariale', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D1 disponible N+1.' },
+    { key: 'pero_d2',      label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, requires: 'epargneSalariale', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
+    { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true, requires: 'pensionsAlimentaires' },
     { key: 'syndicat',     label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
-    { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true,
+    { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire',
       groupStart: {
         title: 'Plafonds PER reportés des années précédentes',
         hint: 'À remplir uniquement si le foyer n\'a pas versé tout son plafond PER les années précédentes. Visible sur la case 6PS / 6PT / 6PU de votre avis d\'imposition 2024.',
       },
       hint: 'Plafond non utilisé 2024 — case 6PS de votre avis d\'imposition 2024.' },
-    { key: 'per_n2',       label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true },
-    { key: 'per_n3',       label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0', advanced: true },
+    { key: 'per_n2',       label: 'PER reportable N-2 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire' },
+    { key: 'per_n3',       label: 'PER reportable N-3 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire' },
     { key: 'acompte_8hw',  label: 'Acompte IR D1 — case 8HW (€)',          type: 'number', ph: '0', advanced: true,
       groupStart: {
         title: 'Acomptes IR / PS déjà versés en 2025',
@@ -348,6 +367,13 @@ function _fieldVisible(f, formData) {
   if (!f.dependsOn) return true;
   const depVal = formData?.[f.dependsOn.key];
   return f.dependsOn.check ? f.dependsOn.check(depVal) : depVal === f.dependsOn.value;
+}
+
+// Retourne false si le champ nécessite un module non activé (sauf en mode expert)
+function _moduleVisible(f, modules, expertMode) {
+  if (!f.requires || expertMode) return true;
+  const reqs = Array.isArray(f.requires) ? f.requires : [f.requires];
+  return reqs.some(r => modules[r]);
 }
 
 function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
@@ -408,13 +434,15 @@ function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
   );
 }
 
-function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAcc }) {
+function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAcc, modules = {}, expertMode = true, reason }) {
   const { Icon } = section;
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Filtre d'abord par module, puis par dependsOn
+  const modVisible = f => _moduleVisible(f, modules, expertMode);
   const passDep    = f => _fieldVisible(f, data);
-  const baseFields = section.fields.filter(f => passDep(f) && !f.advanced);
-  const advFields  = section.fields.filter(f => passDep(f) &&  f.advanced);
+  const baseFields = section.fields.filter(f => modVisible(f) && passDep(f) && !f.advanced);
+  const advFields  = section.fields.filter(f => modVisible(f) && passDep(f) &&  f.advanced);
   const advFilled  = advFields.filter(f => data[f.key] && data[f.key] !== '').length;
 
   // Si l'utilisateur a déjà rempli des cas particuliers, on les déplie d'office.
@@ -438,12 +466,17 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
       >
         <div className="flex items-center gap-3">
           <div className={[
-            'w-7 h-7 rounded-lg flex items-center justify-center transition-colors',
+            'w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0',
             open ? 'bg-teal-gradient text-white' : 'bg-gray-100 text-gray-400',
           ].join(' ')}>
             <Icon size={14} aria-hidden="true" />
           </div>
-          <span className="font-semibold text-sm text-gray-800">{section.label}</span>
+          <div>
+            <span className="font-semibold text-sm text-gray-800">{section.label}</span>
+            {reason && !expertMode && (
+              <p className="text-[10px] text-teal-500 leading-tight mt-0.5">{reason}</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-mono text-gray-400">{filled}/{countable.length}</span>
@@ -604,9 +637,11 @@ function UploadZone({ target, uploading, docs, onFiles, onRemove }) {
   );
 }
 
-function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAcc, setActiveAcc, uploading, docs, onFiles, onRemove }) {
-  const allFields = [...REV_FIELDS, ...EP_INDIV_FIELDS, ...PROFIL_INDIV_FIELDS];
-  const visible   = allFields.filter(f => _fieldVisible(f, data));
+function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAcc, setActiveAcc, uploading, docs, onFiles, onRemove, modules = {}, expertMode = true }) {
+  const visRevFields   = REV_FIELDS.filter(f => _moduleVisible(f, modules, expertMode));
+  const visEpFields    = EP_INDIV_FIELDS.filter(f => _moduleVisible(f, modules, expertMode));
+  const allFields      = [...visRevFields, ...visEpFields, ...PROFIL_INDIV_FIELDS];
+  const visible        = allFields.filter(f => _fieldVisible(f, data));
   const filled    = visible.filter(f => data[f.key] && data[f.key] !== '').length;
   const pct       = visible.length > 0 ? Math.round(filled / visible.length * 100) : 0;
   const id     = `d${num}`;
@@ -672,7 +707,7 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
             Revenus 2025
           </p>
           <div className="grid grid-cols-2 gap-3 mb-4">
-            {REV_FIELDS.map(f => (
+            {visRevFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
           </div>
@@ -680,7 +715,7 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
             Épargne individuelle
           </p>
           <div className="grid grid-cols-2 gap-3 mb-4">
-            {EP_INDIV_FIELDS.map(f => (
+            {visEpFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
           </div>
@@ -899,6 +934,34 @@ export default function Collect() {
   const [autoFilled, setAutoFilled] = useState({});
   const [autoF1,     setAutoF1]     = useState({});
   const [autoF2,     setAutoF2]     = useState({});
+
+  // collectProfile pilote le filtrage des champs et l'onboarding
+  const collectProfile = state.collectProfile || {};
+  const modules    = collectProfile.modules    || {};
+  const expertMode = collectProfile.expertMode || false;
+
+  // Afficher le wizard si : onboarding non fait ET pas mode expert ET pas de données existantes
+  const hasExistingData = Object.keys(state.formData || {}).length > 0 || !!state.profile;
+  const showWizard = !collectProfile.onboardingDone && !expertMode && !hasExistingData;
+
+  function handleWizardComplete(collected, mode, preFilledForm = {}) {
+    dispatch({ type: 'SET_COLLECT_PROFILE', payload: collected });
+    dispatch({ type: 'SET_MODE', payload: mode });
+    // Pré-remplir statut, parts, enfants depuis le wizard
+    setFormData(prev => ({ ...prev, ...preFilledForm }));
+  }
+
+  function handleWizardSkip() {
+    dispatch({ type: 'SET_COLLECT_PROFILE', payload: { ...collectProfile, expertMode: true, onboardingDone: true } });
+  }
+
+  function handleReconfigure() {
+    dispatch({ type: 'SET_COLLECT_PROFILE', payload: { ...collectProfile, onboardingDone: false, expertMode: false } });
+  }
+
+  function handleToggleExpert() {
+    dispatch({ type: 'SET_COLLECT_PROFILE', payload: { ...collectProfile, expertMode: !expertMode } });
+  }
 
   const handleChange   = (key, val) => { setFormData(p => ({ ...p, [key]: val })); setAutoFilled(p => { const n = { ...p }; delete n[key]; return n; }); };
   const handleD1Change = (key, val) => { setD1Data(p => ({ ...p, [key]: val }));   setAutoF1(p    => { const n = { ...p }; delete n[key]; return n; }); };
@@ -1173,22 +1236,38 @@ export default function Collect() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Collecte fiscale</h1>
         <p className="text-sm text-gray-500">
-          Upload tes documents anonymisés → l'IA extrait les chiffres → tu vérifies et génères ton profil.
+          {showWizard
+            ? 'Répondez à quelques questions pour personnaliser votre collecte.'
+            : 'Upload tes documents anonymisés → l\'IA extrait les chiffres → tu vérifies et génères ton profil.'}
         </p>
         <div className="flex gap-2 flex-wrap mt-2">
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-600 border border-teal-100">
             Fiscal 2025
           </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-600 border border-purple-100">
-            <Sparkles size={10} /> IA Auto-Fill
-          </span>
-          {isCouple && (
+          {!showWizard && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-600 border border-purple-100">
+              <Sparkles size={10} /> IA Auto-Fill
+            </span>
+          )}
+          {isCouple && !showWizard && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">
               <Users size={10} /> Mode couple
             </span>
           )}
         </div>
       </div>
+
+      {/* Wizard d'onboarding */}
+      {showWizard && (
+        <OnboardingWizard
+          initialMode={state.mode}
+          onComplete={handleWizardComplete}
+          onSkip={handleWizardSkip}
+        />
+      )}
+
+      {/* Contenu principal (masqué pendant le wizard) */}
+      {!showWizard && (<>
 
       {/* Import profil existant */}
       <input ref={importFileRef} type="file" accept=".txt" className="hidden" onChange={handleImportProfile} />
@@ -1227,6 +1306,30 @@ export default function Collect() {
             <strong className="text-amber-700">Marié(e) ou Pacsé(e) depuis 2024</strong> — déclaration commune obligatoire.
             Remplis les blocs D1 et D2 avec vos fiches de paie respectives.
           </span>
+        </div>
+      )}
+
+      {/* Barre de contrôle profil (onboarding fait) */}
+      {collectProfile.onboardingDone && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleToggleExpert}
+            className="flex items-center gap-1.5 text-xs font-medium border rounded-lg px-3 py-1.5 transition-colors bg-white border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-600"
+          >
+            <Eye size={12} />
+            {expertMode ? 'Afficher uniquement mon profil' : 'Afficher tous les champs'}
+          </button>
+          {!expertMode && (
+            <button
+              type="button"
+              onClick={handleReconfigure}
+              className="flex items-center gap-1.5 text-xs font-medium border rounded-lg px-3 py-1.5 transition-colors bg-white border-gray-200 text-gray-600 hover:border-purple-300 hover:text-purple-600"
+            >
+              <Settings2 size={12} />
+              Reconfigurer mon profil
+            </button>
+          )}
         </div>
       )}
 
@@ -1281,45 +1384,65 @@ export default function Collect() {
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-800 mb-3">Compléter / vérifier</h2>
 
-        <AccSection
-          section={SECTION_SIT}
-          data={formData}
-          onChange={handleChange}
-          autoFKeys={autoFilled}
-          {...accProps}
-        />
+        {/* Props partagés pour filtrage par module */}
+        {(() => {
+          const modProps = { modules, expertMode };
+          const immoReason = modules.foncier
+            ? 'Affiché car vous percevez des loyers ou revenus fonciers'
+            : 'Affiché car vous possédez un bien immobilier';
 
-        {!isCouple ? (
-          <>
-            <AccSection section={SECTION_PROFIL_SOLO} data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <AccSection section={SECTION_REV_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <CapaciteSection formData={formData} onChange={handleChange} isCouple={false} {...accProps} />
-            <AccSection section={SECTION_EP_SOLO}     data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <AccSection section={SECTION_DED_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-            <AccSection section={SECTION_IMMO}        data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} />
-          </>
-        ) : (
-          <>
-            <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-2 text-xs text-blue-700">
-              <Upload size={12} className="shrink-0 mt-0.5" />
-              <span>
-                <strong>Upload séparé par déclarant</strong> — dépose les fiches dans le bloc correspondant pour un auto-fill précis.
-              </span>
-            </div>
-            <DeclarantBlock
-              num={1} data={d1Data} onChange={handleD1Change} autoFKeys={autoF1}
-              uploadTarget="d1" {...accProps} {...uploadProps}
-            />
-            <DeclarantBlock
-              num={2} data={d2Data} onChange={handleD2Change} autoFKeys={autoF2}
-              uploadTarget="d2" {...accProps} {...uploadProps}
-            />
-            <AccSection section={SECTION_REV_FOYER} data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} />
-            <AccSection section={SECTION_DED}        data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} />
-            <CapaciteSection formData={formData} onChange={handleChange} d1Data={d1Data} d2Data={d2Data} isCouple={true} {...accProps} />
-            <AccSection section={SECTION_IMMO}       data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} />
-          </>
-        )}
+          return (
+            <>
+              <AccSection
+                section={SECTION_SIT}
+                data={formData}
+                onChange={handleChange}
+                autoFKeys={autoFilled}
+                {...accProps} {...modProps}
+              />
+
+              {!isCouple ? (
+                <>
+                  <AccSection section={SECTION_PROFIL_SOLO} data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
+                  <AccSection section={SECTION_REV_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
+                  <CapaciteSection formData={formData} onChange={handleChange} isCouple={false} {...accProps} />
+                  <AccSection section={SECTION_EP_SOLO}     data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
+                  <AccSection section={SECTION_DED_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
+                  {(expertMode || modules.immobilier || modules.foncier) && (
+                    <AccSection section={SECTION_IMMO} data={formData} onChange={handleChange} autoFKeys={autoFilled}
+                      reason={immoReason} {...accProps} {...modProps} />
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-2 text-xs text-blue-700">
+                    <Upload size={12} className="shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Upload séparé par déclarant</strong> — dépose les fiches dans le bloc correspondant pour un auto-fill précis.
+                    </span>
+                  </div>
+                  <DeclarantBlock
+                    num={1} data={d1Data} onChange={handleD1Change} autoFKeys={autoF1}
+                    uploadTarget="d1" {...accProps} {...uploadProps} {...modProps}
+                  />
+                  <DeclarantBlock
+                    num={2} data={d2Data} onChange={handleD2Change} autoFKeys={autoF2}
+                    uploadTarget="d2" {...accProps} {...uploadProps} {...modProps}
+                  />
+                  {(expertMode || modules.foncier || modules.capitauxMobiliers || modules.crypto) && (
+                    <AccSection section={SECTION_REV_FOYER} data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} {...modProps} />
+                  )}
+                  <AccSection section={SECTION_DED} data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} {...modProps} />
+                  <CapaciteSection formData={formData} onChange={handleChange} d1Data={d1Data} d2Data={d2Data} isCouple={true} {...accProps} />
+                  {(expertMode || modules.immobilier || modules.foncier) && (
+                    <AccSection section={SECTION_IMMO} data={formData} onChange={handleChange} autoFKeys={{}}
+                      reason={immoReason} {...accProps} {...modProps} />
+                  )}
+                </>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Generate CTA */}
@@ -1337,6 +1460,8 @@ export default function Collect() {
           <ArrowLeft size={14} /> Retour à l&apos;anonymisation
         </Button>
       </div>
+
+      </>)}
 
     </div>
   );
