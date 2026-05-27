@@ -155,14 +155,14 @@ export default function Profile() {
       return;
     }
     setEnriching(true);
-    toast('Analyse en cours avec Claude Sonnet…', { icon: '🤖' });
+    toast('Analyse approfondie avec Claude Opus 4.7…', { icon: '🔮' });
     try {
-      const skills = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation');
-      const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'sonnet' });
+      const skills = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation transmission succession');
+      const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'opus' });
       let enrichedText = '';
       await chatWithClaude({
         apiKey,
-        model: 'sonnet',
+        model: 'opus',
         system,
         messages: [{ role: 'user', content: ENRICHMENT_PROMPT }],
         onChunk: chunk => { enrichedText += chunk; },

@@ -1,47 +1,93 @@
 // Wrapper Anthropic API — streaming SSE avec fallback non-streaming.
 
 const MODELS = {
-  haiku:  'claude-haiku-4-5',
-  sonnet: 'claude-sonnet-4-6',
-  opus:   'claude-opus-4-7',
+  haiku:  'claude-haiku-4-5-20251001',  // rapide, ~50× moins cher qu'Opus
+  sonnet: 'claude-sonnet-4-6',           // équilibré — défaut recommandé
+  opus:   'claude-opus-4-7',             // meilleur raisonnement complexe
 };
 
-// ─── Détection de complexité ──────────────────────────────────────────────────
+// Tokens max adaptés à chaque modèle (économie + qualité)
+const MAX_TOKENS = {
+  haiku:  4096,   // réponses courtes, définitions, calculs simples
+  sonnet: 8192,   // analyse intermédiaire, optimisation mono-sujet
+  opus:   16000,  // stratégie patrimoniale, plans multi-axes
+};
 
-const HAIKU_KEYWORDS  = ["c'est quoi", 'définition', 'quel est le taux', 'explique moi', 'explique-moi', 'kesako', "c'est combien"];
-const SONNET_KEYWORDS = ['optimise', 'compare', 'stratégie', 'recommande', 'simulation', 'meilleur'];
-const OPUS_KEYWORDS   = ['plan complet', 'stratégie globale', 'sur 10 ans', 'transmission patrimoine', 'optimisation complète', 'bilan complet', 'restructure', 'arbitrage global'];
+// ─── Détection de complexité — scoring cumulatif ────────────────────────────
+
+const KW_SIMPLE = [
+  "c'est quoi", "qu'est-ce", 'définition', 'quel est le taux', 'quel taux',
+  'explique', "c'est combien", 'kesako', 'kézako', 'comment ça marche',
+  'vite fait', 'résumé', 'en 2 mots',
+];
+const KW_MEDIUM = [
+  'optimise', 'compare', 'stratégie', 'recommande', 'simulation',
+  'meilleur', 'analyse', 'calcule', 'que faire', 'vaut mieux',
+  'avantage', 'inconvénient', 'différence entre',
+];
+const KW_COMPLEX = [
+  'plan complet', 'stratégie globale', 'sur 10 ans', 'sur 20 ans',
+  'transmission patrimoine', 'optimisation complète', 'bilan complet',
+  'restructure', 'arbitrage global', 'succession', 'tout optimiser',
+  'vue globale', 'scénarios', 'multi-actifs', 'démembrement',
+  'donation', 'héritage', 'SCI', 'holding',
+];
 
 /**
- * Détermine le modèle optimal pour un message donné.
+ * Détermine le modèle optimal pour une question donnée.
+ * Score cumulatif : longueur + mots-clés + nombre de skills activés.
+ *
+ * score < 1  → haiku  (questions simples, définitions, taux ponctuels)
+ * score 1–3  → sonnet (optimisation mono-sujet, analyse comparative)
+ * score ≥ 4  → opus   (stratégie patrimoniale multi-axes, plans longs)
+ *
  * @param {string}   userMessage
  * @param {string[]} skills  — liste retournée par detectRelevantSkills
  * @returns {{ model: 'haiku'|'sonnet'|'opus', reason: string }}
  */
 export function detectComplexity(userMessage, skills = []) {
   const lower      = userMessage.toLowerCase();
-  const len        = userMessage.length;
+  const len        = userMessage.trim().length;
   const specialized = skills.filter(s => s !== 'gcp');
   const sc         = specialized.length;
 
+  let score = 0;
+
+  // Longueur du message
+  if      (len >= 280) score += 3;
+  else if (len >= 160) score += 2;
+  else if (len >= 80)  score += 1;
+  else if (len <  55)  score -= 2;
+  else                 score -= 1;
+
+  // Mots-clés
+  if (KW_SIMPLE.some(kw => lower.includes(kw)))  score -= 2;
+  if (KW_MEDIUM.some(kw => lower.includes(kw)))  score += 1;
+  if (KW_COMPLEX.some(kw => lower.includes(kw))) score += 3;
+
+  // Nombre de skills spécialisés activés
+  if      (sc >= 3) score += 2;
+  else if (sc >= 2) score += 1;
+  else if (sc === 0) score -= 1;
+
   let model, reason;
+  if      (score >= 4) { model = 'opus';   reason = `score +${score}`; }
+  else if (score >= 1) { model = 'sonnet'; reason = `score +${score}`; }
+  else                  { model = 'haiku';  reason = `score ${score}`; }
 
-  if (len > 200 || sc >= 3 || OPUS_KEYWORDS.some(kw => lower.includes(kw))) {
-    model  = 'opus';
-    reason = len > 200 ? `${len} chars` : sc >= 3 ? `${sc} skills spécialisés` : 'mot-clé complexe';
-  } else if (len < 60 || sc <= 1 || HAIKU_KEYWORDS.some(kw => lower.includes(kw))) {
-    model  = 'haiku';
-    reason = len < 60 ? `${len} chars` : sc <= 1 ? `${sc} skill spécialisé` : 'mot-clé simple';
-  } else {
-    model  = 'sonnet';
-    reason = SONNET_KEYWORDS.some(kw => lower.includes(kw)) ? 'mot-clé intermédiaire' : `${len} chars, ${sc} skills`;
-  }
-
-  console.log(`Modèle : ${model} — Skills : ${skills.length} — Longueur : ${len} chars — Raison : ${reason}`);
+  console.log(
+    `[Kapio Model] ${model.toUpperCase()} (score ${score >= 0 ? '+' : ''}${score})` +
+    ` — ${len}c · ${sc} skills · max_tokens ${MAX_TOKENS[model]}`
+  );
   return { model, reason };
 }
+
 const API_URL = 'https://api.anthropic.com/v1/messages';
 
+/**
+ * Appel Claude en streaming. Le modèle est sélectionné par la clé `model`
+ * ('haiku'|'sonnet'|'opus') — max_tokens adapté automatiquement.
+ */
 export async function chatWithClaude({ apiKey, messages, system, onChunk, model = 'sonnet' }) {
   let res;
   try {
@@ -55,17 +101,16 @@ export async function chatWithClaude({ apiKey, messages, system, onChunk, model 
       },
       body: JSON.stringify({
         model:      MODELS[model] ?? MODELS.sonnet,
-        max_tokens: 16000,
+        max_tokens: MAX_TOKENS[model] ?? MAX_TOKENS.sonnet,
         system,
         messages,
-        stream:     true,
+        stream: true,
       }),
     });
   } catch (networkErr) {
     throw new Error(`Pas de connexion — l'étape Conseil nécessite internet. (${networkErr.message})`);
   }
 
-  // Erreurs HTTP avant le début du stream
   if (!res.ok) {
     let errMsg = `HTTP ${res.status}`;
     try {
@@ -80,12 +125,11 @@ export async function chatWithClaude({ apiKey, messages, system, onChunk, model 
     throw new Error(`Erreur API Claude (${res.status}) : ${errMsg}`);
   }
 
-  // Streaming via ReadableStream (tous les navigateurs modernes)
   if (res.body?.getReader) {
     return readStream(res.body, onChunk);
   }
 
-  // Fallback non-streaming (obsolète, sécurité)
+  // Fallback non-streaming
   const data = await res.json();
   const text = data.content?.find(b => b.type === 'text')?.text ?? '';
   onChunk?.(text);
@@ -107,7 +151,6 @@ async function readStream(body, onChunk) {
 
       buffer += decoder.decode(value, { stream: true });
 
-      // Découper par lignes — garder la ligne incomplète en buffer
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';
 
@@ -119,14 +162,12 @@ async function readStream(body, onChunk) {
         let event;
         try { event = JSON.parse(raw); } catch { continue; }
 
-        // Erreur renvoyée dans le stream
         if (event.type === 'error') {
           throw new Error(event.error?.message ?? 'Erreur dans le stream Anthropic');
         }
 
-        // Fragment de texte
         if (
-          event.type   === 'content_block_delta' &&
+          event.type === 'content_block_delta' &&
           event.delta?.type === 'text_delta'
         ) {
           const chunk = event.delta.text;

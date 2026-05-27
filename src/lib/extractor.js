@@ -1,7 +1,8 @@
 // Extraction IA de données fiscales depuis un document (PDF ou image).
 // Port de analyzeDoc() + mapExtracted() depuis collecte-fiscal-v3.jsx.
 
-const MODEL = 'claude-sonnet-4-5'; // cf. 03_ARCHITECTURE.md §6
+// Extraction structurée simple → Haiku (rapide + économique, pas besoin de raisonnement)
+const MODEL = 'claude-haiku-4-5-20251001';
 
 const PROMPT = `Tu es expert fiscal français. Analyse ce document (bulletin de salaire ou avis d'imposition).
 

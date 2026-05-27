@@ -228,9 +228,16 @@ export default function Chat() {
 
   const MODEL_RANK = { haiku: 0, sonnet: 1, opus: 2 };
 
+  // Logique de sélection adaptative :
+  //   auto   → purement piloté par detectComplexity (haiku/sonnet/opus)
+  //   sonnet → au moins sonnet, mais monte en opus si question complexe
+  //   opus   → toujours opus, peu importe la question
   const effectiveModel = useMemo(() => {
     const auto = inputComplexity?.model || 'haiku';
-    return MODEL_RANK[auto] >= MODEL_RANK[state.model] ? auto : state.model;
+    if (state.model === 'auto')   return auto;
+    if (state.model === 'opus')   return 'opus';
+    // sonnet → floor sonnet, escalade vers opus si score suffisant
+    return MODEL_RANK[auto] > MODEL_RANK['sonnet'] ? 'opus' : 'sonnet';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputComplexity, state.model]);
 
@@ -451,17 +458,36 @@ export default function Chat() {
             </AnimatePresence>
           </div>
 
-          {/* Toggle modèle */}
+          {/* Toggle modèle adaptatif */}
           <div className="flex items-center rounded-xl border border-white/[0.06] bg-ink-700/60 backdrop-blur-sm p-0.5 gap-0.5 shrink-0">
             {[
-              { key: 'sonnet', label: 'Sonnet', Icon: Zap,      activeClass: 'bg-kapio-gradient text-ink-900 shadow-glow-soft' },
-              { key: 'opus',   label: 'Opus',   Icon: Sparkles, activeClass: 'bg-violet-600 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)]' },
-            ].map(({ key, label, Icon, activeClass }) => (
+              {
+                key: 'auto',
+                label: 'Auto',
+                Icon: Bot,
+                activeClass: 'bg-emerald-600/90 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]',
+                title: 'Adaptatif — Haiku / Sonnet / Opus selon la question',
+              },
+              {
+                key: 'sonnet',
+                label: 'Sonnet',
+                Icon: Zap,
+                activeClass: 'bg-kapio-gradient text-ink-900 shadow-glow-soft',
+                title: 'Sonnet 4.6 minimum (monte en Opus si complexe)',
+              },
+              {
+                key: 'opus',
+                label: 'Opus',
+                Icon: Sparkles,
+                activeClass: 'bg-violet-600 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)]',
+                title: 'Opus 4.7 — toujours le meilleur modèle',
+              },
+            ].map(({ key, label, Icon, activeClass, title }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => dispatch({ type: 'SET_MODEL', payload: key })}
-                title={`Modèle ${label}`}
+                title={title}
                 className={
                   'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-300 ' +
                   (state.model === key ? activeClass : 'text-ink-200 hover:text-ink-0')
@@ -661,7 +687,7 @@ export default function Chat() {
                     </motion.div>
                   </div>
 
-                  {/* Badge modèle */}
+                  {/* Badge modèle utilisé */}
                   {msg.role === 'assistant' && !msg.streaming && msg.content ? (
                     <motion.span
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -671,16 +697,16 @@ export default function Chat() {
                         'ml-11 text-[10px] font-bold px-2 py-0.5 rounded-full border ' +
                         (
                           !msg.model || msg.model === 'haiku'
-                            ? 'bg-ink-700 text-ink-100 border-white/[0.08]'
+                            ? 'bg-ink-700 text-ink-200 border-white/[0.08]'
                             : msg.model === 'sonnet'
                               ? 'bg-kapio-500/[0.12] text-kapio-300 border-kapio-500/30'
                               : 'bg-violet-500/[0.12] text-violet-400 border-violet-500/30'
                         )
                       }
                     >
-                      {(!msg.model || msg.model === 'haiku') ? '⚡ Haiku' : null}
-                      {msg.model === 'sonnet' ? '🧠 Sonnet' : null}
-                      {msg.model === 'opus' ? '🔮 Opus' : null}
+                      {(!msg.model || msg.model === 'haiku') ? '⚡ Haiku 4.5' : null}
+                      {msg.model === 'sonnet' ? '🧠 Sonnet 4.6' : null}
+                      {msg.model === 'opus'   ? '🔮 Opus 4.7'   : null}
                     </motion.span>
                   ) : null}
                 </motion.div>
@@ -694,23 +720,20 @@ export default function Chat() {
         <div className="shrink-0 glass-darker border-t border-white/[0.05] px-4 pt-3 pb-4">
           <div className="max-w-2xl mx-auto flex flex-col gap-2">
 
-            {/* Bannière Opus */}
+            {/* Bannière d'escalade Opus (auto-upgrade uniquement) */}
             <AnimatePresence>
-              {inputComplexity?.model === 'opus' && input.trim() ? (
+              {effectiveModel === 'opus' && state.model !== 'opus' && input.trim() ? (
                 <motion.div
                   initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.95 }}
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   className="relative rounded-xl border border-violet-500/40 px-4 py-3 flex flex-col gap-2.5 overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%)',
-                  }}
+                  style={{ background: 'linear-gradient(145deg, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 100%)' }}
                 >
-                  {/* Border conique animée */}
                   <div
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-xl pointer-events-none opacity-50"
+                    className="absolute inset-0 rounded-xl pointer-events-none opacity-40"
                     style={{
                       background: 'conic-gradient(from 0deg, transparent 0%, rgba(139,92,246,0.4) 25%, transparent 50%, rgba(139,92,246,0.2) 75%, transparent 100%)',
                       animation: 'spin 8s linear infinite',
@@ -720,14 +743,12 @@ export default function Chat() {
                       padding: '1px',
                     }}
                   />
-
                   <div className="relative">
                     <p className="text-sm font-bold text-violet-400">
-                      🔮 Question complexe détectée
+                      🔮 Opus 4.7 activé automatiquement
                     </p>
                     <p className="text-xs text-violet-300/80 mt-0.5 leading-relaxed">
-                      Notre meilleur modèle sera utilisé.<br />
-                      Coût estimé : ~0,05–0,10 $ sur votre crédit API.
+                      Question complexe détectée ({inputComplexity?.reason}) · ~0,05–0,10 $ sur votre crédit API.
                     </p>
                   </div>
                   <div className="relative flex items-center gap-2">
@@ -737,7 +758,7 @@ export default function Chat() {
                       disabled={streaming}
                       className="px-3 py-1.5 text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
-                      Envoyer quand même
+                      Envoyer avec Opus
                     </button>
                     <button
                       type="button"
@@ -745,9 +766,41 @@ export default function Chat() {
                       disabled={streaming}
                       className="px-3 py-1.5 text-xs font-medium text-violet-400 bg-white/[0.04] border border-violet-500/30 hover:bg-violet-500/10 rounded-lg transition-colors disabled:opacity-50"
                     >
-                      Simplifier
+                      Forcer Sonnet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSend('haiku')}
+                      disabled={streaming}
+                      className="px-3 py-1.5 text-xs font-medium text-ink-300 bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.05] rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      ⚡ Haiku
                     </button>
                   </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+
+            {/* Indicateur de modèle actif (mode Auto) */}
+            <AnimatePresence>
+              {state.model === 'auto' && input.trim() && effectiveModel !== 'opus' ? (
+                <motion.div
+                  key={effectiveModel}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-1.5 px-2 py-1"
+                >
+                  <span className={
+                    'text-[10px] font-semibold px-2 py-0.5 rounded-full border ' +
+                    (effectiveModel === 'haiku'
+                      ? 'bg-ink-700/60 text-ink-300 border-white/[0.08]'
+                      : 'bg-kapio-500/[0.10] text-kapio-300 border-kapio-500/20')
+                  }>
+                    {effectiveModel === 'haiku' ? '⚡ Haiku · ~< 0,01 $' : '🧠 Sonnet · ~0,01–0,03 $'}
+                  </span>
+                  <span className="text-[10px] text-ink-400">adaptatif</span>
                 </motion.div>
               ) : null}
             </AnimatePresence>

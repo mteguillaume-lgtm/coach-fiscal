@@ -29,7 +29,7 @@ const COLLECT_PROFILE_DEFAULT = {
 
 const initialState = {
   mode: 'solo',         // "solo" | "couple"
-  model: 'sonnet',      // "sonnet" | "opus"
+  model: 'auto',        // "auto" | "sonnet" | "opus"  — auto = adaptatif par complexité
   formData: {},          // données foyer (formulaire collecte)
   d1Data: {},            // déclarant 1 (mode couple)
   d2Data: {},            // déclarant 2 (mode couple)
