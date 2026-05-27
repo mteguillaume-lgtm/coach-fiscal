@@ -198,7 +198,8 @@ export default function Chat() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!state.profile) {
+      // En mode démo, le profil est déjà chargé — pas de redirection
+      if (!state.profile && !state.isDemo) {
         toast.error('Génère ton profil fiscal avant de démarrer le conseil.');
         navigate('/collect', { replace: true });
       }
@@ -236,6 +237,10 @@ export default function Chat() {
   const handleSend = useCallback(async (forceModel = null) => {
     const text = input.trim();
     if (!text || streaming) return;
+    if (state.isDemo) {
+      toast.error('Mode démo — entrez une clé API dans Paramètres pour utiliser le chat.');
+      return;
+    }
     const apiKey = getApiKey();
     if (!apiKey) { toast.error('Clé API manquante.'); return; }
 
@@ -500,6 +505,30 @@ export default function Chat() {
         <div className="shrink-0 px-4 pt-3">
           <PERBandeau />
         </div>
+
+        {/* Bandeau mode démo */}
+        {state.isDemo && (
+          <div className="shrink-0 mx-4 mt-3 rounded-xl border border-violet-500/30 bg-violet-500/[0.07] px-4 py-3 flex items-start gap-3">
+            <span className="text-base shrink-0 mt-px" aria-hidden="true">🎭</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-violet-200">Mode démo</p>
+              <p className="text-xs text-violet-300/80 mt-0.5 leading-relaxed">
+                Le chat IA n'est pas disponible sans clé API Anthropic.
+                Vous pouvez parcourir l'interface et consulter le profil de démonstration.
+              </p>
+              <p className="text-xs text-violet-400 mt-1.5">
+                Pour activer le chat :{' '}
+                <button
+                  type="button"
+                  onClick={() => { dispatch({ type: 'EXIT_DEMO' }); navigate('/setup'); }}
+                  className="underline underline-offset-2 hover:text-violet-200 transition-colors font-medium"
+                >
+                  configurer une clé API →
+                </button>
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">

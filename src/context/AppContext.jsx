@@ -43,6 +43,9 @@ const initialState = {
   // Dev fixtures
   isFixture: false,          // true quand un profil de test est actif
   userProfileBackup: null,   // sauvegarde du vrai profil avant chargement fixture
+  // Demo mode
+  isDemo: false,             // true quand le mode démo est actif
+  demoBackup: null,          // sauvegarde de l'état avant entrée en démo
 };
 
 function reducer(state, action) {
@@ -95,6 +98,35 @@ function reducer(state, action) {
         parsedProfile: parseProfile(restored),
         isFixture: false,
         userProfileBackup: null,
+      };
+    }
+    // ── Mode démo ────────────────────────────────────────────────────────────
+    case 'ENTER_DEMO': {
+      return {
+        ...state,
+        profile: action.payload,
+        parsedProfile: parseProfile(action.payload),
+        isDemo: true,
+        demoBackup: {
+          profile:  state.profile  || '',
+          formData: state.formData || {},
+          d1Data:   state.d1Data   || {},
+          d2Data:   state.d2Data   || {},
+        },
+      };
+    }
+    case 'EXIT_DEMO': {
+      const bk = state.demoBackup || {};
+      const restored = bk.profile || '';
+      return {
+        ...state,
+        profile:       restored,
+        parsedProfile: restored ? parseProfile(restored) : {},
+        formData:      bk.formData || {},
+        d1Data:        bk.d1Data   || {},
+        d2Data:        bk.d2Data   || {},
+        isDemo:        false,
+        demoBackup:    null,
       };
     }
     // ────────────────────────────────────────────────────────────────────────

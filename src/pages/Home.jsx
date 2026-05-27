@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import DEMO_PROFILE from '../lib/__tests__/fixtures/profil-fiscal-ref.txt?raw';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, ShieldCheck, Lock, Sparkles, Bot, FileSearch,
@@ -217,6 +218,11 @@ export default function Home() {
     navigate('/setup');
   };
 
+  const handleDemo = () => {
+    dispatch({ type: 'ENTER_DEMO', payload: DEMO_PROFILE });
+    navigate('/dashboard');
+  };
+
   return (
     <div className="bg-ink-900 text-ink-0 overflow-x-hidden">
 
@@ -320,6 +326,22 @@ export default function Home() {
                 Voir comment ça marche
               </MagneticButton>
             )}
+          </motion.div>
+
+          {/* Lien démo — discret, sous les CTAs */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.8 }}
+            className="flex justify-center mb-8"
+          >
+            <button
+              onClick={handleDemo}
+              className="inline-flex items-center gap-2 text-xs text-ink-300 hover:text-kapio-300 px-4 py-2 rounded-full border border-white/[0.07] hover:border-kapio-500/40 bg-white/[0.02] hover:bg-kapio-900/20 transition-all duration-200"
+            >
+              <Eye size={12} />
+              Voir une démo interactive (sans clé API)
+            </button>
           </motion.div>
 
           {/* Trust pills */}

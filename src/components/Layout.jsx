@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { GitFork, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw, Lock, FlaskConical } from 'lucide-react';
+import { GitFork, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw, Lock, FlaskConical, Eye } from 'lucide-react';
 import Stepper from './Stepper';
 import { useApp } from '../context/AppContext';
 
@@ -104,8 +104,23 @@ export default function Layout() {
 
       {/* ─── Header desktop + mobile (logo + nav desktop uniquement) ─── */}
       <header className="sticky top-0 z-30 bg-ink-900/95 backdrop-blur border-b border-white/[0.06]">
+        {/* Bandeau démo */}
+        {state.isDemo && (
+          <div className="bg-violet-600 text-white text-xs font-semibold flex items-center justify-center gap-3 py-1.5 px-4">
+            <Eye size={13} className="shrink-0" aria-hidden="true" />
+            <span>Mode démo — données fictives · fonctionnalités IA désactivées</span>
+            <button
+              type="button"
+              onClick={() => { dispatch({ type: 'EXIT_DEMO' }); navigate('/'); }}
+              className="underline underline-offset-2 hover:no-underline transition-all"
+            >
+              Quitter la démo
+            </button>
+          </div>
+        )}
+
         {/* Bandeau fixture (dev uniquement) */}
-        {state.isFixture && (
+        {!state.isDemo && state.isFixture && (
           <div className="bg-red-600 text-white text-xs font-semibold flex items-center justify-center gap-3 py-1.5 px-4">
             <FlaskConical size={13} className="shrink-0" aria-hidden="true" />
             <span>Profil de test chargé — données réelles non modifiées</span>

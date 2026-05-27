@@ -301,7 +301,7 @@ function RevenusTable({ d, p }) {
   );
 
   return (
-    <SectionBox title={d.isCouple ? 'Revenus 2025 — D1 & D2' : 'Revenus 2025'}>
+    <SectionBox title={d.isCouple ? 'Revenus 2025 — D1 & D2' : 'Revenus 2025'} num="02a">
       <Tbl>
         <thead>
           <tr>
@@ -403,7 +403,7 @@ function EpargneTable({ p }) {
   const totalD2 = rows.reduce((s, r) => s + (r.d2 || 0), 0);
 
   return (
-    <SectionBox title="Épargne & placements">
+    <SectionBox title="Épargne & placements" num="02b">
       <Tbl>
         <thead>
           <tr>
@@ -467,7 +467,7 @@ function PatrimoineDesequilibreBlock({ p }) {
 
 function RniTable({ d, p = {} }) {
   return (
-    <SectionBox title="Étape 1 — Du brut imposable au revenu net imposable (RNI)">
+    <SectionBox title="Étape 1 — Du brut imposable au revenu net imposable (RNI)" num="03a">
       <Tbl>
         <thead>
           <tr>
@@ -608,7 +608,7 @@ function BaremeTable({ d }) {
   const label0 = `Quotient familial = ${e2(d.rniFoyer)} ÷ ${parts} part${parts > 1 ? 's' : ''} = ${e2(quotient)} par part`;
 
   return (
-    <SectionBox title="Étape 2 — Barème progressif appliqué au quotient familial">
+    <SectionBox title="Étape 2 — Barème progressif appliqué au quotient familial" num="03b">
       <div className="px-5 py-2.5 text-xs text-gray-500 bg-gray-50/50 border-b border-gray-100">
         {label0}
       </div>
@@ -676,7 +676,7 @@ function IRParDeclarantTable({ d }) {
   const findStep = (steps, rate) => steps.find(s => Math.abs(s.rate - rate) < 1e-6);
 
   return (
-    <SectionBox title="Détail du calcul d'IR par déclarant (1 part chacun, méthode célibataire)">
+    <SectionBox title="Détail du calcul d'IR par déclarant (1 part chacun, méthode célibataire)" num="03c">
       <div className="px-5 py-2.5 text-xs text-gray-500 bg-gray-50/50 border-b border-gray-100">
         Application du barème progressif à chaque RNI individuel, comme si chacun déclarait seul.
         Sert de référence pour le partage équitable du gain PACS dans la section suivante.
@@ -781,7 +781,7 @@ function SoldeTable({ d, cehr = 0 }) {
   const isRemb = solde <= 0;
 
   return (
-    <SectionBox title="Étape 3 — IR foyer et solde">
+    <SectionBox title="Étape 3 — IR foyer et solde" num="03d">
       <Tbl>
         <tbody>
           <tr>
@@ -854,7 +854,7 @@ function GainPacsTable({ d }) {
   const isRemb = solde <= 0;
 
   return (
-    <SectionBox title="Partage équitable du gain PACS — qui paie quoi">
+    <SectionBox title="Partage équitable du gain PACS — qui paie quoi" num="03e">
       <div className="px-5 py-2 text-[11px] text-gray-500 bg-gray-50/50 border-b border-gray-100">
         On compare l'IR réel (en couple, 2 parts) à ce que chacun paierait en célibataire (1 part).
         L'écart = gain du quotient familial, partagé 50 / 50.
@@ -989,19 +989,9 @@ function PerZonesBlock({ p, d, perSim }) {
   const simD2 = perSim?.versementD2 || 0;
   const hasSimState = (simD1 + simD2) > 0;
 
-  const moduleHeader = (
-    <div className="rp-section-header flex items-center gap-2 px-5 py-3 bg-teal-700 border-b border-teal-600">
-      <h3 className="text-sm font-bold text-white">
-        <span className="rp-module-num font-mono mr-2 opacity-70">04a</span>
-        Stratégie PER — Optimum fiscal par tranche
-      </h3>
-    </div>
-  );
-
   if (opt.tmiDepart <= 11) {
     return (
-      <div className="rp-module rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
-        {moduleHeader}
+      <SectionBox title="Stratégie PER — Optimum fiscal par tranche" num="04a">
         <div className="p-5">
           <p className="text-xs text-gray-700">
             <strong>TMI foyer = {d.tmi}&nbsp;%</strong> — PER non recommandé.
@@ -1009,13 +999,12 @@ function PerZonesBlock({ p, d, perSim }) {
             Privilégier : PEA (exonération plus-values après 5 ans), assurance-vie (fiscalité allégée après 8 ans) ou livrets garantis.
           </p>
         </div>
-      </div>
+      </SectionBox>
     );
   }
 
   return (
-    <div className="rp-module rounded-2xl border border-teal-200 overflow-hidden shadow-sm print:shadow-none">
-      {moduleHeader}
+    <SectionBox title="Stratégie PER — Optimum fiscal par tranche" num="04a">
       <div className="p-4 flex flex-col gap-3">
 
         {/* Zones prioritaires */}
@@ -1137,7 +1126,7 @@ function PerZonesBlock({ p, d, perSim }) {
         )}
 
       </div>
-    </div>
+    </SectionBox>
   );
 }
 
@@ -1189,50 +1178,47 @@ function PerScenariosTable({ p, d }) {
   const bestScen = scenarios.reduce((best, s) => s.economie > best.economie ? s : best, scenarios[0]);
 
   return (
-    <div className="rp-module rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
-      <div className="rp-section-header flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
-        <h3 className="text-sm font-bold text-gray-800">
-          <span className="rp-module-num text-teal-600 font-mono mr-2">04b</span>
-          Comparaison de scénarios PER — barème réel 2025
-        </h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr>
-              <Th wide>Scénario</Th>
-              <Th right>Versement</Th>
-              <Th right>IR après</Th>
-              <Th right>Économie</Th>
-              <Th right>Effort net</Th>
-              <Th right>Rendement</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {scenarios.map((s, i) => {
-              const isBest = s.label === bestScen.label && i > 0;
-              return (
-                <tr key={i} className={isBest ? 'bg-teal-50/50' : i === 0 ? 'bg-gray-50/40' : ''}>
-                  <td className="px-4 py-2.5 border-b border-gray-50">
-                    <span className={`font-semibold ${isBest ? 'text-teal-800' : 'text-gray-800'}`}>{s.label}</span>
-                    <span className="text-gray-400 ml-2 text-[10px]">{s.desc}</span>
-                    {isBest && <span className="ml-2 text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-semibold">Optimal</span>}
-                  </td>
-                  <Td right muted={s.versement === 0}>{s.versement > 0 ? e0(s.versement) : '—'}</Td>
-                  <Td right>{e0(s.irApres)}</Td>
-                  <Td right plus={s.economie > 0} bold={isBest}>{s.economie > 0 ? e0(s.economie) : '—'}</Td>
-                  <Td right muted={s.effort === 0}>{s.effort > 0 ? e0(s.effort) : '—'}</Td>
-                  <Td right muted={s.rendement === 0}>{s.rendement > 0 ? `${s.rendement} %` : '—'}</Td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="px-4 py-2.5 text-[11px] text-gray-500 italic border-t border-gray-50">
-        Économie calculée sur le barème progressif réel — souvent inférieure à TMI × versement car la déduction traverse plusieurs tranches.
-      </p>
-    </div>
+    <SectionBox
+      title="Comparaison de scénarios PER — barème réel 2025"
+      num="04c"
+      footer={
+        <p className="px-4 py-2.5 text-[11px] text-gray-500 italic">
+          Économie calculée sur le barème progressif réel — souvent inférieure à TMI × versement car la déduction traverse plusieurs tranches.
+        </p>
+      }
+    >
+      <table className="w-full text-xs">
+        <thead>
+          <tr>
+            <Th wide>Scénario</Th>
+            <Th right>Versement</Th>
+            <Th right>IR après</Th>
+            <Th right>Économie</Th>
+            <Th right>Effort net</Th>
+            <Th right>Rendement</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {scenarios.map((s, i) => {
+            const isBest = s.label === bestScen.label && i > 0;
+            return (
+              <tr key={i} className={isBest ? 'bg-teal-50/50' : i === 0 ? 'bg-gray-50/40' : ''}>
+                <td className="px-4 py-2.5 border-b border-gray-50">
+                  <span className={`font-semibold ${isBest ? 'text-teal-800' : 'text-gray-800'}`}>{s.label}</span>
+                  <span className="text-gray-400 ml-2 text-[10px]">{s.desc}</span>
+                  {isBest && <span className="ml-2 text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-semibold">Optimal</span>}
+                </td>
+                <Td right muted={s.versement === 0}>{s.versement > 0 ? e0(s.versement) : '—'}</Td>
+                <Td right>{e0(s.irApres)}</Td>
+                <Td right plus={s.economie > 0} bold={isBest}>{s.economie > 0 ? e0(s.economie) : '—'}</Td>
+                <Td right muted={s.effort === 0}>{s.effort > 0 ? e0(s.effort) : '—'}</Td>
+                <Td right muted={s.rendement === 0}>{s.rendement > 0 ? `${s.rendement} %` : '—'}</Td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </SectionBox>
   );
 }
 
@@ -1343,7 +1329,7 @@ function PerPlafondsModule({ p, d }) {
   const rendement = Math.round((economie / Math.max(1, totalVersionable)) * 100);
 
   return (
-    <SectionBox title="Plafonds PER disponibles — calcul déclarant par déclarant" num="04">
+    <SectionBox title="Plafonds PER disponibles — calcul déclarant par déclarant" num="04b">
       <Tbl>
         <thead>
           <tr>
@@ -1483,7 +1469,7 @@ function CasesModule({ p, d }) {
   if (cases.length === 0) return null;
 
   return (
-    <SectionBox title="Cases déclaratives — formulaire 2042" num="05">
+    <SectionBox title="Cases déclaratives — formulaire 2042" num="08a">
       <Tbl>
         <thead>
           <tr>
@@ -1587,7 +1573,7 @@ function VigilancesModule({ p, d }) {
   const msgClsMap   = { red: 'text-red-700', amber: 'text-amber-700', teal: 'text-teal-700', yellow: 'text-yellow-700' };
 
   return (
-    <SectionBox title="Vigilances & obligations" num="06">
+    <SectionBox title="Vigilances & obligations" num="08b">
       <div className="p-4 flex flex-col gap-3">
         {alerts.length === 0 ? (
           <div className="border-l-4 border-teal-400 bg-teal-50 px-4 py-3 rounded-r-lg">
@@ -1616,7 +1602,7 @@ function PeaAvModule({ p }) {
   const hasAv  = avD1 > 0 || avD2 > 0;
 
   return (
-    <SectionBox title="PEA & Assurance-vie" num="07">
+    <SectionBox title="PEA & Assurance-vie" num="05b">
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-gray-200 p-4">
           <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Plan d'épargne en actions (PEA)</p>
@@ -2036,7 +2022,7 @@ function AllocationActifsModule({ p }) {
   const fouerTotal = buildData('foyer').reduce((s, d) => s + d.value, 0);
 
   return (
-    <SectionBox title="Allocation d'actifs" num="PA-A" badge={fouerTotal > 0 ? e0(fouerTotal) : undefined}>
+    <SectionBox title="Allocation d'actifs" num="09a" badge={fouerTotal > 0 ? e0(fouerTotal) : undefined}>
       {fouerTotal === 0 ? (
         <p className="text-xs text-gray-400 p-5">Non renseigné</p>
       ) : (
@@ -2136,7 +2122,7 @@ function DiagnosticFiscalModule({ p, d }) {
   const tmiDelta = tmiRetraite - tmiActuel;
 
   return (
-    <SectionBox title="Diagnostic fiscal" num="PA-B">
+    <SectionBox title="Diagnostic fiscal" num="09b">
       <div className="p-4 flex flex-col gap-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <KpiCard
@@ -2349,7 +2335,7 @@ function FeuilleRouteModule({ p, d }) {
   const hasAny = ct.length + mt.length + lt.length > 0;
 
   return (
-    <SectionBox title={`Feuille de route ${currentYear} — priorités d'action`} num="09">
+    <SectionBox title={`Feuille de route ${currentYear} — priorités d'action`} num="10">
       <div className="p-4 flex flex-col gap-5">
         {!hasAny ? (
           <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
@@ -2372,7 +2358,7 @@ function FoncierModule({ d }) {
   const total = foncierNet + psFoncier;
 
   return (
-    <SectionBox title="Revenus fonciers — détail" num="10">
+    <SectionBox title="Revenus fonciers — détail" num="09c">
       <Tbl>
         <thead>
           <tr>
@@ -2423,7 +2409,7 @@ function RecapModule({ p, d }) {
   ];
 
   return (
-    <SectionBox title="Récapitulatif chiffres clés" num="12">
+    <SectionBox title="Récapitulatif chiffres clés" num="11">
       <Tbl>
         <thead>
           <tr>
@@ -2467,7 +2453,7 @@ function BilanPatrimonialModule({ p }) {
   ) : null;
 
   return (
-    <SectionBox title="Bilan patrimonial" num="02b" footer={objFooter}>
+    <SectionBox title="Bilan patrimonial" num="02c" footer={objFooter}>
       <Tbl>
         <thead>
           <tr><Th wide>Composante</Th><Th right>Valeur</Th></tr>
@@ -2512,7 +2498,7 @@ function AlertesCritiquesModule({ p }) {
   if (all.length === 0) return null;
 
   return (
-    <SectionBox title="Alertes critiques" num="03b">
+    <SectionBox title="Alertes critiques" num="⚠">
       <div className="p-4 flex flex-col gap-2">
         {all.map((line, i) => (
           <div key={i} className="rp-alert-red border-l-4 border-red-400 bg-red-50 px-4 py-3 rounded-r-lg">
@@ -2605,7 +2591,7 @@ function EnveloppesDetailModule({ p }) {
   if (rows.length === 0) return null;
 
   return (
-    <SectionBox title="Enveloppes — dates, antériorité & espace" num="05">
+    <SectionBox title="Enveloppes — dates, antériorité & espace" num="05a">
       <Tbl>
         <thead>
           <tr>
@@ -2648,7 +2634,7 @@ function TransmissionModule({ p }) {
   if (!hasData) return null;
 
   return (
-    <SectionBox title="Transmission et protection" num="06">
+    <SectionBox title="Transmission et protection" num="06a">
       <div className="p-4 flex flex-col gap-3">
         {p.hasTestamentManquant && (
           <div className="rp-alert-red border-l-4 border-red-400 bg-red-50 px-4 py-3 rounded-r-lg">
@@ -2717,7 +2703,7 @@ function DocumentsModule({ p }) {
   if (all.length === 0) return null;
 
   return (
-    <SectionBox title="Documents à récupérer" num="07">
+    <SectionBox title="Documents à récupérer" num="07a">
       <div className="p-4 flex flex-col gap-2">
         {all.map((line, i) => (
           <div key={i} className="rp-alert-amber border-l-4 border-amber-400 bg-amber-50 px-4 py-3 rounded-r-lg">
@@ -2770,7 +2756,7 @@ function ActionsAnDecModule({ p, d }) {
   if (all.length === 0) return null;
 
   return (
-    <SectionBox title="Actions avant 31/12" num="08">
+    <SectionBox title="Actions avant 31/12" num="08c">
       <div className="p-4 flex flex-col gap-2">
         {all.map((line, i) => (
           <div key={i} className="border-l-4 border-teal-400 bg-teal-50 px-4 py-3 rounded-r-lg">
@@ -3091,32 +3077,28 @@ export default function Rapport() {
           </>
         )}
 
-        {/* ── Section 05 : Enveloppes détail ── */}
+        {/* ── Section 05 : Enveloppes & suivi patrimonial ── */}
+        <SectionSep num="05" label="Enveloppes & suivi patrimonial" />
         <EnveloppesDetailModule p={p} />
-
-        {/* ── Section 05b : PEA & AV (non-enrichi ou complément) ── */}
         {!p.isEnriched && <PeaAvModule p={p} />}
         <ReallocationModule p={p} />
         <PelModule p={p} />
 
         {/* ── Section 06 : Transmission et protection ── */}
+        <SectionSep num="06" label="Transmission et protection" />
         <TransmissionModule p={p} />
 
         {/* ── Section 07 : Documents à récupérer ── */}
+        <SectionSep num="07" label="Documents à récupérer" />
         <DocumentsModule p={p} />
 
-        {/* ── Section 08 : Actions avant 31/12 ── */}
+        {/* ── Section 08 : Actions & obligations déclaratives ── */}
+        <SectionSep num="08" label="Actions & obligations déclaratives" />
+        <CasesModule p={p} d={d} />
+        {!p.isEnriched && <VigilancesModule p={p} d={d} />}
         <ActionsAnDecModule p={p} d={d} />
 
-        {/* ── Cases déclaratives ── */}
-        <CasesModule p={p} d={d} />
-
-        {/* ── Vigilances (mode non-enrichi seulement) ── */}
-        {!p.isEnriched && <VigilancesModule p={p} d={d} />}
-
-        {/* ── Section 09 : Conditionnels ── */}
-        {d.foncierBrut > 0 && <FoncierModule d={d} />}
-
+        {/* ── Alertes conditionnelles (crypto, compte étranger) ── */}
         {p.hasCrypto && (
           <div className="rp-alert-red rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
             <p className="text-sm font-bold text-red-800 mb-1">🔴 Crypto — obligations déclaratives 2025</p>
@@ -3138,25 +3120,28 @@ export default function Rapport() {
           </div>
         )}
 
-        {/* ── Analyse patrimoniale (PA-A + PA-B) ── */}
+        {/* ── Section 09 : Analyse patrimoniale ── */}
+        <SectionSep num="09" label="Analyse patrimoniale" />
+        {d.foncierBrut > 0 && <FoncierModule d={d} />}
         <AllocationActifsModule p={p} />
         <DiagnosticFiscalModule p={p} d={d} />
 
-        {/* ── Sections IA ── */}
+        {/* ── Section IA : Analyse IA ── */}
         {aiSections.length > 0 && (
-          <div className="flex flex-col gap-4 pt-2">
-            <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
-              <Sparkles size={14} className="text-violet-500" />
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Analyse IA</h2>
+          <>
+            <SectionSep num="IA" label="Analyse IA" />
+            <div className="flex flex-col gap-4">
+              {aiSections.map((s, i) => <AiSectionCard key={i} section={s} />)}
             </div>
-            {aiSections.map((s, i) => <AiSectionCard key={i} section={s} />)}
-          </div>
+          </>
         )}
 
-        {/* ── Section 09 : Feuille de route ── */}
+        {/* ── Section 10 : Feuille de route ── */}
+        <SectionSep num="10" label="Feuille de route" />
         <FeuilleRouteModule p={p} d={d} />
 
-        {/* ── Section 12 : Récapitulatif ── */}
+        {/* ── Section 11 : Récapitulatif ── */}
+        <SectionSep num="11" label="Récapitulatif" />
         <RecapModule p={p} d={d} />
 
         {/* ── CTA Conseil IA ── */}
