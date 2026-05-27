@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 /**
  * Grain noise overlay — texture subtile pour effet premium dark.
  * Utilise une feTurbulence SVG inline encodée en data URL, donc 0 fetch HTTP.
@@ -16,14 +18,20 @@ export default function Grain({
   zIndex = 1,
   fixed = true,
 }) {
-  // feTurbulence + mix-blend-mode = très GPU-intensif — désactivé sur mobile/touch
-  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
-  if (isTouch) return null;
+  const ref = useRef(null);
+
+  // Désactivé sur mobile/touch — évalué après le mount (évite faux positif React 19 + Babel)
+  useEffect(() => {
+    if (!ref.current) return;
+    const isTouch = window.matchMedia('(hover: none)').matches;
+    if (isTouch) ref.current.style.display = 'none';
+  }, []);
 
   const positionClass = fixed ? 'fixed inset-0' : 'absolute inset-0';
 
   return (
     <div
+      ref={ref}
       aria-hidden="true"
       className={`pointer-events-none ${positionClass}`}
       style={{
