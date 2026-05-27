@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Button from '../components/Button';
-import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
+import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, MAX_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 import AuroraBackground from '../components/motion/AuroraBackground';
