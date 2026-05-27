@@ -80,8 +80,8 @@ export default function Layout() {
     : 'min-h-screen overflow-x-hidden flex flex-col bg-ink-900';
 
   const headerInnerClass = isFullWidth
-    ? 'max-w-7xl mx-auto px-4 sm:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4'
-    : 'max-w-[1100px] mx-auto px-4 sm:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4';
+    ? 'max-w-7xl mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4'
+    : 'max-w-[1100px] mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4';
 
   const mainContentClass = isFullWidth
     ? 'w-full animate-fade-in'
@@ -122,62 +122,50 @@ export default function Layout() {
           </div>
         )}
         <div className={headerInnerClass}>
-          <KapioLogo />
 
-          {/* Nav desktop (cachée sur mobile) */}
-          <nav className="hidden sm:flex items-center gap-1">
-            {NAV_LINKS.map(link => {
-              const isActive = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
-              return <NavItem key={link.to} to={link.to} Icon={link.Icon} label={link.label} isActive={isActive} />;
-            })}
-            {import.meta.env.DEV && (
-              <NavItem
-                to="/dev/fixtures"
-                Icon={FlaskConical}
-                label="Fixtures"
-                isActive={pathname.startsWith('/dev/fixtures')}
-              />
-            )}
-            <div className="ml-3 pl-3 border-l border-white/[0.08] flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleReset}
-                title="Reinitialiser"
-                aria-label="Reinitialiser"
-                className="flex items-center justify-center w-9 h-9 text-ink-300 hover:text-danger-400 hover:bg-danger-500/10 rounded-xl transition-all duration-200"
-              >
-                <RotateCcw size={16} aria-hidden="true" />
-              </button>
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="GitHub"
-                className="flex items-center justify-center w-9 h-9 text-ink-300 hover:text-ink-0 hover:bg-white/[0.06] rounded-xl transition-all duration-200"
-              >
-                <GitFork size={16} aria-hidden="true" />
-              </a>
-            </div>
-          </nav>
+          {/* ── Gauche : logo + nav collés ── */}
+          <div className="flex items-center gap-1 min-w-0">
+            <KapioLogo />
 
-          {/* Actions mobiles dans le header */}
-          <div className="flex sm:hidden items-center gap-1">
+            {/* Séparateur vertical */}
+            <div className="hidden sm:block w-px h-5 bg-white/[0.12] mx-3 shrink-0" />
+
+            {/* Nav desktop */}
+            <nav className="hidden sm:flex items-center gap-0.5">
+              {NAV_LINKS.map(link => {
+                const isActive = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
+                return <NavItem key={link.to} to={link.to} Icon={link.Icon} label={link.label} isActive={isActive} />;
+              })}
+              {import.meta.env.DEV && (
+                <NavItem
+                  to="/dev/fixtures"
+                  Icon={FlaskConical}
+                  label="Fixtures"
+                  isActive={pathname.startsWith('/dev/fixtures')}
+                />
+              )}
+            </nav>
+          </div>
+
+          {/* ── Droite : actions utilitaires ── */}
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleReset}
+              title="Reinitialiser"
               aria-label="Reinitialiser"
-              className="flex items-center justify-center w-9 h-9 text-ink-200 hover:text-danger-400 rounded-lg transition-all"
+              className="flex items-center justify-center w-9 h-9 text-ink-300 hover:text-danger-400 hover:bg-danger-500/10 rounded-xl transition-all duration-200"
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={16} aria-hidden="true" />
             </button>
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
               aria-label="GitHub"
-              className="flex items-center justify-center w-9 h-9 text-ink-200 hover:text-ink-0 rounded-lg transition-all"
+              className="flex items-center justify-center w-9 h-9 text-ink-300 hover:text-ink-0 hover:bg-white/[0.06] rounded-xl transition-all duration-200"
             >
-              <GitFork size={16} />
+              <GitFork size={16} aria-hidden="true" />
             </a>
           </div>
         </div>
