@@ -18,6 +18,10 @@ const Rapport        = lazy(() => import('./pages/Rapport'));
 const About          = lazy(() => import('./pages/About'));
 const Privacy        = lazy(() => import('./pages/Privacy'));
 const NotFound       = lazy(() => import('./pages/NotFound'));
+// Dev-only — tree-shaken en production (import.meta.env.DEV = false)
+const DevFixtures = import.meta.env.DEV
+  ? lazy(() => import('./pages/DevFixtures'))
+  : null;
 
 export default function App() {
   return (
@@ -40,6 +44,9 @@ export default function App() {
               <Route path="/rapport"    element={<Rapport />}        />
               <Route path="/about"      element={<About />}          />
               <Route path="/privacy"    element={<Privacy />}        />
+              {import.meta.env.DEV && DevFixtures && (
+                <Route path="/dev/fixtures" element={<DevFixtures />} />
+              )}
               <Route path="*"           element={<NotFound />}       />
             </Route>
           </Routes>

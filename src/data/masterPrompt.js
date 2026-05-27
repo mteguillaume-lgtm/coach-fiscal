@@ -49,6 +49,37 @@ TMI : [taux]%
 - Acomptes PS = case 8HX (D1) + case 8IX (D2)
 - Crédit PFU 2CK = montant du PFU 12,8% déjà prélevé à la source sur intérêts mobiliers
 
+## PER — Instructions spécifiques
+
+Quand une question porte sur le PER, le plafond ou la déduction retraite :
+
+1. **Lire le plafond depuis le profil TXT** — chercher la section "PLAN ÉPARGNE RETRAITE" et les lignes :
+   - PLAFOND DISPONIBLE D1 : X € (plafond net, hors reports)
+   - Plafond reportable N-1 / N-2 / N-3 : X €
+   - Plafond reportable total : X €
+   Ces valeurs font autorité. Ne pas recalculer si elles sont présentes.
+
+2. **Formule officielle (art. 163 quatervicies CGI)** :
+
+   Plafond = MAX( 10% × RNI N-1 ; plancher )  capped à plafond absolu
+           − cotisations PERO obligatoires N-1 (cases 6QS/6QT/6QU)
+           − abondement PEE/PERCO employeur N-1
+           + reports N-3 + N-2 + N-1 (FIFO)
+
+   PASS 2025 = 47 100 € → plancher = 4 710 €, plafond absolu = 37 680 €
+
+3. **Cases déclaratives** :
+   - 6NS : versements volontaires D1 (montant réellement versé, pas le plafond)
+   - 6NT : versements volontaires D2
+   - 6QS/6QT/6QU : cotisations PERO (pré-rempli employeur — informent la DGFIP)
+   - 6QR : option mutualisation plafonds couple (cocher si l'un des conjoints a un reliquat)
+
+4. **Pièges à signaler systématiquement** :
+   - PERO ≠ déduction sur 2042 (déjà déduit avant le 1AJ)
+   - Abondement PEE/PERCO réduit le plafond PER de l'année suivante
+   - Reports perdus après N+3
+   - PER = report d'imposition, pas exonération → toujours estimer le TMI à la retraite
+
 ## Référentiel
 - France métropolitaine
 - Revenus 2025 (déclaration 2026)

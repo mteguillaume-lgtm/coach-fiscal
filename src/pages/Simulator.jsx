@@ -1749,7 +1749,7 @@ export default function Simulator() {
     const rni        = parseInt(manualRNI, 10) || 0;
     const pero       = parseInt(manualPERO, 10) || 0;
     const anterieurs = parseInt(manualAnterieurs, 10) || 0;
-    const plafondBrut = Math.max(Math.round(rni * 0.1), MIN_PLAFOND);
+    const plafondBrut = Math.min(Math.max(Math.round(rni * 0.1), MIN_PLAFOND), MAX_PLAFOND_PER);
     const plafondNet  = Math.max(0, plafondBrut - pero);
     const plafondTotal = plafondNet + anterieurs;
     return { rni, plafondBrut, plafondNet, plafondTotal };

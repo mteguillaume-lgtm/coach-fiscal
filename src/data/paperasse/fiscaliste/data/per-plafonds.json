@@ -12,17 +12,22 @@
   },
 
   "per_individuel": {
-    "description": "Plafond de déduction PER pour les versements 2025 (déclaration 2026)",
-    "calcul": "10% des revenus professionnels nets (salaires après abattement 10%, BNC, BIC) de l'année N-1",
+    "description": "Plafond de déduction PER pour les versements 2026 (base : revenus 2025, PASS 2025 = 47 100 €, déclaration 2027). Utiliser le même fichier pour les versements 2025 avec PASS 2024 = 46 368 €.",
+    "calcul": "10% des revenus professionnels nets N-1 (salaires après abattement 10%, BNC, BIC) OU 10% du PASS N-1 si supérieur (plancher), plafonné à 10% × 8 × PASS N-1",
     "plancher_euros": 4710,
     "plancher_base": "10% × PASS 2025 (47 100 €) — garanti même sans revenus",
     "plafond_absolu_euros": 37680,
     "plafond_absolu_base": "10% × 8 × PASS 2025",
     "report": {
-      "description": "Plafonds non utilisés des 3 années précédentes mobilisables",
-      "ordre": "Utiliser le plafond N en premier, puis les plafonds N-3, N-2, N-1 (ordre FIFO le plus ancien en premier)"
+      "description": "Plafonds non utilisés des 3 années précédentes mobilisables (FIFO : le plus ancien s'utilise en premier)",
+      "ordre": "Plafond N annule d'abord, puis N-3 (le plus ancien), puis N-2, puis N-1",
+      "exemple": "N-3 = 2 000 €, N-2 = 3 000 €, N-1 = 1 500 € → reportTotal = 6 500 €"
     },
-    "mutualisation_couple": "Les époux/pacsés soumis à imposition commune peuvent mutualiser leurs plafonds (case à cocher sur 2042)"
+    "reductions_plafond": {
+      "pero_obligatoire": "Cotisations PERO employeur (cases 6QS/6QT/6QU) déduites avant calcul du plafond — déjà déduites en amont du 1AJ",
+      "abondement_pee_perco": "Abondement employeur PEE/PERCO N-1 déduit du plafond PER (BOI-IR-BASE-20-50-20, art. 163 quatervicies I-a CGI)"
+    },
+    "mutualisation_couple": "Les époux/pacsés soumis à imposition commune peuvent mutualiser leurs plafonds — case 6QR sur formulaire 2042 (art. 163 quatervicies III CGI)"
   },
 
   "sortie_per": {

@@ -938,6 +938,21 @@ function AccordCoupleProseBlock({ d }) {
   );
 }
 
+// ─── Helper : plafonds PER effectifs avec reports N-1/N-2/N-3 (INC-03) ──────
+// Les reports sont stockés au niveau foyer → pro-ratés par RNI en couple mode.
+function getEffectivePlafondsWithReports(p) {
+  const rniD1    = p.rniD1 || 0;
+  const rniD2    = p.rniD2 || 0;
+  const rniTot   = rniD1 + rniD2;
+  const repTotal = (p.perReportableN1 || 0) + (p.perReportableN2 || 0) + (p.perReportableN3 || 0);
+  const repD1    = rniTot > 0 ? Math.round(repTotal * (rniD1 / rniTot)) : repTotal;
+  const repD2    = repTotal - repD1;
+  return {
+    plafondD1: (p.plafondPerD1 || 0) + repD1,
+    plafondD2: (p.plafondPerD2 || 0) + repD2,
+  };
+}
+
 // ─── Tableau 4 scénarios PER ─────────────────────────────────────────────────
 
 // ─── Bloc zones PER par tranche ──────────────────────────────────────────────
@@ -945,13 +960,17 @@ function AccordCoupleProseBlock({ d }) {
 function PerZonesBlock({ p, d, perSim }) {
   const isCouple = d.isCouple;
   const parts = p.parts || (isCouple ? 2 : 1);
-  const plafondD1 = p.plafondPerD1 || 0;
-  const plafondD2 = p.plafondPerD2 || 0;
   const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
 
+  // INC-03 : inclure les reports N-1/N-2/N-3
+  const { plafondD1, plafondD2 } = getEffectivePlafondsWithReports(p);
+
+  const rniD1 = p.rniD1 || 0;
+  const rniD2 = p.rniD2 || 0;
+
   const opt = useMemo(
-    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate),
-    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple, p.rniD1, p.rniD2, stopRate]
+    () => computePerOptimumCascade(d.rniFoyer, parts, plafondD1, plafondD2, isCouple, rniD1, rniD2, stopRate),
+    [d.rniFoyer, parts, plafondD1, plafondD2, isCouple, rniD1, rniD2, stopRate]
   );
 
   const simD1 = perSim?.versementD1 || 0;
@@ -1112,8 +1131,8 @@ function PerZonesBlock({ p, d, perSim }) {
 
 function PerScenariosTable({ p, d }) {
   const isCouple = d.isCouple;
-  const plafD1 = p.plafondPerD1 || 0;
-  const plafD2 = p.plafondPerD2 || 0;
+  // INC-03 : reports inclus
+  const { plafondD1: plafD1, plafondD2: plafD2 } = getEffectivePlafondsWithReports(p);
   const irAvant = d.irNetFoyer;
   const parts = p.parts || (isCouple ? 2 : 1);
   const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
@@ -1209,8 +1228,8 @@ function PerScenariosTable({ p, d }) {
 
 function PerCalendarBlock({ p, d }) {
   const isCouple = d.isCouple;
-  const plafD1 = p.plafondPerD1 || 0;
-  const plafD2 = p.plafondPerD2 || 0;
+  // INC-03 : reports inclus
+  const { plafondD1: plafD1, plafondD2: plafD2 } = getEffectivePlafondsWithReports(p);
   const parts  = p.parts || (isCouple ? 2 : 1);
   const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
 
@@ -1289,11 +1308,19 @@ function PerPlafondsModule({ p, d }) {
 
   const brut10D1 = Math.round(rniD1 * 0.1);
   const brut10D2 = Math.round(rniD2 * 0.1);
-  const plafondBrutD1 = Math.max(brut10D1, MIN_PLAFOND_PER);
-  const plafondBrutD2 = Math.max(brut10D2, MIN_PLAFOND_PER);
+  // Plafond brut : plancher et plafond absolu (INC-04 display fix)
+  const plafondBrutD1 = Math.min(Math.max(brut10D1, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
+  const plafondBrutD2 = Math.min(Math.max(brut10D2, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
+
+  // INC-03 : reports N-1/N-2/N-3 pro-ratés par RNI
+  const { plafondD1: effectivePlafD1, plafondD2: effectivePlafD2 } = getEffectivePlafondsWithReports(p);
+  const reportD1 = effectivePlafD1 - plafondPerD1;
+  const reportD2 = effectivePlafD2 - plafondPerD2;
+  const hasReports = (reportD1 + reportD2) > 0;
 
   const irAvant = d.irNetFoyer;
-  const totalVersionable = plafondPerD1 + plafondPerD2;
+  // totalVersionable inclut les reports (INC-03)
+  const totalVersionable = effectivePlafD1 + (isCouple ? effectivePlafD2 : 0);
   const irApres = calcIR(
     Math.max(0, d.rniFoyer - totalVersionable),
     p.parts || (isCouple ? 2 : 1),
@@ -1348,11 +1375,27 @@ function PerPlafondsModule({ p, d }) {
             </tr>
           )}
           <tr className="bg-teal-50/40">
-            <Td bold>= Plafond disponible net (versements volontaires)</Td>
+            <Td bold>= Plafond net de réductions (hors reports)</Td>
             <Td right bold plus>{e0(plafondPerD1)}</Td>
             {isCouple && <Td right bold plus>{e0(plafondPerD2)}</Td>}
             <Td muted>{isCouple ? '6NS / 6NT' : '6NS'}</Td>
           </tr>
+          {hasReports && (
+            <tr>
+              <Td>+ Reports plafonds N-1/N-2/N-3 (art. 163 quatervicies III)</Td>
+              <Td right plus>{reportD1 > 0 ? `+ ${e0(reportD1)}` : '—'}</Td>
+              {isCouple && <Td right plus>{reportD2 > 0 ? `+ ${e0(reportD2)}` : '—'}</Td>}
+              <Td muted>—</Td>
+            </tr>
+          )}
+          {hasReports && (
+            <tr className="bg-teal-100/60">
+              <Td bold>= Plafond total disponible (avec reports)</Td>
+              <Td right bold plus>{e0(effectivePlafD1)}</Td>
+              {isCouple && <Td right bold plus>{e0(effectivePlafD2)}</Td>}
+              <Td muted>—</Td>
+            </tr>
+          )}
           {totalVersionable > 0 && <>
             <tr>
               <td colSpan={isCouple ? 4 : 3} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
@@ -1391,6 +1434,8 @@ function PerPlafondsModule({ p, d }) {
 function CasesModule({ p, d }) {
   const isCouple = d.isCouple;
   const cases = [];
+  // INC-03 : cases 6NS/6NT affichent le plafond total avec reports
+  const { plafondD1: _casesPlafD1, plafondD2: _casesPlafD2 } = getEffectivePlafondsWithReports(p);
 
   if ((p.salaireNetImposableD1 || 0) > 0) {
     cases.push({ code: '1AJ', desc: 'Salaires nets D1', montant: e0(p.salaireNetImposableD1) });
@@ -1407,11 +1452,11 @@ function CasesModule({ p, d }) {
   if ((p.peroD1 || 0) > 0) {
     cases.push({ code: '6QS', desc: 'PERO employeur D1 (pré-rempli)', montant: e0(p.peroD1) });
   }
-  if ((p.plafondPerD1 || 0) > 0) {
-    cases.push({ code: '6NS', desc: 'Versements PER volontaires D1 (plafond disponible)', montant: e0(p.plafondPerD1), italic: true });
+  if (_casesPlafD1 > 0) {
+    cases.push({ code: '6NS', desc: 'Versements PER volontaires D1 (plafond max)', montant: e0(_casesPlafD1), italic: true });
   }
-  if (isCouple && (p.plafondPerD2 || 0) > 0) {
-    cases.push({ code: '6NT', desc: 'Versements PER volontaires D2 (plafond disponible)', montant: e0(p.plafondPerD2), italic: true });
+  if (isCouple && _casesPlafD2 > 0) {
+    cases.push({ code: '6NT', desc: 'Versements PER volontaires D2 (plafond max)', montant: e0(_casesPlafD2), italic: true });
   }
   if ((p.dividendes || 0) > 0) {
     cases.push({ code: '2DC', desc: 'Dividendes (PFU 30 %)', montant: e0(p.dividendes) });
@@ -1456,7 +1501,9 @@ function CasesModule({ p, d }) {
 
 function VigilancesModule({ p, d }) {
   const isCouple = d.isCouple;
-  const totalVersionable = (p.plafondPerD1 || 0) + (p.plafondPerD2 || 0);
+  // INC-03 : reports inclus dans totalVersionable
+  const { plafondD1: _vigPlafD1, plafondD2: _vigPlafD2 } = getEffectivePlafondsWithReports(p);
+  const totalVersionable = _vigPlafD1 + (isCouple ? _vigPlafD2 : 0);
   const irApres = calcIR(
     Math.max(0, d.rniFoyer - totalVersionable),
     p.parts || (isCouple ? 2 : 1),
@@ -2055,9 +2102,11 @@ function DiagnosticFiscalModule({ p, d }) {
 
   const fParts   = p.parts || (d.isCouple ? 2 : 1);
   const stopRate = tmiRetraite / 100;
+  // INC-03 : reports inclus
+  const { plafondD1: _diagPlafD1, plafondD2: _diagPlafD2 } = getEffectivePlafondsWithReports(p);
   const opt = computePerOptimumCascade(
     d.rniFoyer, fParts,
-    p.plafondPerD1 || 0, p.plafondPerD2 || 0,
+    _diagPlafD1, _diagPlafD2,
     d.isCouple, p.rniD1 || 0, p.rniD2 || 0,
     stopRate,
   );
@@ -2138,7 +2187,9 @@ function FeuilleRouteModule({ p, d }) {
   const fParts = p.parts || (isCouple ? 2 : 1);
   const tmiRetraite = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11));
   const stopRate = tmiRetraite / 100;
-  const opt = computePerOptimumCascade(d.rniFoyer, fParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
+  // INC-03 : reports inclus
+  const { plafondD1: _frPlafD1, plafondD2: _frPlafD2 } = getEffectivePlafondsWithReports(p);
+  const opt = computePerOptimumCascade(d.rniFoyer, fParts, _frPlafD1, _frPlafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
 
   // ── Court terme (< 1 an) ──
   const ct = [];
@@ -2341,7 +2392,9 @@ function FoncierModule({ d }) {
 // ─── Module 11 : Récapitulatif chiffres clés ─────────────────────────────────
 
 function RecapModule({ p, d }) {
-  const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
+  // INC-03 : afficher le plafond total AVEC reports
+  const { plafondD1: _recD1, plafondD2: _recD2 } = getEffectivePlafondsWithReports(p);
+  const plafondPerTotal = _recD1 + _recD2 || _recD1;
   const patrimoineTotal = p.patrimoineTotal || 0;
   const epargneLiquide = p.epargneLiquide || 0;
 

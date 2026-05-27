@@ -40,6 +40,9 @@ const initialState = {
   chatHistory: [],       // [{ role: "user"|"assistant", content: "" }]
   perSimulation: { versementD1: 0, versementD2: 0 },
   collectProfile: COLLECT_PROFILE_DEFAULT,
+  // Dev fixtures
+  isFixture: false,          // true quand un profil de test est actif
+  userProfileBackup: null,   // sauvegarde du vrai profil avant chargement fixture
 };
 
 function reducer(state, action) {
@@ -72,6 +75,29 @@ function reducer(state, action) {
       return { ...state, perSimulation: action.payload };
     case 'SET_COLLECT_PROFILE':
       return { ...state, collectProfile: { ...COLLECT_PROFILE_DEFAULT, ...action.payload } };
+    // ── Dev fixtures ────────────────────────────────────────────────────────
+    case 'LOAD_FIXTURE': {
+      // Sauvegarde le profil réel seulement si pas déjà sauvegardé
+      const backup = state.userProfileBackup !== null ? state.userProfileBackup : (state.profile || '');
+      return {
+        ...state,
+        profile: action.payload,
+        parsedProfile: parseProfile(action.payload),
+        isFixture: true,
+        userProfileBackup: backup,
+      };
+    }
+    case 'RESTORE_USER_PROFILE': {
+      const restored = state.userProfileBackup ?? '';
+      return {
+        ...state,
+        profile: restored,
+        parsedProfile: parseProfile(restored),
+        isFixture: false,
+        userProfileBackup: null,
+      };
+    }
+    // ────────────────────────────────────────────────────────────────────────
     case 'RESET':
     case 'RESET_ALL':
       return initialState;

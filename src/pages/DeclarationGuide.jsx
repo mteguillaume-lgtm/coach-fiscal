@@ -39,12 +39,18 @@ function adaptParsedProfile(pp) {
     pas8IV:     orNull(pp.pasD2),
     foncier4BE: orNull(pp.revensFonciers),
     per6QS:     orNull(pp.peroD1),
+    per6QT:     orNull(pp.peroD2),
+    per6NS:     orNull(pp.plafondPerD1),  // plafond max — valeur indicative (réel à déclarer = montant versé)
+    per6NT:     orNull(pp.plafondPerD2),
     rni:        orNull(pp.rniFoyer) ?? orNull(pp.rniD1),
     tmi:        orNull(pp.tmi),
     tauxPAS:    pp.tauxPasD1 > 0 ? pp.tauxPasD1 : null,
     hasCrypto:  pp.hasCrypto,
     hasFoncier: pp.revensFonciers > 0 || pp.hasIndivision,
-    hasPER:     pp.peroD1 > 0 || pp.peroD2 > 0 || pp.percoD1 > 0,
+    // INC-06 : percoD1 = PER versements volontaires (legacy name → à renommer en versementPerD1)
+    // TF-03 : include versements volontaires + abondement dans hasPER
+    hasPER:     pp.peroD1 > 0 || pp.peroD2 > 0 || pp.percoD1 > 0 || pp.percoD2 > 0
+             || pp.plafondPerD1 > 0 || pp.plafondPerD2 > 0,
     parts:      pp.parts || (pp.mode === 'couple' ? 2 : 1),
     isCouple:   pp.mode === 'couple',
   };
@@ -210,7 +216,9 @@ const makeSteps = (parsed, mode) => [
   { id: 's1bj',      icon: '👥', title: 'Salaires D2',      itemIds: ['done_1bj'],               show: mode === 'couple' },
   { id: 's_pas',     icon: '🏦', title: 'Prélèvement PAS',  itemIds: mode === 'couple' ? ['done_8hv','done_8iv'] : ['done_8hv'], show: true },
   { id: 's_foncier', icon: '🏠', title: 'Revenus fonciers', itemIds: ['done_4be'],               show: parsed.hasFoncier },
-  { id: 's_per',     icon: '🏛️', title: 'PER / PERO',       itemIds: ['done_6qs'],               show: parsed.hasPER     },
+  { id: 's_per',     icon: '🏛️', title: 'PER / PERO',
+    itemIds: ['done_6qs', ...(parsed.per6NS ? ['done_6ns'] : []), ...(mode === 'couple' && parsed.per6NT ? ['done_6nt'] : [])],
+    show: parsed.hasPER },
   { id: 's_crypto',  icon: '🌍', title: 'Comptes étrangers', itemIds: ['done_3916bis'],           show: parsed.hasCrypto  },
   { id: 's_recap',   icon: '📊', title: 'Récapitulatif',    itemIds: ['done_submit'],             show: true              },
 ].filter(s => s.show);
@@ -454,29 +462,100 @@ function StepFoncier({ parsed, doneItems, manualValues, onToggle, onManual }) {
 }
 
 function StepPER({ parsed, doneItems, manualValues, onToggle, onManual }) {
+  const isCouple = parsed.isCouple;
   return (
     <div className="flex flex-col gap-4">
       <div className="text-xs text-gray-500 leading-relaxed bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
         Sur impots.gouv.fr → <strong>Formulaire 2042 → Charges déductibles → Retraite</strong>.
-        Reportez le montant figurant sur l'attestation fiscale annuelle de votre employeur (envoyée en mars-avril).
+        Deux blocs distincts : PERO obligatoire (cases 6QS/6QT/6QU, pré-rempli par l'employeur)
+        et versements volontaires sur PER individuel (cases 6NS/6NT, à renseigner vous-même).
       </div>
-      <div className="flex items-start gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 leading-relaxed">
-        <Info size={13} className="shrink-0 mt-0.5" />
-        Attestation fiscale PERO : si vous ne l'avez pas encore reçue, contactez votre service RH ou votre gestionnaire de fonds.
-      </div>
-      <CaseField
-        fieldId="done_6qs"
-        caseNum="6QS"
-        label="Cotisations PERO obligatoires — Déclarant 1 (attestation fiscale)"
-        extracted={parsed.per6QS}
-        manualVal={manualValues['done_6qs']}
-        onManualChange={onManual}
-        isDone={doneItems.has('done_6qs')}
-        onToggle={onToggle}
-        warning="Ce montant doit correspondre exactement à l'attestation fiscale de votre employeur, et non aux sommes que vous pensez avoir versées."
-        info="Si vous avez un PERO avec part salariale et part patronale, seule la part salariale est déductible en 6QS. La part patronale est indiquée en 6QT."
-        chatQ="Comment remplir les cases 6QS / 6QT / 6QU pour mon PERO obligatoire et où trouver l'attestation fiscale auprès de mon employeur ?"
-      />
+
+      {/* ── PERO obligatoire ── */}
+      {(parsed.per6QS || parsed.per6QT) && <>
+        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-1">PERO obligatoire</p>
+        <div className="flex items-start gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 leading-relaxed">
+          <Info size={13} className="shrink-0 mt-0.5" />
+          Attestation fiscale PERO : si vous ne l'avez pas encore reçue, contactez votre service RH ou votre gestionnaire de fonds.
+        </div>
+        <CaseField
+          fieldId="done_6qs"
+          caseNum="6QS"
+          label="Cotisations PERO obligatoires — Déclarant 1 (attestation fiscale)"
+          extracted={parsed.per6QS}
+          manualVal={manualValues['done_6qs']}
+          onManualChange={onManual}
+          isDone={doneItems.has('done_6qs')}
+          onToggle={onToggle}
+          warning="Ce montant doit correspondre exactement à l'attestation fiscale de votre employeur, et non aux sommes que vous pensez avoir versées."
+          info="Part salariale uniquement (déductible en 6QS). Part patronale : case 6QT. L'abondement PEE/PERCO employeur réduit votre plafond PER — il n'est pas reporté en 6QS."
+          chatQ="Comment remplir les cases 6QS / 6QT / 6QU pour mon PERO obligatoire et où trouver l'attestation fiscale auprès de mon employeur ?"
+        />
+        {isCouple && parsed.per6QT && (
+          <CaseField
+            fieldId="done_6qt"
+            caseNum="6QT"
+            label="Cotisations PERO obligatoires — Déclarant 2 (attestation fiscale)"
+            extracted={parsed.per6QT}
+            manualVal={manualValues['done_6qt']}
+            onManualChange={onManual}
+            isDone={doneItems.has('done_6qt')}
+            onToggle={onToggle}
+            info="Même logique que 6QS pour le déclarant 2."
+            chatQ="Comment remplir 6QT pour le PERO du déclarant 2 ?"
+          />
+        )}
+      </>}
+
+      {/* ── Versements volontaires PER individuel ── */}
+      {(parsed.per6NS || parsed.per6NT) && <>
+        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-1 mt-2">PER individuel — versements volontaires</p>
+        <div className="flex items-start gap-2 text-xs text-teal-700 bg-teal-50 border border-teal-100 rounded-xl px-4 py-3 leading-relaxed">
+          <Info size={13} className="shrink-0 mt-0.5" />
+          Reportez le montant que vous avez <strong>effectivement versé</strong> sur votre PER individuel en 2025 — pas le plafond maximum. Le montant ci-dessous est votre <em>plafond disponible</em> à titre indicatif (art. 163 quatervicies CGI).
+        </div>
+        {parsed.per6NS && (
+          <CaseField
+            fieldId="done_6ns"
+            caseNum="6NS"
+            label="Versements volontaires PER individuel — Déclarant 1"
+            extracted={null}
+            manualVal={manualValues['done_6ns']}
+            onManualChange={onManual}
+            isDone={doneItems.has('done_6ns')}
+            onToggle={onToggle}
+            info={`Plafond disponible D1 : ${parsed.per6NS.toLocaleString('fr-FR')} € (max déductible). Ne reportez que ce que vous avez réellement versé.`}
+            chatQ="J'ai versé sur mon PER individuel en 2025. Quel montant mettre en case 6NS et comment s'assurer que je reste dans mon plafond ?"
+          />
+        )}
+        {isCouple && parsed.per6NT && (
+          <CaseField
+            fieldId="done_6nt"
+            caseNum="6NT"
+            label="Versements volontaires PER individuel — Déclarant 2"
+            extracted={null}
+            manualVal={manualValues['done_6nt']}
+            onManualChange={onManual}
+            isDone={doneItems.has('done_6nt')}
+            onToggle={onToggle}
+            info={`Plafond disponible D2 : ${parsed.per6NT.toLocaleString('fr-FR')} € (max déductible). Ne reportez que ce que vous avez réellement versé.`}
+            chatQ="Mon conjoint a versé sur son PER individuel en 2025. Quel montant mettre en case 6NT ?"
+          />
+        )}
+      </>}
+
+      {/* ── Mutualisation couple 6QR ── */}
+      {isCouple && (
+        <div className="flex items-start gap-2 text-xs text-violet-700 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 leading-relaxed">
+          <Info size={13} className="shrink-0 mt-0.5" />
+          <span>
+            <strong>Case 6QR — Mutualisation des plafonds (couple) :</strong> Si l'un de vous deux a un plafond PER
+            non utilisé, l'autre peut utiliser ce reliquat en cochant la case 6QR
+            (option "utilisation du plafond du conjoint", art. 163 quatervicies III CGI).
+            À activer si un déclarant veut dépasser son propre plafond en utilisant celui de son conjoint.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

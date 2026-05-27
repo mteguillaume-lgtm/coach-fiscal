@@ -39,8 +39,21 @@ export function detectOpportunities(parsedProfile) {
 
   const opps = [];
   const isCouple       = mode === 'couple';
-  const perPlafond     = plafondPerTotal || plafondPerD1;
   const isPacseOuMarie = isCouple;
+
+  // INC-03 : intégrer les reports N-1/N-2/N-3 dans le plafond disponible
+  // Les reports sont stockés au niveau foyer → pro-ratés par RNI en couple
+  const _rniD1    = parsedProfile.rniD1 || 0;
+  const _rniD2    = parsedProfile.rniD2 || 0;
+  const _rniTot   = _rniD1 + _rniD2;
+  const _repTotal = (parsedProfile.perReportableN1 || 0)
+                  + (parsedProfile.perReportableN2 || 0)
+                  + (parsedProfile.perReportableN3 || 0);
+  const _repD1    = _rniTot > 0 ? Math.round(_repTotal * (_rniD1 / _rniTot)) : _repTotal;
+  const _repD2    = _repTotal - _repD1;
+  const effectivePlafondD1 = (plafondPerD1 || 0) + _repD1;
+  const effectivePlafondD2 = (plafondPerD2 || 0) + _repD2;
+  const perPlafond = effectivePlafondD1 + (isCouple ? effectivePlafondD2 : 0) || effectivePlafondD1;
   const hasPEA         = peaD1 > 0 || peaD2 > 0;
   const hasLEP         = lepD1 > 0 || lepD2 > 0;
 
@@ -66,7 +79,7 @@ export function detectOpportunities(parsedProfile) {
   // PER optimal : cascade descendante par tranche — s'arrête à 11%
   if (perPlafond > 0) {
     const nbParts = parts || (isCouple ? 2 : 1);
-    const opt = computePerOptimumCascade(rniFoyer || 0, nbParts, plafondPerD1 || 0, plafondPerD2 || 0, isCouple, parsedProfile.rniD1 || 0, parsedProfile.rniD2 || 0);
+    const opt = computePerOptimumCascade(rniFoyer || 0, nbParts, effectivePlafondD1, effectivePlafondD2, isCouple, _rniD1, _rniD2);
 
     if (opt.optimumTotal > 0 && opt.tmiDepart > 11) {
       const zoneLabel = opt.zones.map(z => `${fmt(z.versement)} € × ${z.taux} % = ${fmt(z.economie)} €`).join(' + ');

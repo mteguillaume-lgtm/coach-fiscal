@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -15,14 +15,16 @@ function calcFoncier(brut) {
   return { brut, net, regime: isMicro ? 'micro-foncier (abat. 30%)' : 'régime réel', ps };
 }
 
-// Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO
-function fmtPlafondPer(netImp, pero) {
-  const netImpN  = parseFloat(netImp  || 0);
-  const peroN    = parseFloat(pero    || 0);
-  const base     = abattement10(netImpN);
-  const brut10   = base > 0 ? Math.round(base * 0.10) : 0;
-  const plafond  = Math.min(Math.max(brut10, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
-  const dispo    = Math.max(0, plafond - peroN);
+// Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO et abondement.
+// Délègue à calcPlafondPer (source unique de vérité dans taxCalculator.js) pour le calcul de dispo.
+function fmtPlafondPer(netImp, pero, abondPEEPERCO = 0) {
+  const netImpN = parseFloat(netImp || 0);
+  const peroN   = parseFloat(pero   || 0);
+  const abondN  = parseFloat(abondPEEPERCO || 0);
+  const base    = abattement10(netImpN);
+  const brut10  = base > 0 ? Math.round(base * 0.10) : 0;
+  const plafond = Math.min(Math.max(brut10, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
+  const dispo   = calcPlafondPer(netImpN, peroN, abondN);  // source unique de vérité
   return { brut10, plafond, dispo };
 }
 
@@ -43,7 +45,8 @@ function _buildSolo(d, docSums) {
   const parts    = parseFloat(d.parts || 1);
   const pero     = parseFloat(d.pero_d1 || 0);
   const pas      = parseFloat(d.pas_tot || 0);
-  const per      = fmtPlafondPer(d.net_imp, d.pero_d1);
+  const abondD1  = parseFloat(d.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D1
+  const per      = fmtPlafondPer(d.net_imp, d.pero_d1, abondD1);
 
   const ijCpam   = parseFloat(d.ij_cpam || 0);
   const rente1Bs = parseFloat(d.rente_1bs_montant || 0);
@@ -119,7 +122,7 @@ PEL : ${fmtOui(d.pel)}${d.pel_date ? `\nPEL date ouverture : ${d.pel_date}` : ''
 PEA : ${fmtOui(d.pea)}${d.pea_date ? `\nPEA date ouverture : ${d.pea_date}` : ''}${d.pea_verse && d.pea_verse !== '0' ? `\nPEA total versé : ${Number(d.pea_verse).toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d.av)}${d.av_date ? `\nAV date souscription : ${d.av_date}` : ''}${d.av_verse && d.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d.av_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d.per)}
-PEE (valorisation) : ${fmtOui(d.pee)}${d.pee_verse && d.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d.pee_verse).toLocaleString('fr-FR')} €` : ''}
+PEE (valorisation) : ${fmtOui(d.pee)}${d.pee_verse && d.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d.pee_verse).toLocaleString('fr-FR')} €` : ''}${abondD1 > 0 ? `\nPERCO — abondement employeur 2025 : ${abondD1.toLocaleString('fr-FR')} €` : ''}
 Crypto (valeur wallet) : ${fmtOui(d.crypto_wallet)}${d.crypto_plateforme ? `\nCrypto plateforme : ${d.crypto_plateforme}` : ''}${d.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d.crypto_pv ? `\nCrypto plus-value nette : ${Number(d.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 
 == DÉDUCTIONS ==
@@ -205,9 +208,11 @@ function _buildCouple(d, d1, d2, docSums) {
   const pasFoyer = pasD1 + pasD2;
   const peroD1   = parseFloat(d.pero_d1 || 0);
   const peroD2   = parseFloat(d.pero_d2 || 0);
+  const abondD1c = parseFloat(d1.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D1
+  const abondD2c = parseFloat(d2.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D2
 
-  const perD1  = fmtPlafondPer(d1.net_imp, d.pero_d1);
-  const perD2  = fmtPlafondPer(d2.net_imp, d.pero_d2);
+  const perD1  = fmtPlafondPer(d1.net_imp, d.pero_d1, abondD1c);
+  const perD2  = fmtPlafondPer(d2.net_imp, d.pero_d2, abondD2c);
 
   return `== PROFIL FISCAL FOYER 2025 ==
 Généré le ${new Date().toLocaleDateString('fr-FR')} — Outil ${APP_VERSION}
@@ -314,7 +319,7 @@ Livret+ / Livret bancaire : ${fmtOui(d1.livret_plus)}
 PEL : ${fmtOui(d1.pel)}${d1.pel_date ? `\nPEL date ouverture : ${d1.pel_date}` : ''}
 PEA : ${fmtOui(d1.pea)}${d1.pea_date ? `\nPEA date ouverture : ${d1.pea_date}` : ''}${d1.pea_verse && d1.pea_verse !== '0' ? `\nPEA total versé : ${Number(d1.pea_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d1.per)}
-PEE (valorisation) : ${fmtOui(d1.pee)}${d1.pee_verse && d1.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d1.pee_verse).toLocaleString('fr-FR')} €` : ''}
+PEE (valorisation) : ${fmtOui(d1.pee)}${d1.pee_verse && d1.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d1.pee_verse).toLocaleString('fr-FR')} €` : ''}${abondD1c > 0 ? `\nPERCO — abondement employeur 2025 : ${abondD1c.toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d1.av)}${d1.av_date ? `\nAV date souscription : ${d1.av_date}` : ''}${d1.av_verse && d1.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d1.av_verse).toLocaleString('fr-FR')} €` : ''}
 Crypto (valeur wallet) : ${fmtOui(d1.crypto_wallet)}${d1.crypto_plateforme ? `\nCrypto plateforme : ${d1.crypto_plateforme}` : ''}${d1.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d1.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d1.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d1.crypto_pv ? `\nCrypto plus-value nette : ${Number(d1.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 
@@ -326,7 +331,7 @@ Livret+ / Livret bancaire : ${fmtOui(d2.livret_plus)}
 PEL : ${fmtOui(d2.pel)}${d2.pel_date ? `\nPEL date ouverture : ${d2.pel_date}` : ''}
 PEA : ${fmtOui(d2.pea)}${d2.pea_date ? `\nPEA date ouverture : ${d2.pea_date}` : ''}${d2.pea_verse && d2.pea_verse !== '0' ? `\nPEA total versé : ${Number(d2.pea_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d2.per)}
-PEE (valorisation) : ${fmtOui(d2.pee)}${d2.pee_verse && d2.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d2.pee_verse).toLocaleString('fr-FR')} €` : ''}
+PEE (valorisation) : ${fmtOui(d2.pee)}${d2.pee_verse && d2.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d2.pee_verse).toLocaleString('fr-FR')} €` : ''}${abondD2c > 0 ? `\nPERCO — abondement employeur 2025 : ${abondD2c.toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d2.av)}${d2.av_date ? `\nAV date souscription : ${d2.av_date}` : ''}${d2.av_verse && d2.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d2.av_verse).toLocaleString('fr-FR')} €` : ''}
 Crypto (valeur wallet) : ${fmtOui(d2.crypto_wallet)}${d2.crypto_plateforme ? `\nCrypto plateforme : ${d2.crypto_plateforme}` : ''}${d2.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d2.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d2.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d2.crypto_pv ? `\nCrypto plus-value nette : ${Number(d2.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 

@@ -138,17 +138,15 @@ Format de réponse obligatoire :
 
 ## Référentiels Fiscaux 2025
 
-### Barème IR 2025 (revenus 2024, déclarés en 2025)
-
-> ⚠️ Vérifier le barème 2026 (revenus 2025) sur impots.gouv.fr avant toute simulation définitive.
+### Barème IR 2026 (revenus 2025, déclarés en 2026 — LFI 2026)
 
 | Tranche de RNI / part | Taux |
 |---|---|
-| Jusqu'à 11 497 € | 0 % |
-| De 11 497 € à 29 315 € | 11 % |
-| De 29 315 € à 83 823 € | 30 % |
-| De 83 823 € à 180 294 € | 41 % |
-| Au-delà de 180 294 € | 45 % |
+| Jusqu'à 11 600 € | 0 % |
+| De 11 600 € à 29 579 € | 11 % |
+| De 29 579 € à 84 577 € | 30 % |
+| De 84 577 € à 181 917 € | 41 % |
+| Au-delà de 181 917 € | 45 % |
 
 **TMI à retenir pour l'optimisation** : c'est le taux de la dernière tranche atteinte.
 
@@ -156,7 +154,7 @@ Mécanisme du quotient familial :
 - RNI total ÷ nombre de parts = RNI / part
 - Appliquer le barème sur RNI / part
 - Multiplier par le nombre de parts
-- Appliquer le plafonnement du quotient familial (1 759 € par demi-part supplémentaire en 2025, à vérifier)
+- Plafonnement du quotient familial : **1 807 €** par demi-part supplémentaire (LFI 2026)
 
 ### Prélèvements Sociaux 2025
 
@@ -258,8 +256,9 @@ Passif déductible : emprunts immobiliers en cours, taxes foncières, travaux.
 | Caractéristique | Valeur |
 |---|---|
 | Plafond déduction | 10 % revenus N-1 (max 8 PASS) ou 10 % PASS si plus favorable |
-| PASS 2025 | 46 368 € → plafond max ≈ 37 094 € |
-| Plafond non utilisé | Reportable 3 ans |
+| PASS 2025 | 47 100 € → plafond max 37 680 € (10% × 8 × PASS), plancher 4 710 € (10% × PASS) |
+| Abondement PEE/PERCO | Déduit du plafond PER (BOI-IR-BASE-20-50-20) |
+| Plafond non utilisé | Reportable 3 ans (FIFO : N-3 s'utilise en premier) |
 | Sortie retraite | Capital (imposé) ou rente (imposée) |
 | Déblocage anticipé | RP principale, invalidité, décès, surendettement, fin droits chômage |
 | Fiscalité à la sortie | IR sur capital (abattement 10 % si option rente) + PS sur gains |

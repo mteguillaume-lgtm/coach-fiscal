@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { baseIRFoyer, abattement10, calcIR, computeFoyerSummary } from '../taxCalculator.js';
+import { baseIRFoyer, abattement10, calcIR, computeFoyerSummary, calcPlafondPer, computePlafondPERDeclarant } from '../taxCalculator.js';
 
 describe('baseIRFoyer — agrégation multi-plugins Sprint A', () => {
   it('salaires seuls (cas de base, rétrocompatibilité)', () => {
@@ -166,5 +166,108 @@ describe('computeFoyerSummary — source de vérité IR+solde foyer', () => {
     const s = computeFoyerSummary(profile);
     expect(s.solde).toBeLessThan(0);             // remboursement
     expect(s.pasTotal).toBe(5_000);
+  });
+});
+
+describe('calcPlafondPer — abondPEEPERCO (3e paramètre, INC-01)', () => {
+  it('sans réductions : plafond = 10% × abattement10(sal)', () => {
+    // sal = 50 000, abattement10 = 45 000, 10% = 4 500 → plancher 4 710 s'applique
+    expect(calcPlafondPer(50_000)).toBe(4_710);
+  });
+
+  it('avec PERO uniquement : plafond − pero', () => {
+    // sal = 100 000, abattement10 = 90 000, brut = 9 000, plafond = 9 000
+    // pero = 1 500 → 7 500
+    expect(calcPlafondPer(100_000, 1_500)).toBe(7_500);
+  });
+
+  it('avec abondPEEPERCO uniquement : plafond − abond', () => {
+    // sal = 100 000, plafond brut = 9 000, abond = 2 000 → 7 000
+    expect(calcPlafondPer(100_000, 0, 2_000)).toBe(7_000);
+  });
+
+  it('cumul PERO + abondement : déduits ensemble', () => {
+    // sal = 100 000, plafond brut = 9 000, pero = 1 000, abond = 2 000 → 6 000
+    expect(calcPlafondPer(100_000, 1_000, 2_000)).toBe(6_000);
+  });
+
+  it('réductions > plafond brut → plancher 0 (pas négatif)', () => {
+    // sal = 50 000, plafond brut = 4 710, pero = 3 000, abond = 3 000 = 6 000 > 4 710 → 0
+    expect(calcPlafondPer(50_000, 3_000, 3_000)).toBe(0);
+  });
+});
+
+describe('computePlafondPERDeclarant — source de vérité UI (INC-01 à INC-03)', () => {
+  it('rni = 0 → brut10 = 0, plancher s\'applique, plafondBrut = 4 710', () => {
+    const r = computePlafondPERDeclarant({ rni: 0 });
+    expect(r.brut10).toBe(0);
+    expect(r.plafondBrut).toBe(4_710);
+    expect(r.reductions).toBe(0);
+    expect(r.plafondNet).toBe(4_710);
+    expect(r.reportTotal).toBe(0);
+    expect(r.plafondWithReports).toBe(4_710);
+  });
+
+  it('appel sans paramètre (défauts) → idem rni=0', () => {
+    const r = computePlafondPERDeclarant();
+    expect(r.plafondBrut).toBe(4_710);
+    expect(r.plafondNet).toBe(4_710);
+  });
+
+  it('plafond absolu : rni = 500 000 → plafondBrut = 37 680', () => {
+    // brut10 = 50 000 → capped à MAX_PLAFOND_PER = 37 680
+    const r = computePlafondPERDeclarant({ rni: 500_000 });
+    expect(r.brut10).toBe(50_000);
+    expect(r.plafondBrut).toBe(37_680);
+    expect(r.plafondNet).toBe(37_680);
+  });
+
+  it('déduction PERO : rni = 60 000, pero = 1 000 → plafondNet = 5 000', () => {
+    // brut10 = 6 000, plafondBrut = 6 000, reductions = 1 000, net = 5 000
+    const r = computePlafondPERDeclarant({ rni: 60_000, pero: 1_000 });
+    expect(r.brut10).toBe(6_000);
+    expect(r.plafondBrut).toBe(6_000);
+    expect(r.reductions).toBe(1_000);
+    expect(r.plafondNet).toBe(5_000);
+  });
+
+  it('déduction PERO + abondement PEE : rni = 60 000, pero = 1 000, abond = 2 000 → plafondNet = 3 000', () => {
+    const r = computePlafondPERDeclarant({ rni: 60_000, pero: 1_000, abondPEEPERCO: 2_000 });
+    expect(r.reductions).toBe(3_000);
+    expect(r.plafondNet).toBe(3_000);
+    expect(r.plafondWithReports).toBe(3_000);  // sans reports
+  });
+
+  it('reports FIFO agrégés dans plafondWithReports', () => {
+    // rni = 47 100, brut10 = 4 710 = plancher exact
+    // pas de réductions, reportN3 = 2 000 → plafondWithReports = 6 710
+    const r = computePlafondPERDeclarant({ rni: 47_100, reportN3: 2_000 });
+    expect(r.plafondNet).toBe(4_710);
+    expect(r.reportTotal).toBe(2_000);
+    expect(r.plafondWithReports).toBe(6_710);
+  });
+
+  it('reports multi-années agrégés (N-1 + N-2 + N-3)', () => {
+    const r = computePlafondPERDeclarant({
+      rni: 100_000, reportN1: 1_000, reportN2: 2_000, reportN3: 3_000,
+    });
+    // plafondNet = 10 000, reportTotal = 6 000
+    expect(r.plafondNet).toBe(10_000);
+    expect(r.reportTotal).toBe(6_000);
+    expect(r.plafondWithReports).toBe(16_000);
+  });
+
+  it('réductions > plafondBrut → plafondNet = 0 (jamais négatif)', () => {
+    const r = computePlafondPERDeclarant({ rni: 50_000, pero: 3_000, abondPEEPERCO: 3_000 });
+    // brut10 = 5 000, plafondBrut = max(5000, 4710) = 5 000, reductions = 6 000 → net = 0
+    expect(r.plafondNet).toBe(0);
+    expect(r.plafondWithReports).toBe(0);
+  });
+
+  it('profil-fiscal-ref : RNI D1 ≈ 46 500 → plafondBrut ≈ 4 650 (plancher si < 4 710)', () => {
+    // rni = 46 500, brut10 = 4 650 < 4 710 → plancher
+    const r = computePlafondPERDeclarant({ rni: 46_500 });
+    expect(r.brut10).toBe(4_650);
+    expect(r.plafondBrut).toBe(4_710);  // plancher
   });
 });

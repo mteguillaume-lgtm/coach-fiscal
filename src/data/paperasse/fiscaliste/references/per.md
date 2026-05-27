@@ -20,11 +20,17 @@ Exemple : versement 5 000 €, TMI 30% → économie IR = 1 500 €.
 
 ## Plafond de déduction
 
-### Formule
+### Formule complète
 
-**Plafond = 10% des revenus professionnels nets** de l'année N-1 (salaires après abattement 10%, BNC, BIC — pas les revenus du capital).
+```
+Plafond N (versements volontaires PER individuel)
+  = MAX( 10% × revenus pro nets N-1 ; 10% × PASS N-1 )
+    − cotisations PERO obligatoires N-1 (cases 6QS/6QT/6QU)
+    − abondement employeur PEE/PERCO N-1  ← BOI-IR-BASE-20-50-20
+    + reports plafonds non utilisés N-3, N-2, N-1 (FIFO)
+```
 
-### Bornes (revenus 2025)
+### Bornes (PASS 2025 = 47 100 €)
 
 | Borne | Valeur | Base |
 |-------|--------|------|
@@ -32,6 +38,12 @@ Exemple : versement 5 000 €, TMI 30% → économie IR = 1 500 €.
 | Plafond absolu | 37 680 € | 10% × 8 × PASS 2025 |
 
 **Plancher garanti** même sans revenus professionnels → toujours au moins 4 710 € déductibles.
+
+### Réductions du plafond
+
+- **Cotisations PERO** (cases 6QS/6QT/6QU) : déduites avant le 1AJ, elles réduisent la base qui détermine le plafond N+1
+- **Abondement PEE/PERCO employeur** N-1 : réduit directement le plafond disponible (art. 163 quatervicies I-a CGI, BOI-IR-BASE-20-50-20)
+- **Frais réels** : si frais réels > abattement 10%, la base de calcul du plafond est le net imposable après frais réels effectifs
 
 ### Report des plafonds non utilisés
 
@@ -41,9 +53,14 @@ Les plafonds non utilisés des **3 années précédentes** sont mobilisables. Or
 - Plafond N : 5 000 €, utilisé 3 000 € → reste 2 000 € reportables sur N+1 à N+3
 - Au-delà de N+3, le plafond non utilisé est **perdu**
 
-### Mutualisation couple
+### Mutualisation couple — case 6QR
 
-Les époux/pacsés soumis à imposition commune peuvent **mutualiser leurs plafonds** (case à cocher sur 2042). Un conjoint sans revenu pro peut bénéficier du plafond inemployé de l'autre.
+Les époux/pacsés soumis à imposition commune peuvent **mutualiser leurs plafonds** via la **case 6QR** sur le formulaire 2042 (art. 163 quatervicies III CGI).
+
+**Mode de fonctionnement** :
+- Cocher 6QR permet à l'un des conjoints d'utiliser le reliquat de plafond NON UTILISÉ de l'autre
+- Le bénéfice s'impute en priorité sur le déclarant le plus imposé (optimisation automatique)
+- Un conjoint sans revenu laisse en principe 4 710 € de plafond inemployé → mutualiser systématiquement si l'un des deux a un plafond non utilisé
 
 ## Arbitrage : le PER est-il vraiment utile ?
 
@@ -124,10 +141,20 @@ L'abondement est un complément versé par l'entreprise pour chaque euro versé 
 
 ## Mécanique pratique
 
-### Déclaration
+### Déclaration — cases formulaire 2042
 
-- Versements : case 6NS (déclarant 1) / 6NT (déclarant 2) sur la 2042
-- Plafond calculé automatiquement par la DGFIP (figure sur l'avis d'imposition N-1, rubrique "Plafond pour l'épargne retraite")
+| Case | Objet | Qui |
+|------|-------|-----|
+| **6NS** | Versements volontaires PER individuel | Déclarant 1 |
+| **6NT** | Versements volontaires PER individuel | Déclarant 2 |
+| **6QS** | Cotisations PERO obligatoires (pré-rempli par l'employeur) | Déclarant 1 |
+| **6QT** | Cotisations PERO obligatoires | Déclarant 2 |
+| **6QU** | Cotisations PERO (3e déclarant ou ventilation spéciale) | — |
+| **6QR** | Option mutualisation plafonds couple | Couple uniquement |
+
+**Plafond officiel DGFIP** : figure sur l'avis d'imposition N-1, rubrique *"Plafonds pour l'épargne retraite"*. Ce montant fait autorité — l'utiliser plutôt que les calculs manuels. Il tient compte des reports des 3 années précédentes.
+
+**IMPORTANT** : ne jamais déduire deux fois. Les cotisations PERO (6QS) sont déjà incluses dans le plafond officiel → ne pas les déduire manuellement du plafond.
 
 ## Différence PER individuel vs PERCO vs PERO
 

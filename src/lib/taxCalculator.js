@@ -283,14 +283,59 @@ export function getTMI(base, parts = 1) {
  * Plancher : MIN_PLAFOND_PER (issu du PASS).
  * Plafond absolu : MAX_PLAFOND_PER.
  *
- * @param {number} netImpSalaire  - salaire net imposable (1AJ)
- * @param {number} peroEmployeur  - cotisations PERO employeur à déduire
+ * @param {number} netImpSalaire       - salaire net imposable (1AJ, pré-abattement)
+ * @param {number} [peroEmployeur=0]   - cotisations PERO obligatoires à déduire (cases 6QS/T/U)
+ * @param {number} [abondPEEPERCO=0]   - abondement employeur PEE/PERCO N-1 à déduire (BOI-IR-BASE-20-50-20)
  */
-export function calcPlafondPer(netImpSalaire, peroEmployeur = 0) {
-  const base    = abattement10(netImpSalaire || 0);
-  const brut    = base > 0 ? Math.round(base * 0.1) : 0;
-  const plafond = Math.min(Math.max(brut, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
-  return Math.max(0, plafond - (peroEmployeur || 0));
+export function calcPlafondPer(netImpSalaire, peroEmployeur = 0, abondPEEPERCO = 0) {
+  const base       = abattement10(netImpSalaire || 0);
+  const brut       = base > 0 ? Math.round(base * 0.1) : 0;
+  const plafond    = Math.min(Math.max(brut, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
+  const reductions = (peroEmployeur || 0) + (abondPEEPERCO || 0);
+  return Math.max(0, plafond - reductions);
+}
+
+/**
+ * Calcule le plafond PER disponible pour un déclarant — source unique de vérité UI.
+ * Appel : Simulator (profile mode), Rapport.PerZonesBlock, opportunitiesDetector.
+ *
+ * @param {object}  opts
+ * @param {number}  opts.rni              - RNI individuel post-abattement 10 % (pp.rniD1/D2)
+ * @param {number}  [opts.pero=0]         - Cotisations PERO obligatoires N-1
+ * @param {number}  [opts.abondPEEPERCO=0] - Abondement employeur PEE/PERCO N-1
+ * @param {number}  [opts.reportN1=0]     - Plafond reportable N-1
+ * @param {number}  [opts.reportN2=0]     - Plafond reportable N-2
+ * @param {number}  [opts.reportN3=0]     - Plafond reportable N-3
+ * @returns {{
+ *   brut10: number,
+ *   plafondBrut: number,
+ *   reductions: number,
+ *   plafondNet: number,
+ *   reportTotal: number,
+ *   plafondWithReports: number,
+ * }}
+ */
+export function computePlafondPERDeclarant({
+  rni = 0,
+  pero = 0,
+  abondPEEPERCO = 0,
+  reportN1 = 0,
+  reportN2 = 0,
+  reportN3 = 0,
+} = {}) {
+  const brut10      = rni > 0 ? Math.round(rni * 0.1) : 0;
+  const plafondBrut = Math.min(Math.max(brut10, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
+  const reductions  = (pero || 0) + (abondPEEPERCO || 0);
+  const plafondNet  = Math.max(0, plafondBrut - reductions);
+  const reportTotal = (reportN1 || 0) + (reportN2 || 0) + (reportN3 || 0);
+  return {
+    brut10,
+    plafondBrut,
+    reductions,
+    plafondNet,
+    reportTotal,
+    plafondWithReports: plafondNet + reportTotal,
+  };
 }
 
 // ─── Optimum fiscal PER — cascade descendante ─────────────────────────────────
