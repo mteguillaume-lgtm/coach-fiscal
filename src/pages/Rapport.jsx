@@ -195,19 +195,31 @@ function KpiCard({ label, value, sub, color = 'gray' }) {
   );
 }
 
-function SectionBox({ title, badge, num, children }) {
+/* ── Section principale (01/02/03…) — titre avec badge noir ─────────────── */
+function SectionSep({ num, label }) {
   return (
-    <div className="rp-module rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
-      <div className="rp-section-header flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
-        <h3 className="text-sm font-bold text-gray-800">
-          {num && <span className="rp-module-num text-teal-600 font-mono mr-2">{num}</span>}
+    <div className="rp-section-sep flex items-center gap-3 pt-5 pb-2 mt-2 border-b-2 border-gray-800 print:border-gray-700">
+      <span className="rp-section-sep-num inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-800 text-white text-xs font-bold font-mono shrink-0 print:bg-gray-700">{num}</span>
+      <h2 className="rp-section-sep-label text-base font-bold text-gray-900 tracking-tight">{label}</h2>
+    </div>
+  );
+}
+
+/* ── Sous-section (module interne) — carte avec en-tête gris clair ───────── */
+function SectionBox({ title, badge, num, children, footer }) {
+  return (
+    <div className="rp-module rounded-xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
+      <div className="rp-section-header flex items-center justify-between px-4 py-2.5 bg-gray-100 border-b border-gray-200">
+        <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+          {num && <span className="rp-module-num font-mono text-gray-400 mr-2">{num}</span>}
           {title}
         </h3>
         {badge && (
-          <span className="text-[10px] font-semibold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full">{badge}</span>
+          <span className="text-[10px] font-semibold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{badge}</span>
         )}
       </div>
       <div className="overflow-x-auto">{children}</div>
+      {footer && <div className="border-t border-gray-100">{footer}</div>}
     </div>
   );
 }
@@ -230,7 +242,7 @@ function Th({ children, right, wide }) {
 }
 
 function Td({ children, right, bold, muted, minus, plus, subtotal, colSpan, className = '' }) {
-  const color = minus ? 'text-red-600' : plus ? 'text-teal-600' : muted ? 'text-gray-400' : 'text-gray-700';
+  const color = minus ? 'text-red-600' : plus ? 'text-emerald-700' : muted ? 'text-gray-400' : 'text-gray-700';
   return (
     <td colSpan={colSpan} className={[
       'px-4 py-2.5 border-b border-gray-50 tabular-nums',
@@ -1008,10 +1020,10 @@ function PerZonesBlock({ p, d, perSim }) {
 
         {/* Zones prioritaires */}
         {opt.zones.map((z, i) => (
-          <div key={i} className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+          <div key={i} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-              <span className="text-[11px] font-bold text-teal-800 uppercase tracking-wide">
+              <span className="w-5 h-5 rounded-full bg-gray-700 text-white text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+              <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">
                 Zone {i + 1} — PER prioritaire · Effacement tranche {z.taux}&nbsp;% · Rendement {z.taux}&nbsp;%
               </span>
               {z.partial && (
@@ -1020,24 +1032,24 @@ function PerZonesBlock({ p, d, perSim }) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <p className="text-[10px] text-teal-600 uppercase tracking-wide">Fraction imposée à {z.taux}&nbsp;%</p>
-                <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(z.fractionFoyer)}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Fraction imposée à {z.taux}&nbsp;%</p>
+                <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(z.fractionFoyer)}</p>
                 {z.partial && <p className="text-[10px] text-amber-600 mt-0.5">Couverture plafond&nbsp;: {e0(z.versement)}</p>}
               </div>
               <div>
-                <p className="text-[10px] text-teal-600 uppercase tracking-wide">Versement PER cible</p>
-                <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(z.versement)}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Versement PER cible</p>
+                <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(z.versement)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-teal-600 uppercase tracking-wide">Économie IR</p>
-                <p className="text-sm font-semibold text-green-700 tabular-nums whitespace-nowrap">{e0(z.versement)} × {z.taux}&nbsp;% = <strong>{e0(z.economie)}</strong></p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Économie IR</p>
+                <p className="text-sm font-semibold text-emerald-700 tabular-nums whitespace-nowrap">{e0(z.versement)} × {z.taux}&nbsp;% = <strong>{e0(z.economie)}</strong></p>
               </div>
             </div>
             {isCouple && i === opt.zones.length - 1 && (plafondD1 > 0 || plafondD2 > 0) && (
-              <p className="mt-2 text-[11px] text-teal-700 border-t border-teal-200 pt-2">
+              <p className="mt-2 text-[11px] text-gray-600 border-t border-gray-200 pt-2">
                 Répartition suggérée&nbsp;:{' '}
                 <strong>{opt.prioritaire === 'D1' ? 'D1' : 'D2'}&nbsp;{opt.prioritaire === 'D1' ? e0(opt.optimumD1) : e0(opt.optimumD2)}</strong>
-                <span className="text-[9px] bg-teal-200 text-teal-800 px-1 py-0.5 rounded font-semibold ml-1">prioritaire</span>
+                <span className="text-[9px] bg-gray-200 text-gray-700 px-1 py-0.5 rounded font-semibold ml-1">prioritaire</span>
                 {' · '}
                 <strong>{opt.prioritaire === 'D1' ? 'D2' : 'D1'}&nbsp;{opt.prioritaire === 'D1' ? e0(opt.optimumD2) : e0(opt.optimumD1)}</strong>
               </p>
@@ -1046,22 +1058,22 @@ function PerZonesBlock({ p, d, perSim }) {
         ))}
 
         {/* Récapitulatif */}
-        <div className="rounded-xl border border-teal-300 bg-teal-100/70 px-4 py-3 flex flex-wrap gap-x-6 gap-y-2">
+        <div className="rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 flex flex-wrap gap-x-6 gap-y-2">
           <div>
-            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Versement optimum</p>
-            <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(opt.optimumTotal)}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Versement optimum</p>
+            <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(opt.optimumTotal)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Économie IR réelle</p>
-            <p className="text-sm font-bold text-green-700 tabular-nums">{e0(opt.economieOptimum)}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Économie IR réelle</p>
+            <p className="text-sm font-bold text-emerald-700 tabular-nums">{e0(opt.economieOptimum)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Effort net réel</p>
-            <p className="text-sm font-bold text-teal-900 tabular-nums">{e0(opt.effortNet)}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Effort net réel</p>
+            <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(opt.effortNet)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-teal-700 uppercase tracking-wide font-semibold">Rendement fiscal</p>
-            <p className="text-sm font-bold text-teal-900 tabular-nums">{opt.rendementMoyen}&nbsp;%</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Rendement fiscal</p>
+            <p className="text-sm font-bold text-gray-900 tabular-nums">{opt.rendementMoyen}&nbsp;%</p>
           </div>
         </div>
 
@@ -1116,7 +1128,7 @@ function PerZonesBlock({ p, d, perSim }) {
               )}
               <div>
                 <p className="text-[10px] text-blue-600 uppercase">Économie IR (barème réel)</p>
-                <p className="text-xs font-bold text-green-700 tabular-nums">
+                <p className="text-xs font-bold text-emerald-700 tabular-nums">
                   {e0(Math.max(0, d.irNetFoyer - calcIR(Math.max(0, d.rniFoyer - simD1 - simD2), parts, isCouple)))}
                 </p>
               </div>
@@ -1245,11 +1257,11 @@ function PerCalendarBlock({ p, d }) {
   const showSec = isCouple && amtSec > 0;
 
   return (
-    <div className="mx-4 mb-3 rounded-xl border border-teal-200 bg-teal-50/30 overflow-hidden">
-      <div className="px-4 py-2 border-b border-teal-200 bg-teal-100/50 flex items-center justify-between flex-wrap gap-1">
-        <p className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">Calendrier d'exécution — versements PER optimum avant 31/12</p>
+    <div className="mx-4 mb-3 rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
+      <div className="px-4 py-2 border-b border-gray-200 bg-gray-100 flex items-center justify-between flex-wrap gap-1">
+        <p className="text-[10px] font-bold text-gray-700 uppercase tracking-wide">Calendrier d'exécution — versements PER optimum avant 31/12</p>
         {isCouple && (
-          <span className="text-[10px] text-teal-700 italic">
+          <span className="text-[10px] text-gray-500 italic">
             {prio} prioritaire (salaire le plus élevé) · économie IR réelle {e0(perOpt.economieOptimum)}
           </span>
         )}
@@ -1257,14 +1269,14 @@ function PerCalendarBlock({ p, d }) {
       <table className="w-full text-xs">
         <thead>
           <tr>
-            <th className="px-4 py-2 text-left text-[10px] font-semibold text-teal-700 uppercase tracking-wide">Rythme</th>
-            <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">
+            <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Rythme</th>
+            <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
               {isCouple ? `${prio} ★` : 'Montant'}
             </th>
             {showSec && (
-              <th className="px-3 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">{sec}</th>
+              <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{sec}</th>
             )}
-            {isCouple && <th className="px-4 py-2 text-right text-[10px] font-semibold text-teal-700 uppercase tracking-wide whitespace-nowrap">Total</th>}
+            {isCouple && <th className="px-4 py-2 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Total</th>}
           </tr>
         </thead>
         <tbody>
@@ -1272,22 +1284,22 @@ function PerCalendarBlock({ p, d }) {
             { label: 'Mensuel (× 12)', div: 12, suffix: '/mois' },
             { label: 'Trimestriel (× 4)', div: 4, suffix: '/trim.' },
           ].map(({ label, div, suffix }) => (
-            <tr key={label} className="border-t border-teal-100">
-              <td className="px-4 py-2 text-teal-800 font-medium">{label}</td>
-              <td className="px-3 py-2 text-right tabular-nums text-teal-800 whitespace-nowrap">{e0(amtPrio / div)}{suffix}</td>
-              {showSec && <td className="px-3 py-2 text-right tabular-nums text-teal-800 whitespace-nowrap">{e0(amtSec / div)}{suffix}</td>}
-              {isCouple && <td className="px-4 py-2 text-right tabular-nums font-semibold text-teal-800 whitespace-nowrap">{e0(amtTotal / div)}{suffix}</td>}
+            <tr key={label} className="border-t border-gray-100">
+              <td className="px-4 py-2 text-gray-700 font-medium">{label}</td>
+              <td className="px-3 py-2 text-right tabular-nums text-gray-700 whitespace-nowrap">{e0(amtPrio / div)}{suffix}</td>
+              {showSec && <td className="px-3 py-2 text-right tabular-nums text-gray-700 whitespace-nowrap">{e0(amtSec / div)}{suffix}</td>}
+              {isCouple && <td className="px-4 py-2 text-right tabular-nums font-semibold text-gray-700 whitespace-nowrap">{e0(amtTotal / div)}{suffix}</td>}
             </tr>
           ))}
-          <tr className="border-t border-teal-200 bg-teal-100/40">
-            <td className="px-4 py-2.5 text-teal-900 font-bold">Versement unique (décembre)</td>
-            <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900 whitespace-nowrap">{e0(amtPrio)}</td>
-            {showSec && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-teal-900 whitespace-nowrap">{e0(amtSec)}</td>}
-            {isCouple && <td className="px-4 py-2.5 text-right tabular-nums font-bold text-teal-900 whitespace-nowrap">{e0(amtTotal)}</td>}
+          <tr className="border-t border-gray-200 bg-gray-100">
+            <td className="px-4 py-2.5 text-gray-900 font-bold">Versement unique (décembre)</td>
+            <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{e0(amtPrio)}</td>
+            {showSec && <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{e0(amtSec)}</td>}
+            {isCouple && <td className="px-4 py-2.5 text-right tabular-nums font-bold text-gray-900 whitespace-nowrap">{e0(amtTotal)}</td>}
           </tr>
         </tbody>
       </table>
-      <p className="px-4 py-2 text-[10px] text-teal-700 italic border-t border-teal-100">
+      <p className="px-4 py-2 text-[10px] text-gray-500 italic border-t border-gray-100">
         Montants basés sur l'optimum fiscal (effacement des tranches {perOpt.tmiDepart}&nbsp;% et supérieures).
         {isCouple ? ` Plafond max disponible : ${prio} ${e0(plafD1 > 0 ? (prio === 'D1' ? plafD1 : plafD2) : 0)} · ${sec} ${e0(prio === 'D1' ? plafD2 : plafD1)}.` : ` Plafond max disponible : ${e0(plafD1)}.`}
       </p>
@@ -2448,8 +2460,14 @@ function BilanPatrimonialModule({ p }) {
 
   if (!net && !cap) return null;
 
+  const objFooter = obj ? (
+    <div className="px-4 py-2.5 text-xs text-blue-800 bg-blue-50">
+      <strong>Objectif patrimonial :</strong> {obj}
+    </div>
+  ) : null;
+
   return (
-    <SectionBox title="Bilan patrimonial" num="02b">
+    <SectionBox title="Bilan patrimonial" num="02b" footer={objFooter}>
       <Tbl>
         <thead>
           <tr><Th wide>Composante</Th><Th right>Valeur</Th></tr>
@@ -2466,11 +2484,6 @@ function BilanPatrimonialModule({ p }) {
           {tep > 0 && <tr><Td>Taux d'épargne estimé</Td><Td right>{tep} %</Td></tr>}
         </tbody>
       </Tbl>
-      {obj && (
-        <div className="mx-4 mb-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2.5 text-xs text-blue-800">
-          <strong>Objectif patrimonial :</strong> {obj}
-        </div>
-      )}
     </SectionBox>
   );
 }
@@ -2983,10 +2996,7 @@ export default function Rapport() {
         {/* ── Section 01 : Essentiel en un coup d'œil ── */}
         {d.rniFoyer > 0 && (
           <>
-            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3">
-              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">01</span>
-              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Essentiel en un coup d'œil</h2>
-            </div>
+            <SectionSep num="01" label="Essentiel en un coup d'œil" />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <KpiCard
@@ -3028,10 +3038,7 @@ export default function Rapport() {
         {/* ── Section 02 : Synthèse du foyer ── */}
         {d.rniFoyer > 0 && (
           <>
-            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
-              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">02</span>
-              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Synthèse du foyer</h2>
-            </div>
+            <SectionSep num="02" label="Synthèse du foyer" />
             <RevenusTable d={d} p={p} />
             <EpargneTable p={p} />
             <BilanPatrimonialModule p={p} />
@@ -3042,10 +3049,7 @@ export default function Rapport() {
         {/* ── Section 03 : Calcul de l'impôt ── */}
         {d.rniFoyer > 0 && (
           <>
-            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
-              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">03</span>
-              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Calcul de l'impôt — Revenus 2025</h2>
-            </div>
+            <SectionSep num="03" label="Calcul de l'impôt — Revenus 2025" />
 
             <ProseCard color="gray">
               Le calcul de l'IR se déroule en trois étapes : <strong>(1)</strong> abattement forfaitaire de {ABT.taux * 100}&nbsp;% sur les salaires nets imposables
@@ -3071,10 +3075,7 @@ export default function Rapport() {
         {/* ── Section 04 : Stratégie PER ── */}
         {(plafondPerTotal > 0 || (p.plafondPerD1 || 0) > 0 || (p.plafondPerD2 || 0) > 0) && (
           <>
-            <div className="rp-section-sep flex items-center gap-2 border-b border-gray-200 pb-3 mt-2">
-              <span className="rp-section-sep-num rp-module-num text-teal-600 font-mono font-bold text-base">04</span>
-              <h2 className="rp-section-sep-label text-sm font-bold text-gray-700 uppercase tracking-wider">Stratégie PER — Plafonds & scénarios</h2>
-            </div>
+            <SectionSep num="04" label="Stratégie PER — Plafonds & scénarios" />
 
             <ProseCard color="teal">
               Le Plan d'Épargne Retraite (PER) individuel est le principal levier de déduction fiscale disponible
