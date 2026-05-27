@@ -129,7 +129,7 @@ function TabBar({ active, onChange }) {
     { id: 'd2',    label: 'Déclarant 2', short: 'D2',    Icon: User  },
   ];
   return (
-    <div className="card-dark p-1 flex gap-1 mb-6">
+    <div className="card-dark card-static p-1 flex gap-1 mb-6">
       {tabs.map(({ id, label, short, Icon }) => {
         const isActive = active === id;
         const activeClass = isActive

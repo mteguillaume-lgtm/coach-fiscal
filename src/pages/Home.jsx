@@ -227,7 +227,7 @@ export default function Home() {
     <div className="bg-ink-900 text-ink-0 overflow-x-hidden">
 
       {/* SPOTLIGHT CURSEUR — halo qui suit la souris sur toute la page */}
-      <SpotlightCursor size={450} intensity={0.12} />
+      <SpotlightCursor size={520} intensity={0.22} />
 
       {/* HERO */}
       <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden">

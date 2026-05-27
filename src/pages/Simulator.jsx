@@ -543,7 +543,7 @@ function SimPER({ data }) {
       )}
 
       {/* ── Résultats foyer ── */}
-      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+      <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
         <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06] flex items-center justify-between">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Impact fiscal foyer</p>
           <span className="text-xs font-mono text-ink-300">
@@ -609,7 +609,7 @@ function SimPER({ data }) {
 
       {/* ── Courbe d'économie IR ── */}
       {chartData.length > 2 && (
-        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
+        <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-1">Courbe d'économie IR</p>
           {fractionInTopBracket > 0 && plafondTotal > fractionInTopBracket && (
             <p className="text-[10px] text-warning-400 mb-3 leading-snug">
@@ -664,7 +664,7 @@ function SimPER({ data }) {
       )}
 
       {/* ── Bloc pédagogique ── */}
-      <details className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden group">
+      <details className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden group">
         <summary className="px-5 py-3.5 text-xs font-bold text-ink-300 uppercase tracking-widest cursor-pointer flex items-center justify-between select-none hover:bg-ink-700/40 transition-colors">
           <span>Comment fonctionne le PER fiscalement ?</span>
           <span className="text-ink-300 text-[10px] group-open:rotate-180 transition-transform">▼</span>
@@ -1012,7 +1012,7 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+      <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
         <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06]">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">
             Comparatif après {duration} ans — {fmt(capital)} € à {(rate * 100).toFixed(0)} % — TMI entrée {tmiE} % / sortie {tmiS} %
@@ -1091,7 +1091,7 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* EvolutionChart — aire empilée versements + intérêts nets */}
-      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
+      <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">
             Évolution — versements vs intérêts
@@ -1119,7 +1119,7 @@ function SimEnveloppes({ data }) {
       </div>
 
       {/* Chart */}
-      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
+      <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
         <div className="flex items-baseline justify-between mb-1">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Évolution du capital net</p>
         </div>
@@ -1255,7 +1255,7 @@ function SimFoncier({ data }) {
       </div>
 
       {/* Résultats */}
-      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+      <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
         <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06]">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Impact fiscal</p>
         </div>
@@ -1646,7 +1646,7 @@ function SimFrais({ data }) {
       </div>
 
       {/* Détail */}
-      <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
+      <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden">
         <div className="px-4 py-3 bg-ink-900/40 border-b border-white/[0.06]">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Détail des frais</p>
         </div>
@@ -1886,7 +1886,7 @@ export default function Simulator() {
 
       {/* Saisie manuelle */}
       {mode === 'manual' && (
-        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-5 flex flex-col gap-5">
+        <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 p-5 flex flex-col gap-5">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Vos paramètres</p>
 
           {/* Ligne 1 : TMI + RNI + parts */}
@@ -1988,7 +1988,7 @@ export default function Simulator() {
 
       {/* Profil auto — détail plafond PER */}
       {mode === 'profile' && tab === 'per' && !profileData.isDefault && (
-        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 p-5 flex flex-col gap-5">
+        <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 p-5 flex flex-col gap-5">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">Plafond PER — données du profil</p>
 
           {/* Toggle D1 / D2 pour couple */}
@@ -2099,7 +2099,7 @@ export default function Simulator() {
 
       {/* Contenu simulateur */}
       <ScrollReveal delay={0.1}>
-        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 backdrop-blur-sm shadow-sm p-5">
+        <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 backdrop-blur-sm shadow-sm p-5">
           {tab === 'per'        && <SimPER        data={profileData} />}
           {tab === 'enveloppes' && <SimEnveloppes data={profileData} />}
           {tab === 'foncier'    && <SimFoncier    data={profileData} />}

@@ -232,6 +232,21 @@
     color: #D4D4D8 !important;
   }
 
+  /* Hover sur les lignes de tableau (Rapport + pages héritées) */
+  .rp-module tbody tr {
+    transition: background 160ms ease;
+  }
+  .rp-module tbody tr:hover td,
+  .rp-module tbody tr:hover th {
+    background: rgba(255, 255, 255, 0.028) !important;
+  }
+
+  /* Transition shadow sur les sections du Rapport */
+  .rp-module {
+    transition: transform 280ms cubic-bezier(0.16,1,0.3,1),
+                box-shadow 280ms cubic-bezier(0.16,1,0.3,1) !important;
+  }
+
   /* ─── SCROLLBAR ────────────────────────────────────────────────────────── */
 
   /* Pages héritées : appliquer le scrollbar dark partout */

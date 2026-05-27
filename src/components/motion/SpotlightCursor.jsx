@@ -7,14 +7,23 @@ export default function SpotlightCursor({
   intensity = 0.18,
   zIndex = 0,
 }) {
-  const ref = useRef(null);
-  const rafRef = useRef(null);
-  const posRef = useRef({ x: -2000, y: -2000 });
+  const ref        = useRef(null);
+  const rafRef     = useRef(null);
+  const posRef     = useRef({ x: -2000, y: -2000 });
+  const movedRef   = useRef(false);           // true after first pointermove
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const move = (e) => {
       posRef.current = { x: e.clientX, y: e.clientY };
+
+      // Premier mouvement → rendre visible (cas où la souris était déjà dans
+      // la fenêtre au chargement de la page, pointerenter ne s'étant pas déclenché)
+      if (!movedRef.current) {
+        movedRef.current = true;
+        setVisible(true);
+      }
+
       if (rafRef.current) return;
       rafRef.current = requestAnimationFrame(() => {
         if (ref.current) {
@@ -24,15 +33,16 @@ export default function SpotlightCursor({
         rafRef.current = null;
       });
     };
-    const leave = () => setVisible(false);
+
+    const leave = () => { movedRef.current = false; setVisible(false); };
     const enter = () => setVisible(true);
 
-    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointermove',  move,  { passive: true });
     window.addEventListener('pointerleave', leave);
     window.addEventListener('pointerenter', enter);
 
     return () => {
-      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointermove',  move);
       window.removeEventListener('pointerleave', leave);
       window.removeEventListener('pointerenter', enter);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -45,7 +55,7 @@ export default function SpotlightCursor({
       aria-hidden="true"
       className="pointer-events-none fixed inset-0"
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       style={{ zIndex }}
     />
   );

@@ -169,20 +169,79 @@
     @apply relative bg-ink-800 border border-white/[0.05] rounded-2xl;
     background: linear-gradient(145deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 100%), #111113;
     box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
+    /* hover lift — universel sur toutes les cards */
+    transition: transform 280ms cubic-bezier(0.16,1,0.3,1),
+                box-shadow 280ms cubic-bezier(0.16,1,0.3,1),
+                border-color 280ms cubic-bezier(0.16,1,0.3,1);
   }
+  .card-dark:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.06) inset,
+      0 0 0 1px rgba(46,184,138,0.18),
+      0 16px 40px rgba(0,0,0,0.45),
+      0 0 24px rgba(46,184,138,0.06);
+  }
+  /* Supprimer le lift pour les éléments statiques (tabs, pills…) */
+  .card-dark.card-static:hover {
+    transform: none;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  /* Hover sur les lignes de tableau à l'intérieur d'une card */
+  .card-dark tbody tr {
+    transition: background 180ms ease;
+  }
+  .card-dark tbody tr:hover td,
+  .card-dark tbody tr:hover th {
+    background: rgba(255,255,255,0.025);
+  }
+
   .card-dark-elevated {
     @apply relative bg-ink-700 border border-white/[0.06] rounded-2xl;
     background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), #18181B;
     box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 32px rgba(0,0,0,0.45);
+    transition: transform 280ms cubic-bezier(0.16,1,0.3,1),
+                box-shadow 280ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .card-dark-elevated:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.08) inset,
+      0 0 0 1px rgba(46,184,138,0.22),
+      0 20px 48px rgba(0,0,0,0.55),
+      0 0 32px rgba(46,184,138,0.08);
   }
 
-  /* Lift sur hover */
+  /* Lift renforcé (héritage de l'ancien card-lift) */
   .card-lift {
     @apply transition-all duration-400 ease-kapio;
   }
   .card-lift:hover {
     @apply -translate-y-1;
     box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 0 0 1px rgba(46,184,138,0.25), 0 20px 48px rgba(0,0,0,0.5), 0 0 32px rgba(46,184,138,0.08);
+  }
+
+  /* Panel interactif — couvre les divs custom des pages Simulator/Checklist
+     qui n'utilisent pas card-dark mais bg-ink-800/60 + rounded-2xl */
+  .panel-dark {
+    transition: transform 280ms cubic-bezier(0.16,1,0.3,1),
+                box-shadow 280ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .panel-dark:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(46,184,138,0.15),
+      0 16px 40px rgba(0,0,0,0.4),
+      0 0 20px rgba(46,184,138,0.05);
+  }
+  /* Table rows à l'intérieur d'un .panel-dark */
+  .panel-dark tbody tr {
+    transition: background 180ms ease;
+  }
+  .panel-dark tbody tr:hover td,
+  .panel-dark tbody tr:hover th {
+    background: rgba(255,255,255,0.025);
   }
 
   /* CTA premium */

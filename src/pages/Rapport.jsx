@@ -208,7 +208,11 @@ function SectionSep({ num, label }) {
 /* ── Sous-section (module interne) — carte avec en-tête gris clair ───────── */
 function SectionBox({ title, badge, num, children, footer }) {
   return (
-    <div className="rp-module rounded-xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none">
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      className="rp-module rounded-xl border border-gray-200 overflow-hidden shadow-sm print:shadow-none"
+    >
       <div className="rp-section-header flex items-center justify-between px-4 py-2.5 bg-gray-100 border-b border-gray-200">
         <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
           {num && <span className="rp-module-num font-mono text-gray-400 mr-2">{num}</span>}
@@ -220,7 +224,7 @@ function SectionBox({ title, badge, num, children, footer }) {
       </div>
       <div className="overflow-x-auto">{children}</div>
       {footer && <div className="border-t border-gray-100">{footer}</div>}
-    </div>
+    </motion.div>
   );
 }
 

@@ -194,7 +194,7 @@ function Questionnaire({ onGenerate, onSkip, initialAnswers }) {
       {/* Groupes de questions */}
       {QUESTIONNAIRE_GROUPS.map((group, gi) => (
         <ScrollReveal key={group.id} delay={0.1 + gi * 0.05}>
-          <div className="rounded-2xl border border-white/[0.06] bg-ink-800/60 backdrop-blur-sm overflow-hidden">
+          <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 backdrop-blur-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-white/[0.04] bg-ink-850/40">
               <p className="text-xs font-bold text-ink-300 uppercase tracking-widest">{group.label}</p>
             </div>
