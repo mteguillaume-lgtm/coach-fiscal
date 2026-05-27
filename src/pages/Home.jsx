@@ -244,7 +244,7 @@ export default function Home() {
             <motion.img
               src="/kapio-logo.png"
               alt="Kapio"
-              className="relative w-40 h-40 sm:w-56 sm:h-56 mx-auto drop-shadow-2xl"
+              className="relative w-48 h-auto sm:w-72 mx-auto drop-shadow-2xl object-contain"
             />
           </motion.div>
 
