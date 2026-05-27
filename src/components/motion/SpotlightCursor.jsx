@@ -12,11 +12,7 @@ export default function SpotlightCursor({
   const posRef = useRef({ x: -2000, y: -2000 });
   const [visible, setVisible] = useState(false);
 
-  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
-
   useEffect(() => {
-    if (isTouch) return;
-
     const move = (e) => {
       posRef.current = { x: e.clientX, y: e.clientY };
       if (rafRef.current) return;
@@ -41,9 +37,7 @@ export default function SpotlightCursor({
       window.removeEventListener('pointerenter', enter);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isTouch, size, color, intensity]);
-
-  if (isTouch) return null;
+  }, [size, color, intensity]);
 
   return (
     <motion.div
