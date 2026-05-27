@@ -21,23 +21,23 @@ const NAV_LINKS = [
 
 function KapioLogo() {
   return (
-    <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-      <div className="relative w-8 h-8 flex items-center justify-center">
+    <Link to="/" className="flex items-center gap-3 group shrink-0">
+      <div className="relative w-9 h-9 flex items-center justify-center">
         <img src="/favicon.svg" alt="Kapio" className="w-full h-full transition-transform duration-300 group-hover:scale-105" />
       </div>
-      <span className="font-bold text-ink-0 tracking-tight text-base group-hover:text-kapio-300 transition-colors">Kapio</span>
+      <span className="font-bold text-ink-0 tracking-tight text-lg group-hover:text-kapio-300 transition-colors">Kapio</span>
     </Link>
   );
 }
 
 function NavItem({ to, Icon, label, isActive }) {
-  const baseClass = 'flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all duration-200';
-  const activeClass = 'text-ink-0 bg-white/[0.06]';
-  const inactiveClass = 'text-ink-100 hover:text-ink-0 hover:bg-white/[0.04]';
+  const baseClass = 'flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl transition-all duration-200';
+  const activeClass = 'text-ink-0 bg-white/[0.08]';
+  const inactiveClass = 'text-ink-200 hover:text-ink-0 hover:bg-white/[0.05]';
   return (
     <Link to={to} className={baseClass + ' ' + (isActive ? activeClass : inactiveClass)}>
-      <Icon size={14} aria-hidden="true" />
-      <span className="hidden md:inline">{label}</span>
+      <Icon size={16} aria-hidden="true" />
+      <span className="hidden lg:inline">{label}</span>
     </Link>
   );
 }
@@ -80,8 +80,8 @@ export default function Layout() {
     : 'min-h-screen overflow-x-hidden flex flex-col bg-ink-900';
 
   const headerInnerClass = isFullWidth
-    ? 'max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3'
-    : 'max-w-[1100px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3';
+    ? 'max-w-7xl mx-auto px-4 sm:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4'
+    : 'max-w-[1100px] mx-auto px-4 sm:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4';
 
   const mainContentClass = isFullWidth
     ? 'w-full animate-fade-in'
@@ -125,7 +125,7 @@ export default function Layout() {
           <KapioLogo />
 
           {/* Nav desktop (cachée sur mobile) */}
-          <nav className="hidden sm:flex items-center gap-0.5">
+          <nav className="hidden sm:flex items-center gap-1">
             {NAV_LINKS.map(link => {
               const isActive = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
               return <NavItem key={link.to} to={link.to} Icon={link.Icon} label={link.label} isActive={isActive} />;
@@ -138,24 +138,24 @@ export default function Layout() {
                 isActive={pathname.startsWith('/dev/fixtures')}
               />
             )}
-            <div className="ml-2 pl-2 border-l border-white/[0.08] flex items-center gap-1">
+            <div className="ml-3 pl-3 border-l border-white/[0.08] flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handleReset}
                 title="Reinitialiser"
                 aria-label="Reinitialiser"
-                className="flex items-center justify-center w-8 h-8 text-ink-200 hover:text-danger-400 hover:bg-danger-500/10 rounded-lg transition-all duration-200"
+                className="flex items-center justify-center w-9 h-9 text-ink-300 hover:text-danger-400 hover:bg-danger-500/10 rounded-xl transition-all duration-200"
               >
-                <RotateCcw size={14} aria-hidden="true" />
+                <RotateCcw size={16} aria-hidden="true" />
               </button>
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="GitHub"
-                className="flex items-center justify-center w-8 h-8 text-ink-200 hover:text-ink-0 hover:bg-white/[0.06] rounded-lg transition-all duration-200"
+                className="flex items-center justify-center w-9 h-9 text-ink-300 hover:text-ink-0 hover:bg-white/[0.06] rounded-xl transition-all duration-200"
               >
-                <GitFork size={14} aria-hidden="true" />
+                <GitFork size={16} aria-hidden="true" />
               </a>
             </div>
           </nav>
