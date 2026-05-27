@@ -2948,11 +2948,11 @@ export default function Rapport() {
 
         {/* ── Banner non enrichi ── */}
         {!d.hasAi && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start gap-3 print:hidden">
-            <Wand2 size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 flex items-start gap-3 print:hidden">
+            <Wand2 size={16} className="text-amber-400 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">Profil non encore enrichi</p>
-              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+              <p className="text-sm font-semibold text-amber-300">Profil non encore enrichi</p>
+              <p className="text-xs text-amber-400 mt-0.5 leading-relaxed">
                 Les tableaux ci-dessous sont calculés depuis vos données saisies.
                 Enrichissez avec l'IA pour les cases 2042, situations particulières, points critiques et objectifs.
               </p>
@@ -2975,6 +2975,10 @@ export default function Rapport() {
             <ArrowLeft size={14} /> Retour au profil
           </Button>
         </div>
+
+        {/* ── Rapport papier — fond blanc pour lisibilité des tableaux ── */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-x-hidden print:bg-transparent print:shadow-none print:rounded-none">
+        <div className="p-5 sm:p-8 flex flex-col gap-5 print:p-0">
 
         {/* ── Section 01 : Essentiel en un coup d'œil ── */}
         {d.rniFoyer > 0 && (
@@ -3169,6 +3173,9 @@ export default function Rapport() {
             Démarrer le conseil → <Sparkles size={12} />
           </Button>
         </div>
+
+        </div>
+        </div>{/* fin rapport papier */}
 
         {/* ── Actions bas ── */}
         <div className="flex gap-3 flex-wrap pt-2 print:hidden">

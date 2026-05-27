@@ -7,7 +7,7 @@ import { useApp } from '../context/AppContext';
 const STORAGE_KEY = 'coachFiscal.state';
 const GITHUB_URL = 'https://github.com/coach-fiscal/coach-fiscal';
 const VERSION = '0.1.0';
-const HIDE_STEPPER = ['/', '/about', '/privacy', '/dashboard'];
+const HIDE_STEPPER = ['/', '/about', '/privacy'];
 const FULL_WIDTH_PAGES = ['/', '/dashboard', '/profile', '/setup', '/rapport', '/opportunites', '/checklist', '/simulator', '/declaration'];
 
 const NAV_LINKS = [
