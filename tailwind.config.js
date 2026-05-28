@@ -73,10 +73,16 @@ export default {
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
-        // ─── Base scale ajustée +1px pour lisibilité Finary-style ─────────
-        '2xs': ['0.6875rem', { lineHeight: '1rem' }],            // 11px (was 10px)
-        'xs':  ['0.8125rem', { lineHeight: '1.25rem' }],         // 13px (was 12px)
-        'sm':  ['0.9375rem', { lineHeight: '1.5rem' }],          // 15px (was 14px)
+        // ─── Échelle décalée d'un cran vers le haut (lisibilité Finary-style) ─
+        '2xs':  ['0.8125rem', { lineHeight: '1.25rem' }],        // 13px (was 11px)
+        'xs':   ['0.9375rem', { lineHeight: '1.5rem' }],         // 15px (was 13px)
+        'sm':   ['1rem',      { lineHeight: '1.625rem' }],       // 16px (was 15px)
+        'base': ['1.125rem',  { lineHeight: '1.75rem' }],        // 18px (was 16px)
+        'lg':   ['1.25rem',   { lineHeight: '1.875rem' }],       // 20px (was 18px)
+        'xl':   ['1.5rem',    { lineHeight: '2rem' }],           // 24px (was 20px)
+        '2xl':  ['1.875rem',  { lineHeight: '2.25rem' }],        // 30px (was 24px)
+        '3xl':  ['2.25rem',   { lineHeight: '2.75rem' }],        // 36px (was 30px)
+        '4xl':  ['2.75rem',   { lineHeight: '3.25rem' }],        // 44px (was 36px)
         'display-sm': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
         'display':    ['3rem',    { lineHeight: '1.05', letterSpacing: '-0.025em', fontWeight: '800' }],
         'display-lg': ['4rem',    { lineHeight: '1.0', letterSpacing: '-0.03em', fontWeight: '800' }],
