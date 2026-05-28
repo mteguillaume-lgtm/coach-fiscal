@@ -188,9 +188,9 @@ function KpiCard({ label, value, sub, color = 'gray' }) {
 
   return (
     <div className={`rp-kpi rounded-2xl border p-4 ${cls}`}>
-      <p className="text-[11px] font-semibold uppercase tracking-wider opacity-50 mb-1">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider opacity-50 mb-1">{label}</p>
       <p className="text-xl font-bold tabular-nums">{value}</p>
-      {sub && <p className="text-[11px] opacity-55 mt-0.5 leading-snug">{sub}</p>}
+      {sub && <p className="text-xs opacity-55 mt-0.5 leading-snug">{sub}</p>}
     </div>
   );
 }
@@ -219,7 +219,7 @@ function SectionBox({ title, badge, num, children, footer }) {
           {title}
         </h3>
         {badge && (
-          <span className="text-[10px] font-semibold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{badge}</span>
+          <span className="text-xs font-semibold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{badge}</span>
         )}
       </div>
       <div className="overflow-x-auto">{children}</div>
@@ -236,7 +236,7 @@ function Th({ children, right, wide }) {
   return (
     <th className={[
       'rp-table-head px-4 py-2 font-semibold text-gray-500 bg-gray-50 border-b border-gray-100',
-      'uppercase tracking-wide text-[10px] whitespace-nowrap',
+      'uppercase tracking-wide text-xs whitespace-nowrap',
       right ? 'text-right' : 'text-left',
       wide  ? 'w-1/2'     : '',
     ].join(' ')}>
@@ -328,7 +328,7 @@ function RevenusTable({ d, p }) {
           {/* Rente 1AS/1BS */}
           {(p.rente1BsD1 > 0 || (d.isCouple && p.rente1BsD2 > 0)) && <>
             <tr>
-              <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+              <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
                 Pensions / rentes viagères
               </td>
             </tr>
@@ -358,7 +358,7 @@ function RevenusTable({ d, p }) {
           </tr>
           {d.foncierBrut > 0 && <>
             <tr>
-              <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+              <td colSpan={d.isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
                 Revenus fonciers
               </td>
             </tr>
@@ -704,7 +704,7 @@ function IRParDeclarantTable({ d }) {
               <tr key={i}>
                 <Td bold={rate > 0}>
                   {pct(rate)}
-                  <span className="block text-[10px] text-gray-400 font-normal">{e0(lo)} → {hiLabel}</span>
+                  <span className="block text-xs text-gray-400 font-normal">{e0(lo)} → {hiLabel}</span>
                 </Td>
                 <Td right muted={!sD1}>
                   {sD1 ? `${e2(sD1.taxable)} × ${pct(rate)}` : '—'}
@@ -809,7 +809,7 @@ function SoldeTable({ d, cehr = 0 }) {
             <tr className="bg-orange-50/40">
               <Td className="text-orange-700">
                 + CEHR art. 223 sexies CGI
-                <span className="ml-1 text-[10px] text-orange-500">(non retenue à la source — à régler)</span>
+                <span className="ml-1 text-xs text-orange-500">(non retenue à la source — à régler)</span>
               </Td>
               <Td right className="text-orange-700 font-bold">+ {e2(cehr)}</Td>
             </tr>
@@ -859,7 +859,7 @@ function GainPacsTable({ d }) {
 
   return (
     <SectionBox title="Partage équitable du gain PACS — qui paie quoi" num="03e">
-      <div className="px-5 py-2 text-[11px] text-gray-500 bg-gray-50/50 border-b border-gray-100">
+      <div className="px-5 py-2 text-xs text-gray-500 bg-gray-50/50 border-b border-gray-100">
         On compare l'IR réel (en couple, 2 parts) à ce que chacun paierait en célibataire (1 part).
         L'écart = gain du quotient familial, partagé 50 / 50.
       </div>
@@ -1015,34 +1015,34 @@ function PerZonesBlock({ p, d, perSim }) {
         {opt.zones.map((z, i) => (
           <div key={i} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="w-5 h-5 rounded-full bg-gray-700 text-white text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-              <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">
+              <span className="w-5 h-5 rounded-full bg-gray-700 text-white text-2xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+              <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">
                 Zone {i + 1} — PER prioritaire · Effacement tranche {z.taux}&nbsp;% · Rendement {z.taux}&nbsp;%
               </span>
               {z.partial && (
-                <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Plafond épuisé avant effacement complet</span>
+                <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Plafond épuisé avant effacement complet</span>
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Fraction imposée à {z.taux}&nbsp;%</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Fraction imposée à {z.taux}&nbsp;%</p>
                 <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(z.fractionFoyer)}</p>
-                {z.partial && <p className="text-[10px] text-amber-600 mt-0.5">Couverture plafond&nbsp;: {e0(z.versement)}</p>}
+                {z.partial && <p className="text-xs text-amber-600 mt-0.5">Couverture plafond&nbsp;: {e0(z.versement)}</p>}
               </div>
               <div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Versement PER cible</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Versement PER cible</p>
                 <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(z.versement)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wide">Économie IR</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Économie IR</p>
                 <p className="text-sm font-semibold text-emerald-700 tabular-nums whitespace-nowrap">{e0(z.versement)} × {z.taux}&nbsp;% = <strong>{e0(z.economie)}</strong></p>
               </div>
             </div>
             {isCouple && i === opt.zones.length - 1 && (plafondD1 > 0 || plafondD2 > 0) && (
-              <p className="mt-2 text-[11px] text-gray-600 border-t border-gray-200 pt-2">
+              <p className="mt-2 text-xs text-gray-600 border-t border-gray-200 pt-2">
                 Répartition suggérée&nbsp;:{' '}
                 <strong>{opt.prioritaire === 'D1' ? 'D1' : 'D2'}&nbsp;{opt.prioritaire === 'D1' ? e0(opt.optimumD1) : e0(opt.optimumD2)}</strong>
-                <span className="text-[9px] bg-gray-200 text-gray-700 px-1 py-0.5 rounded font-semibold ml-1">prioritaire</span>
+                <span className="text-2xs bg-gray-200 text-gray-700 px-1 py-0.5 rounded font-semibold ml-1">prioritaire</span>
                 {' · '}
                 <strong>{opt.prioritaire === 'D1' ? 'D2' : 'D1'}&nbsp;{opt.prioritaire === 'D1' ? e0(opt.optimumD2) : e0(opt.optimumD1)}</strong>
               </p>
@@ -1053,19 +1053,19 @@ function PerZonesBlock({ p, d, perSim }) {
         {/* Récapitulatif */}
         <div className="rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 flex flex-wrap gap-x-6 gap-y-2">
           <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Versement optimum</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Versement optimum</p>
             <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(opt.optimumTotal)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Économie IR réelle</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Économie IR réelle</p>
             <p className="text-sm font-bold text-emerald-700 tabular-nums">{e0(opt.economieOptimum)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Effort net réel</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Effort net réel</p>
             <p className="text-sm font-bold text-gray-900 tabular-nums">{e0(opt.effortNet)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Rendement fiscal</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Rendement fiscal</p>
             <p className="text-sm font-bold text-gray-900 tabular-nums">{opt.rendementMoyen}&nbsp;%</p>
           </div>
         </div>
@@ -1073,26 +1073,26 @@ function PerZonesBlock({ p, d, perSim }) {
         {/* Zone résiduelle 11% */}
         {opt.capaciteResiduelle > 0 && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-2">
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-2">
               Zone PER à rendement réduit — Tranche 11&nbsp;% atteinte
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-2 mb-3">
               <div>
-                <p className="text-[10px] text-amber-600 uppercase tracking-wide">Capacité PER résiduelle</p>
+                <p className="text-xs text-amber-600 uppercase tracking-wide">Capacité PER résiduelle</p>
                 <p className="text-sm font-bold text-amber-900 tabular-nums">
-                  {e0(opt.capaciteResiduelle)} <span className="text-amber-500 font-normal text-[10px]">({e0(opt.plafondTotal)} − {e0(opt.optimumTotal)})</span>
+                  {e0(opt.capaciteResiduelle)} <span className="text-amber-500 font-normal text-xs">({e0(opt.plafondTotal)} − {e0(opt.optimumTotal)})</span>
                 </p>
               </div>
               <div>
-                <p className="text-[10px] text-amber-600 uppercase tracking-wide">Rendement PER résiduel</p>
+                <p className="text-xs text-amber-600 uppercase tracking-wide">Rendement PER résiduel</p>
                 <p className="text-sm font-semibold text-amber-800">11&nbsp;% seulement</p>
               </div>
             </div>
             <div className="border-t border-amber-200 pt-2 space-y-1.5">
-              <p className="text-[11px] font-semibold text-amber-800">Alternatives à privilégier pour cet excédent&nbsp;:</p>
-              <p className="text-[11px] text-amber-700">→ <strong>PEA</strong>&nbsp;: pas d'économie IR immédiate, mais exonération des plus-values après 5 ans et meilleure liquidité</p>
-              <p className="text-[11px] text-amber-700">→ <strong>Assurance-vie</strong>&nbsp;: fiscalité allégée après 8 ans, disponibilité des fonds</p>
-              <p className="text-[11px] text-amber-700">→ <strong>LDDS / Livret A</strong>&nbsp;: liquidité totale, rendement garanti (mais faible)</p>
+              <p className="text-xs font-semibold text-amber-800">Alternatives à privilégier pour cet excédent&nbsp;:</p>
+              <p className="text-xs text-amber-700">→ <strong>PEA</strong>&nbsp;: pas d'économie IR immédiate, mais exonération des plus-values après 5 ans et meilleure liquidité</p>
+              <p className="text-xs text-amber-700">→ <strong>Assurance-vie</strong>&nbsp;: fiscalité allégée après 8 ans, disponibilité des fonds</p>
+              <p className="text-xs text-amber-700">→ <strong>LDDS / Livret A</strong>&nbsp;: liquidité totale, rendement garanti (mais faible)</p>
             </div>
           </div>
         )}
@@ -1100,27 +1100,27 @@ function PerZonesBlock({ p, d, perSim }) {
         {/* Simulation active depuis le Simulateur */}
         {hasSimState && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-2">Versements retenus dans le Simulateur</p>
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">Versements retenus dans le Simulateur</p>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               {isCouple ? (
                 <>
                   <div>
-                    <p className="text-[10px] text-blue-600 uppercase">D1 versé</p>
+                    <p className="text-xs text-blue-600 uppercase">D1 versé</p>
                     <p className="text-xs font-bold text-blue-900 tabular-nums">{e0(simD1)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-blue-600 uppercase">D2 versé</p>
+                    <p className="text-xs text-blue-600 uppercase">D2 versé</p>
                     <p className="text-xs font-bold text-blue-900 tabular-nums">{e0(simD2)}</p>
                   </div>
                 </>
               ) : (
                 <div>
-                  <p className="text-[10px] text-blue-600 uppercase">Versement simulé</p>
+                  <p className="text-xs text-blue-600 uppercase">Versement simulé</p>
                   <p className="text-xs font-bold text-blue-900 tabular-nums">{e0(simD1)}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] text-blue-600 uppercase">Économie IR (barème réel)</p>
+                <p className="text-xs text-blue-600 uppercase">Économie IR (barème réel)</p>
                 <p className="text-xs font-bold text-emerald-700 tabular-nums">
                   {e0(Math.max(0, d.irNetFoyer - calcIR(Math.max(0, d.rniFoyer - simD1 - simD2), parts, isCouple)))}
                 </p>
@@ -1186,7 +1186,7 @@ function PerScenariosTable({ p, d }) {
       title="Comparaison de scénarios PER — barème réel 2025"
       num="04c"
       footer={
-        <p className="px-4 py-2.5 text-[11px] text-gray-500 italic">
+        <p className="px-4 py-2.5 text-xs text-gray-500 italic">
           Économie calculée sur le barème progressif réel — souvent inférieure à TMI × versement car la déduction traverse plusieurs tranches.
         </p>
       }
@@ -1209,8 +1209,8 @@ function PerScenariosTable({ p, d }) {
               <tr key={i} className={isBest ? 'bg-teal-50/50' : i === 0 ? 'bg-gray-50/40' : ''}>
                 <td className="px-4 py-2.5 border-b border-gray-50">
                   <span className={`font-semibold ${isBest ? 'text-teal-800' : 'text-gray-800'}`}>{s.label}</span>
-                  <span className="text-gray-400 ml-2 text-[10px]">{s.desc}</span>
-                  {isBest && <span className="ml-2 text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-semibold">Optimal</span>}
+                  <span className="text-gray-400 ml-2 text-xs">{s.desc}</span>
+                  {isBest && <span className="ml-2 text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-semibold">Optimal</span>}
                 </td>
                 <Td right muted={s.versement === 0}>{s.versement > 0 ? e0(s.versement) : '—'}</Td>
                 <Td right>{e0(s.irApres)}</Td>
@@ -1249,9 +1249,9 @@ function PerCalendarBlock({ p, d }) {
   return (
     <div className="mx-4 mb-3 rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
       <div className="px-4 py-2 border-b border-gray-200 bg-gray-100 flex items-center justify-between flex-wrap gap-1">
-        <p className="text-[10px] font-bold text-gray-700 uppercase tracking-wide">Calendrier d'exécution — versements PER optimum avant 31/12</p>
+        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Calendrier d'exécution — versements PER optimum avant 31/12</p>
         {isCouple && (
-          <span className="text-[10px] text-gray-500 italic">
+          <span className="text-xs text-gray-500 italic">
             {prio} prioritaire (salaire le plus élevé) · économie IR réelle {e0(perOpt.economieOptimum)}
           </span>
         )}
@@ -1259,14 +1259,14 @@ function PerCalendarBlock({ p, d }) {
       <table className="w-full text-xs">
         <thead>
           <tr>
-            <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Rythme</th>
-            <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Rythme</th>
+            <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
               {isCouple ? `${prio} ★` : 'Montant'}
             </th>
             {showSec && (
-              <th className="px-3 py-2 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{sec}</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{sec}</th>
             )}
-            {isCouple && <th className="px-4 py-2 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Total</th>}
+            {isCouple && <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Total</th>}
           </tr>
         </thead>
         <tbody>
@@ -1289,7 +1289,7 @@ function PerCalendarBlock({ p, d }) {
           </tr>
         </tbody>
       </table>
-      <p className="px-4 py-2 text-[10px] text-gray-500 italic border-t border-gray-100">
+      <p className="px-4 py-2 text-xs text-gray-500 italic border-t border-gray-100">
         Montants basés sur l'optimum fiscal (effacement des tranches {perOpt.tmiDepart}&nbsp;% et supérieures).
         {isCouple ? ` Plafond max disponible : ${prio} ${e0(plafD1 > 0 ? (prio === 'D1' ? plafD1 : plafD2) : 0)} · ${sec} ${e0(prio === 'D1' ? plafD2 : plafD1)}.` : ` Plafond max disponible : ${e0(plafD1)}.`}
       </p>
@@ -1400,7 +1400,7 @@ function PerPlafondsModule({ p, d }) {
           )}
           {totalVersionable > 0 && <>
             <tr>
-              <td colSpan={isCouple ? 4 : 3} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+              <td colSpan={isCouple ? 4 : 3} className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
                 Simulation économie IR (si plafond total utilisé)
               </td>
             </tr>
@@ -1485,14 +1485,14 @@ function CasesModule({ p, d }) {
         <tbody>
           {cases.map((c, i) => (
             <tr key={i}>
-              <Td bold><code className="bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">{c.code}</code></Td>
+              <Td bold><code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{c.code}</code></Td>
               <Td className={c.italic ? 'italic' : ''}>{c.desc}</Td>
               <Td right>{c.montant}</Td>
             </tr>
           ))}
         </tbody>
       </Tbl>
-      <p className="px-4 py-2.5 text-[11px] text-gray-500 italic border-t border-gray-50">
+      <p className="px-4 py-2.5 text-xs text-gray-500 italic border-t border-gray-50">
         Les cases en italique sont des <strong>opportunités de versement</strong> à effectuer avant le 31/12 — pas des montants déjà versés.
       </p>
     </SectionBox>
@@ -1615,7 +1615,7 @@ function PeaAvModule({ p }) {
               <p className="text-sm font-semibold text-teal-700 mb-2">PEA ouvert ✓</p>
               {peaD1 > 0 && <p className="text-xs text-gray-600">D1 : <span className="font-semibold tabular-nums">{e0(peaD1)}</span> — plafond restant : {e0(150000 - peaD1)}</p>}
               {isCouple && peaD2 > 0 && <p className="text-xs text-gray-600 mt-1">D2 : <span className="font-semibold tabular-nums">{e0(peaD2)}</span> — plafond restant : {e0(150000 - peaD2)}</p>}
-              <p className="text-[11px] text-teal-600 mt-2 leading-snug">Exonéré IR sur plus-values après 5 ans (art. 150-0 A CGI).</p>
+              <p className="text-xs text-teal-600 mt-2 leading-snug">Exonéré IR sur plus-values après 5 ans (art. 150-0 A CGI).</p>
             </>
           ) : (
             <>
@@ -1632,7 +1632,7 @@ function PeaAvModule({ p }) {
               <p className="text-sm font-semibold text-teal-700 mb-2">Assurance-vie ouverte ✓</p>
               {avD1 > 0 && <p className="text-xs text-gray-600">D1 : <span className="font-semibold tabular-nums">{e0(avD1)}</span></p>}
               {isCouple && avD2 > 0 && <p className="text-xs text-gray-600 mt-1">D2 : <span className="font-semibold tabular-nums">{e0(avD2)}</span></p>}
-              <p className="text-[11px] text-teal-600 mt-2 leading-snug">Abattement {isCouple ? '4 600 € / 4 600 €' : '4 600 €'}/an sur gains après 8 ans.</p>
+              <p className="text-xs text-teal-600 mt-2 leading-snug">Abattement {isCouple ? '4 600 € / 4 600 €' : '4 600 €'}/an sur gains après 8 ans.</p>
             </>
           ) : (
             <>
@@ -1794,7 +1794,7 @@ function ReallocationPlanTable({ plan, label }) {
             <td className="px-4 py-3 text-sm font-bold text-teal-800">Total réalloué</td>
             <td className="px-4 py-3 text-sm font-bold text-teal-800 text-right tabular-nums">{e0(plan.totalRealloue)}</td>
             <td className="px-4 py-3 text-sm font-bold text-teal-700 text-right tabular-nums">+ {e0(plan.totalGain)} €/an</td>
-            <td className="px-4 py-3 text-[10px] text-teal-600">Estimation indicative — à valider selon tolérance au risque</td>
+            <td className="px-4 py-3 text-xs text-teal-600">Estimation indicative — à valider selon tolérance au risque</td>
           </tr>
         </tbody>
       </Tbl>
@@ -1903,7 +1903,7 @@ function PelDetailBlock({ p, sfx, label }) {
   return (
     <>
       <div className="px-5 py-2.5 bg-gray-50/40 border-b border-gray-100">
-        <p className="text-[11px] font-bold text-gray-700">{label} — {e0(solde)}</p>
+        <p className="text-xs font-bold text-gray-700">{label} — {e0(solde)}</p>
       </div>
       <Tbl>
         <tbody>
@@ -1916,7 +1916,7 @@ function PelDetailBlock({ p, sfx, label }) {
       </Tbl>
       <div className={`px-5 py-3 border-t ${toneCls}`}>
         <p className="text-xs font-bold mb-1">{decision.title}</p>
-        <p className="text-[11px] leading-relaxed opacity-90">{decision.body}</p>
+        <p className="text-xs leading-relaxed opacity-90">{decision.body}</p>
       </div>
     </>
   );
@@ -2016,7 +2016,7 @@ function AllocationActifsModule({ p }) {
 
   const Tab = ({ v, label }) => (
     <button onClick={() => setView(v)}
-      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
         view === v ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
       }`}>
       {label}
@@ -2077,7 +2077,7 @@ function AllocationActifsModule({ p }) {
               )}
               {view === 'foyer' && (
                 <div className={`rounded-xl border p-3 ${scoreBg}`}>
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Score de diversification</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Score de diversification</p>
                   <p className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
                     {score}<span className="text-sm font-normal opacity-60"> / 10</span>
                   </p>
@@ -2160,14 +2160,14 @@ function DiagnosticFiscalModule({ p, d }) {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className={`rounded-lg border p-3 ${pfuWins ? 'border-teal-300 bg-teal-50' : 'border-gray-200 bg-white'}`}>
-                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Flat Tax 30 %</p>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Flat Tax 30 %</p>
                 <p className="text-base font-bold text-gray-800 tabular-nums">{e0(pfuTax)}</p>
-                {pfuWins && <p className="text-[10px] text-teal-600 font-semibold mt-0.5">Option recommandée</p>}
+                {pfuWins && <p className="text-xs text-teal-600 font-semibold mt-0.5">Option recommandée</p>}
               </div>
               <div className={`rounded-lg border p-3 ${!pfuWins ? 'border-teal-300 bg-teal-50' : 'border-gray-200 bg-white'}`}>
-                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Option barème ({tmiActuel} %)</p>
+                <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Option barème ({tmiActuel} %)</p>
                 <p className="text-base font-bold text-gray-800 tabular-nums">{e0(baremeTax)}</p>
-                {!pfuWins && <p className="text-[10px] text-teal-600 font-semibold mt-0.5">Option recommandée</p>}
+                {!pfuWins && <p className="text-xs text-teal-600 font-semibold mt-0.5">Option recommandée</p>}
               </div>
             </div>
           </div>
@@ -2305,8 +2305,8 @@ function FeuilleRouteModule({ p, d }) {
     return (
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
-          <span className="text-[10px] font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{badge}</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{label}</span>
+          <span className="text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{badge}</span>
         </div>
         <div className="flex flex-col gap-2">
           {items.map((pr, i) => {
@@ -2319,11 +2319,11 @@ function FeuilleRouteModule({ p, d }) {
                   <p className={`text-xs ${c.sub} mt-0.5 leading-relaxed`}>{pr.levier}</p>
                   <div className="flex flex-wrap gap-4 mt-2">
                     <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Impact</p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">Impact</p>
                       <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Échéance</p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide">Échéance</p>
                       <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
                     </div>
                   </div>
@@ -2381,7 +2381,7 @@ function FoncierModule({ d }) {
           </tr>
         </tbody>
       </Tbl>
-      <p className="px-4 py-2.5 text-[11px] text-gray-500 border-t border-gray-50">
+      <p className="px-4 py-2.5 text-xs text-gray-500 border-t border-gray-50">
         Régime : {isMicro ? 'Micro-foncier (abattement 30 %)' : 'Régime réel (formulaire 2044)'}
         {isMicro && foncierBrut > 15000 && (
           <span className="ml-2 text-amber-600 font-medium">⚠ Seuil micro-foncier dépassé (15 000 €) — option régime réel à étudier.</span>
@@ -2608,14 +2608,14 @@ function EnveloppesDetailModule({ p }) {
           {rows.map((r, i) => {
             if (r.sep) return (
               <tr key={i}>
-                <td colSpan={isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                <td colSpan={isCouple ? 3 : 2} className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
                   {r.sep}
                 </td>
               </tr>
             );
             return (
               <tr key={i} className={r.sub ? 'bg-gray-50/30' : ''}>
-                <Td className={r.sub ? 'pl-8 text-gray-500 text-[11px]' : ''}>{r.label}</Td>
+                <Td className={r.sub ? 'pl-8 text-gray-500 text-xs' : ''}>{r.label}</Td>
                 <Td right muted={r.sub}>{r.d1}</Td>
                 {isCouple && <Td right muted={r.sub}>{r.d2}</Td>}
               </tr>
@@ -2804,7 +2804,7 @@ function AiSectionCard({ section }) {
     <div className="rounded-2xl border border-violet-200 bg-violet-50/10 overflow-hidden shadow-sm print:shadow-none">
       <div className="flex items-center justify-between px-5 py-3 bg-violet-50 border-b border-violet-200">
         <h3 className="text-sm font-bold text-violet-900">{section.title}</h3>
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full print:hidden">
+        <span className="flex items-center gap-1 text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full print:hidden">
           <Sparkles size={9} /> Enrichi IA
         </span>
       </div>

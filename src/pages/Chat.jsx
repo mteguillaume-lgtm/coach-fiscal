@@ -118,7 +118,7 @@ function Sidebar({ onSelect, onClose }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: catIdx * 0.08, duration: 0.4 }}
           >
-            <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-2 px-2">
+            <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-2 px-2">
               {cat.category}
             </p>
             <div className="space-y-0.5">
@@ -449,7 +449,7 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.3 }}
-                className="text-[10px] text-ink-200 mt-1 truncate"
+                className="text-xs text-ink-200 mt-1 truncate"
               >
                 {activeSkills.length > 0
                   ? `Skills : ${activeSkills.join(' · ')}`
@@ -489,7 +489,7 @@ export default function Chat() {
                 onClick={() => dispatch({ type: 'SET_MODEL', payload: key })}
                 title={title}
                 className={
-                  'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-300 ' +
+                  'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 ' +
                   (state.model === key ? activeClass : 'text-ink-200 hover:text-ink-0')
                 }
               >
@@ -642,13 +642,13 @@ export default function Chat() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                        className="w-8 h-8 rounded-xl bg-kapio-gradient flex items-center justify-center text-ink-900 text-[11px] font-bold shrink-0 mb-0.5 shadow-glow-soft"
+                        className="w-8 h-8 rounded-xl bg-kapio-gradient flex items-center justify-center text-ink-900 text-xs font-bold shrink-0 mb-0.5 shadow-glow-soft"
                       >
                         K
                       </motion.div>
                     ) : null}
                     {msg.role === 'user' ? (
-                      <div className="w-8 h-8 rounded-xl bg-ink-700 border border-white/[0.08] flex items-center justify-center text-ink-0 text-[11px] font-bold shrink-0 mb-0.5">
+                      <div className="w-8 h-8 rounded-xl bg-ink-700 border border-white/[0.08] flex items-center justify-center text-ink-0 text-xs font-bold shrink-0 mb-0.5">
                         U
                       </div>
                     ) : null}
@@ -694,7 +694,7 @@ export default function Chat() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3, duration: 0.3 }}
                       className={
-                        'ml-11 text-[10px] font-bold px-2 py-0.5 rounded-full border ' +
+                        'ml-11 text-xs font-bold px-2 py-0.5 rounded-full border ' +
                         (
                           !msg.model || msg.model === 'haiku'
                             ? 'bg-ink-700 text-ink-200 border-white/[0.08]'
@@ -793,14 +793,14 @@ export default function Chat() {
                   className="flex items-center gap-1.5 px-2 py-1"
                 >
                   <span className={
-                    'text-[10px] font-semibold px-2 py-0.5 rounded-full border ' +
+                    'text-xs font-semibold px-2 py-0.5 rounded-full border ' +
                     (effectiveModel === 'haiku'
                       ? 'bg-ink-700/60 text-ink-300 border-white/[0.08]'
                       : 'bg-kapio-500/[0.10] text-kapio-300 border-kapio-500/20')
                   }>
                     {effectiveModel === 'haiku' ? '⚡ Haiku · ~< 0,01 $' : '🧠 Sonnet · ~0,01–0,03 $'}
                   </span>
-                  <span className="text-[10px] text-ink-400">adaptatif</span>
+                  <span className="text-xs text-ink-400">adaptatif</span>
                 </motion.div>
               ) : null}
             </AnimatePresence>
@@ -842,11 +842,11 @@ export default function Chat() {
 
             {/* Ligne bas */}
             <div className="flex items-center justify-between px-1">
-              <p className="text-[10px] text-ink-200 leading-relaxed">
+              <p className="text-xs text-ink-200 leading-relaxed">
                 💡 Conseil indicatif — consultez un professionnel agréé.
               </p>
               {inputComplexity ? (
-                <span className="text-[10px] text-ink-200 font-mono">
+                <span className="text-xs text-ink-200 font-mono">
                   Modèle : <span className="text-kapio-300 font-semibold">{effectiveModel}</span>
                 </span>
               ) : null}

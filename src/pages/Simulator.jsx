@@ -225,7 +225,7 @@ function SimSlider({ label, value, min, max, step, onChange, format }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-baseline">
-        <span className="text-xs font-medium text-ink-200">{label}</span>
+        <span className="text-sm font-medium text-ink-100">{label}</span>
         <span className="text-sm font-bold text-kapio-300 font-mono tabular-nums">
           {format ? format(value) : value}
         </span>
@@ -243,7 +243,7 @@ function SimSlider({ label, value, min, max, step, onChange, format }) {
           accentColor: '#0d9488',
         }}
       />
-      <div className="flex justify-between text-[10px] text-ink-300 font-mono">
+      <div className="flex justify-between text-xs text-ink-300 font-mono">
         <span>{format ? format(min) : min}</span>
         <span>{format ? format(max) : max}</span>
       </div>
@@ -283,18 +283,18 @@ function ToggleGroup({ label, options, value, onChange, format }) {
 function ProfileBanner({ items, isDefault, sub }) {
   return (
     <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] px-4 py-3">
-      <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Données du profil</p>
+      <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Données du profil</p>
       <div className="grid grid-cols-3 gap-3">
         {items.map(({ label, value }) => (
           <div key={label} className="text-center">
-            <p className="text-[10px] text-blue-400">{label}</p>
+            <p className="text-xs text-blue-400">{label}</p>
             <p className="text-sm font-bold text-blue-200 font-mono tabular-nums">{value}</p>
           </div>
         ))}
       </div>
-      {sub && <p className="text-[10px] text-blue-400 mt-2 text-center">{sub}</p>}
+      {sub && <p className="text-xs text-blue-400 mt-2 text-center">{sub}</p>}
       {isDefault && (
-        <p className="text-[10px] text-blue-300 mt-2 text-center">
+        <p className="text-xs text-blue-300 mt-2 text-center">
           Valeurs d'exemple — générez un profil pour les personnaliser
         </p>
       )}
@@ -579,7 +579,7 @@ function SimPER({ data }) {
       {totalVerse > 0 && res.bracketBreakdown.length > 0 && (
         <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] overflow-hidden">
           <div className="px-4 py-2.5 border-b border-blue-500/20 bg-blue-500/[0.08]">
-            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Décomposition par tranche</p>
+            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Décomposition par tranche</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
             {res.bracketBreakdown.map(({ rate, amount, saving }) => (
@@ -598,7 +598,7 @@ function SimPER({ data }) {
           </div>
           {res.bracketBreakdown.length > 1 && (
             <div className="px-4 py-2 border-t border-blue-500/20">
-              <p className="text-[10px] text-blue-400">
+              <p className="text-xs text-blue-400">
                 ≠ {fmt(totalVerse)} € × {profData.tmi} % = {fmt(Math.round(totalVerse * profData.tmi / 100))} €
                 {' '}(méthode TMI fixe — incorrecte car {res.bracketBreakdown.length} tranches traversées)
               </p>
@@ -612,7 +612,7 @@ function SimPER({ data }) {
         <div className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 p-4">
           <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-1">Courbe d'économie IR</p>
           {fractionInTopBracket > 0 && plafondTotal > fractionInTopBracket && (
-            <p className="text-[10px] text-warning-400 mb-3 leading-snug">
+            <p className="text-xs text-warning-400 mb-3 leading-snug">
               Rupture de pente à {fmt(fractionInTopBracket)} € : tranche {profData.tmi} % entièrement effacée
               {nextLowerRate > 0 && ` → rendement passe à ${nextLowerRate} %`}
             </p>
@@ -667,7 +667,7 @@ function SimPER({ data }) {
       <details className="panel-dark rounded-2xl border border-white/[0.06] bg-ink-800/60 overflow-hidden group">
         <summary className="px-5 py-3.5 text-xs font-bold text-ink-300 uppercase tracking-widest cursor-pointer flex items-center justify-between select-none hover:bg-ink-700/40 transition-colors">
           <span>Comment fonctionne le PER fiscalement ?</span>
-          <span className="text-ink-300 text-[10px] group-open:rotate-180 transition-transform">▼</span>
+          <span className="text-ink-300 text-xs group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="px-5 py-4 flex flex-col gap-3 text-xs text-ink-100 leading-relaxed border-t border-white/[0.06]">
           <p>
@@ -715,7 +715,7 @@ function SimPER({ data }) {
         </Button>
       </div>
 
-      <p className="text-[10px] text-ink-300 text-center leading-relaxed">
+      <p className="text-xs text-ink-300 text-center leading-relaxed">
         Barème progressif réel 2025 · {parts} part{parts > 1 ? 's' : ''} fiscale{parts > 1 ? 's' : ''}
         {showTwoSliders ? ` · Plafond foyer ${fmt(plafondTotal)} €` : ` · Plafond ${fmt(plafondD1)} €`}
       </p>
@@ -935,7 +935,7 @@ function SimEnveloppes({ data }) {
         />
         {/* Info déclarant PER — visible en mode couple uniquement */}
         {perEnvInfo.declarant && (
-          <div className={`rounded-lg border px-3 py-2 text-[11px] leading-snug ${perEnvInfo.fallback ? 'border-warning-500/30 bg-warning-500/[0.08] text-warning-300' : 'border-blue-500/20 bg-blue-500/[0.06] text-blue-300'}`}>
+          <div className={`rounded-lg border px-3 py-2 text-xs leading-snug ${perEnvInfo.fallback ? 'border-warning-500/30 bg-warning-500/[0.08] text-warning-300' : 'border-blue-500/20 bg-blue-500/[0.06] text-blue-300'}`}>
             {perEnvInfo.fallback
               ? perEnvInfo.fallbackReason
               : `PER simulé sur le plafond de ${perEnvInfo.declarant} (salaire le plus élevé) : ${fmt(perEnvInfo.plafond)} €. Réglez le capital à cette valeur pour comparer à votre plafond réel.`}
@@ -956,7 +956,7 @@ function SimEnveloppes({ data }) {
       <div className="rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-violet-300 uppercase tracking-wide">Hypothèses PER</p>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tmiDiff > 0 ? 'bg-kapio-500/20 text-kapio-300' : tmiDiff < 0 ? 'bg-red-500/20 text-red-400' : 'bg-ink-700 text-ink-200'}`}>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${tmiDiff > 0 ? 'bg-kapio-500/20 text-kapio-300' : tmiDiff < 0 ? 'bg-red-500/20 text-red-400' : 'bg-ink-700 text-ink-200'}`}>
             Différentiel fiscal : {tmiDiff > 0 ? '+' : ''}{tmiDiff} %
           </span>
         </div>
@@ -981,7 +981,7 @@ function SimEnveloppes({ data }) {
           </button>
         </div>
         {!reinvest && (
-          <p className="text-[10px] text-violet-400 italic">Sans réinvestissement : l'économie IR reste en trésorerie — l'avantage PER est sous-estimé.</p>
+          <p className="text-xs text-violet-400 italic">Sans réinvestissement : l'économie IR reste en trésorerie — l'avantage PER est sous-estimé.</p>
         )}
       </div>
 
@@ -992,7 +992,7 @@ function SimEnveloppes({ data }) {
 
       {/* Headline style Finary — meilleure enveloppe */}
       <div className="rounded-2xl border border-kapio-500/20 bg-kapio-500/[0.06] p-5">
-        <p className="text-[10px] font-semibold text-kapio-300 uppercase tracking-widest mb-1">
+        <p className="text-xs font-semibold text-kapio-300 uppercase tracking-widest mb-1">
           Capital net · {bestRow.name}
         </p>
         <p className="text-4xl font-bold text-ink-0 font-mono tabular-nums leading-none mb-3">
@@ -1000,12 +1000,12 @@ function SimEnveloppes({ data }) {
         </p>
         <div className="flex items-center gap-6 text-sm">
           <div>
-            <p className="text-[10px] text-ink-300 mb-0.5">Versements</p>
+            <p className="text-xs text-ink-300 mb-0.5">Versements</p>
             <p className="font-bold text-ink-100 font-mono tabular-nums">{fmt(bestRow.pTotal)} €</p>
           </div>
           <span className="text-ink-400">·</span>
           <div>
-            <p className="text-[10px] text-ink-300 mb-0.5">Intérêts nets</p>
+            <p className="text-xs text-ink-300 mb-0.5">Intérêts nets</p>
             <p className="font-bold text-kapio-400 font-mono tabular-nums">+{fmt(bestRow.gain)} €</p>
           </div>
         </div>
@@ -1038,10 +1038,10 @@ function SimEnveloppes({ data }) {
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
                         <span className="font-semibold text-ink-0">{row.name}</span>
                         {row.id === bestId && (
-                          <span className="text-[9px] font-bold text-kapio-300 bg-kapio-500/20 px-1.5 py-0.5 rounded-full">Meilleur</span>
+                          <span className="text-2xs font-bold text-kapio-300 bg-kapio-500/20 px-1.5 py-0.5 rounded-full">Meilleur</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-ink-300 mt-0.5 ml-4">{row.taxLabel}</div>
+                      <div className="text-xs text-ink-300 mt-0.5 ml-4">{row.taxLabel}</div>
                     </td>
                     <td className="px-3 pt-3 pb-1 text-right font-mono tabular-nums text-ink-300 whitespace-nowrap">
                       {fmt(row.brut)} €
@@ -1051,7 +1051,7 @@ function SimEnveloppes({ data }) {
                         ? <span className="text-red-500">−{fmt(row.tax)} €</span>
                         : <span className="text-kapio-400 font-semibold">0 €</span>}
                       {row.id === 'per' && row.bonus > 0 && (
-                        <div className="text-[10px] text-violet-400 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
+                        <div className="text-xs text-violet-400 whitespace-nowrap">+{fmt(row.bonus)} € boost</div>
                       )}
                     </td>
                     <td className="px-3 pt-3 pb-1 text-right font-bold font-mono tabular-nums text-ink-0 whitespace-nowrap">
@@ -1064,7 +1064,7 @@ function SimEnveloppes({ data }) {
                   {/* Sous-ligne décomposition Versements / Intérêts */}
                   <tr className={row.id === bestId ? 'bg-kapio-500/[0.05]' : ''}>
                     <td colSpan={5} className="px-4 pb-2.5 pt-0">
-                      <span className="text-[10px] text-ink-300 ml-4">
+                      <span className="text-xs text-ink-300 ml-4">
                         Versements&nbsp;
                         <span className="font-semibold" style={{ color: '#5B7CFA' }}>{fmt(row.pTotal)} €</span>
                         &nbsp;·&nbsp;
@@ -1082,7 +1082,7 @@ function SimEnveloppes({ data }) {
           </table>
         </div>
         {crossoverYear && (
-          <p className="px-4 py-2.5 text-[11px] text-violet-300 bg-violet-500/[0.06] border-t border-violet-500/20">
+          <p className="px-4 py-2.5 text-xs text-violet-300 bg-violet-500/[0.06] border-t border-violet-500/20">
             {crossoverYear <= duration
               ? `✓ PER dépasse PEA à ${crossoverYear} ans sur ce graphe`
               : `ℹ PER dépasserait PEA à ${crossoverYear} ans (au-delà de l'horizon affiché)`}
@@ -1103,7 +1103,7 @@ function SimEnveloppes({ data }) {
                 type="button"
                 onClick={() => setSelectedEnvId(env.id)}
                 className={[
-                  'px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border',
+                  'px-2 py-0.5 rounded-lg text-xs font-semibold transition-all border',
                   activeEnvId === env.id
                     ? 'text-white border-transparent'
                     : 'text-ink-300 border-white/[0.08] bg-transparent hover:text-ink-200',
@@ -1126,7 +1126,7 @@ function SimEnveloppes({ data }) {
         {/* Brut reference callout */}
         <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-ink-900/40 border border-white/[0.06]">
           <span className="flex-shrink-0 w-6 border-t-2 border-dashed border-ink-400" />
-          <span className="text-[11px] text-ink-300">
+          <span className="text-xs text-ink-300">
             Intérêts composés bruts (avant impôts) à {(rate * 100).toFixed(0)} % sur {duration} ans :{' '}
             <span className="font-mono font-bold text-ink-100">
               {fmt((capital > 0 ? capital * Math.pow(1 + rate, duration) : 0) + fvMensuel(mensualite, rate, duration))} €
@@ -1158,7 +1158,7 @@ function SimEnveloppes({ data }) {
             ))}
           </LineChart>
         </ResponsiveContainer>
-        <p className="text-[10px] text-ink-300 text-center mt-2">
+        <p className="text-xs text-ink-300 text-center mt-2">
           Livret A taux garanti 3 % (non lié au curseur). PEA : PS 17,2 % sur gains (≥5 ans) · PFU 30 % avant.
           AV&gt;8 ans : PS 17,2 % + IR 7,5 % sur gains &gt; {isCouple ? '9 200' : '4 600'} € (abattement {isCouple ? 'couple' : 'solo'}).
           CTO : PFU 30 % sur gains.
@@ -1284,7 +1284,7 @@ function SimFoncier({ data }) {
             <span className="text-sm font-semibold text-ink-100">Coût fiscal total</span>
             <div className="text-right">
               <span className="text-sm font-bold font-mono tabular-nums text-red-400">{fmt(res.total)} €</span>
-              <span className="text-[10px] text-ink-300 ml-2">({res.tauxEff} % des loyers)</span>
+              <span className="text-xs text-ink-300 ml-2">({res.tauxEff} % des loyers)</span>
             </div>
           </div>
         </div>
@@ -1298,7 +1298,7 @@ function SimFoncier({ data }) {
           const isBest = r === res.optimal;
           return (
             <div key={r} className={`rounded-2xl border p-3.5 ${isBest ? 'border-kapio-500/30 bg-kapio-500/[0.06]' : 'border-white/[0.06] bg-ink-800/60'}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${isBest ? 'text-kapio-400' : 'text-ink-300'}`}>
+              <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${isBest ? 'text-kapio-400' : 'text-ink-300'}`}>
                 {r === 'micro' ? 'Micro-foncier' : 'Régime réel'}
                 {isBest && ' ✓'}
               </p>
@@ -1323,7 +1323,7 @@ function SimFoncier({ data }) {
         </Button>
       </div>
 
-      <p className="text-[10px] text-ink-300 text-center">
+      <p className="text-xs text-ink-300 text-center">
         Simulation indicative. Loyers meublés (BIC/LMNP) non inclus dans ce simulateur.
       </p>
     </div>
@@ -1392,7 +1392,7 @@ function fraisTeletravail(jours, allocationDejaExoneree) {
 function FraisNum({ label, value, onChange, placeholder = '0' }) {
   return (
     <div>
-      <label className="block text-[11px] font-medium text-ink-200 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-ink-200 mb-1">{label}</label>
       <input
         type="number"
         value={value || ''}
@@ -1529,7 +1529,7 @@ function SimFrais({ data }) {
 
       {/* 1. Trajet domicile-travail */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">1 · Trajet domicile ↔ travail</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">1 · Trajet domicile ↔ travail</p>
         <div className="flex flex-col gap-4">
           <SimSlider label="Distance aller simple"        value={distance} min={0} max={150} step={1}  onChange={setDistance} format={v => `${v} km`} />
           <SimSlider label="Jours travaillés / semaine"   value={joursSem} min={1} max={6}   step={1}  onChange={setJoursSem} format={v => `${v} j`} />
@@ -1539,7 +1539,7 @@ function SimFrais({ data }) {
           <ToggleGroup label="Type de motorisation" options={[false, true]} value={electrique} onChange={setElectrique}
             format={v => v ? '⚡ Électrique (+20 %)' : 'Thermique / hybride'} />
         </div>
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Barème kilométrique 2024. Plafond pratique : 80 km aller-retour/jour sauf justification
           (horaires décalés, double activité, handicap…). Si vous avez changé de véhicule en cours d'année,
           calculez séparément pour chaque véhicule puis additionnez dans « Autres frais ».
@@ -1548,13 +1548,13 @@ function SimFrais({ data }) {
 
       {/* 2. Frais véhicule complémentaires */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">2 · Frais véhicule complémentaires</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">2 · Frais véhicule complémentaires</p>
         <div className="grid grid-cols-2 gap-3">
           <FraisNum label="Péages autoroute / an"       value={peage}           onChange={setPeage} />
           <FraisNum label="Parking habituel / an"       value={parking}         onChange={setParking} />
           <FraisNum label="Intérêts d'emprunt véhicule" value={interetsEmprunt} onChange={setInteretsEmprunt} />
         </div>
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Déductibles <strong>en plus</strong> du barème kilométrique. Carburant, entretien, assurance véhicule
           et dépréciation sont déjà inclus dans le barème — ne les saisissez pas ici.
         </p>
@@ -1562,12 +1562,12 @@ function SimFrais({ data }) {
 
       {/* 3. Repas */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">3 · Repas hors domicile</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">3 · Repas hors domicile</p>
         <div className="flex flex-col gap-4">
           <SimSlider label="Nombre de repas dans l'année" value={joursRepas} min={0} max={250} step={1} onChange={setJoursRepas} format={v => `${v} repas`} />
           <SimSlider label="Coût moyen d'un repas (€)"    value={coutRepas}  min={0} max={30}  step={1} onChange={setCoutRepas}  format={v => `${v} €`} />
         </div>
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Déduction = (coût repas − 5,35 €) × nombre de repas, plafonnée à 15,75 €/repas (BOI-RSA-BASE-30-50-30-20).
           À utiliser uniquement si vous n'avez ni cantine, ni titre-restaurant.
           Si vous avez des titres-restaurant, seule la part employeur excédentaire compte.
@@ -1576,12 +1576,12 @@ function SimFrais({ data }) {
 
       {/* 4. Télétravail */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">4 · Télétravail</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">4 · Télétravail</p>
         <div className="grid grid-cols-2 gap-3">
           <FraisNum label="Jours de télétravail / an"               value={joursTeletravail} onChange={setJoursTeletravail} placeholder="0" />
           <FraisNum label="Allocation employeur déjà exonérée"       value={allocTeletravail} onChange={setAllocTeletravail} placeholder="0" />
         </div>
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Forfait DGFiP : <strong>2,70 €/jour</strong>, plafond 626,40 €/an.
           Si votre employeur vous a versé une <strong>allocation forfaitaire ou un remboursement</strong>
           (exonéré à hauteur de ces mêmes plafonds), <strong>déduisez-le ici</strong> — sinon double déduction.
@@ -1591,9 +1591,9 @@ function SimFrais({ data }) {
 
       {/* 5. Vêtements pro */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">5 · Vêtements pro / EPI / outillage</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">5 · Vêtements pro / EPI / outillage</p>
         <FraisNum label="Total annuel" value={vetements} onChange={setVetements} placeholder="0" />
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Uniquement les vêtements spécifiques à l'activité (uniforme, blouse, chaussures de sécurité…)
           et leur entretien. Les costumes de bureau et tenues passe-partout ne sont pas déductibles.
         </p>
@@ -1601,12 +1601,12 @@ function SimFrais({ data }) {
 
       {/* 6. Documentation / formation */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">6 · Documentation & formation</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">6 · Documentation & formation</p>
         <div className="grid grid-cols-2 gap-3">
           <FraisNum label="Documentation pro / abonnements"  value={documentation} onChange={setDocumentation} placeholder="0" />
           <FraisNum label="Formation pro non remboursée"     value={formation}     onChange={setFormation}     placeholder="0" />
         </div>
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Revues techniques, ouvrages spécialisés, MOOC payants directement liés à l'emploi.
           Les formations remboursées par l'employeur ou OPCO ne sont pas déductibles.
         </p>
@@ -1614,9 +1614,9 @@ function SimFrais({ data }) {
 
       {/* 7. Double résidence */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">7 · Double résidence professionnelle</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">7 · Double résidence professionnelle</p>
         <FraisNum label="Loyer + charges du second logement" value={doubleResidence} onChange={setDoubleResidence} placeholder="0" />
-        <p className="mt-2 text-[10px] text-ink-300 leading-snug">
+        <p className="mt-2 text-xs text-ink-300 leading-snug">
           Déductible uniquement si la double résidence est <strong>imposée par l'emploi</strong>
           (mutation, mission temporaire, conjoint travaillant ailleurs) — pas pour convenance personnelle.
           Loyer, charges, taxe d'habitation du second logement.
@@ -1625,7 +1625,7 @@ function SimFrais({ data }) {
 
       {/* 8. Autres frais pro */}
       <div>
-        <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-3">8 · Autres frais professionnels</p>
+        <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">8 · Autres frais professionnels</p>
         <FraisNum label="Autres (frais de mission non remboursés, déménagement professionnel imposé…)" value={autres} onChange={setAutres} placeholder="0" />
       </div>
 
@@ -1666,7 +1666,7 @@ function SimFrais({ data }) {
             <div key={label} className="flex items-center justify-between px-4 py-3">
               <div>
                 <span className="text-sm text-ink-200">{label}</span>
-                {sub && <p className="text-[10px] text-ink-300">{sub}</p>}
+                {sub && <p className="text-xs text-ink-300">{sub}</p>}
               </div>
               <span className="text-sm font-bold font-mono tabular-nums text-ink-0">{fmt(value)} €</span>
             </div>
@@ -1708,7 +1708,7 @@ function SimFrais({ data }) {
         💬 Discuter de cette simulation
       </button>
 
-      <p className="text-[10px] text-ink-300 text-center leading-snug">
+      <p className="text-xs text-ink-300 text-center leading-snug">
         Barème kilométrique 2024 (revenus 2024 → déclaration 2025). Plafonds repas : valeur forfaitaire 5,35 € — plafond 21,10 €.
         Frais déductibles uniquement si vous renoncez à l'abattement forfaitaire 10 %.
       </p>
@@ -2050,7 +2050,7 @@ export default function Simulator() {
           {/* Foyer consolidé (couple uniquement) */}
           {profileData.isCouple && profileData.perCalcD1 && profileData.perCalcD2 && (
             <div className="rounded-xl border border-kapio-500/20 bg-kapio-500/[0.05] px-4 py-3">
-              <p className="text-[10px] font-bold text-kapio-400 uppercase tracking-widest mb-2">
+              <p className="text-xs font-bold text-kapio-400 uppercase tracking-widest mb-2">
                 Plafond PER du foyer consolidé
               </p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink-200">
@@ -2069,7 +2069,7 @@ export default function Simulator() {
                   {fmt(profileData.perCalcD1.plafondWithReports + profileData.perCalcD2.plafondWithReports)} €
                 </span>
               </div>
-              <p className="text-[9px] text-kapio-300 mt-2 leading-snug">
+              <p className="text-2xs text-kapio-300 mt-2 leading-snug">
                 art. 163 quatervicies I-II CGI — plafond individuel + reports des 3 exercices précédents
               </p>
             </div>

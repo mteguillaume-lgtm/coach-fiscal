@@ -52,7 +52,7 @@ function MobileNavItem({ to, Icon, label, isActive }) {
       ].join(' ')}
     >
       <Icon size={20} aria-hidden="true" />
-      <span className="text-[10px] font-medium leading-none">{label}</span>
+      <span className="text-xs font-medium leading-none">{label}</span>
     </Link>
   );
 }

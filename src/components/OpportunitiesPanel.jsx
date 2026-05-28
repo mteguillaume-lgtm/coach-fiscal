@@ -34,10 +34,10 @@ function OpportunityCard({ opp }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${cfg.badge}`}>
+              <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${cfg.badge}`}>
                 {cfg.label}
               </span>
-              <span className={`text-[10px] font-semibold ${urgence.color}`}>
+              <span className={`text-xs font-semibold ${urgence.color}`}>
                 {urgence.label}
               </span>
             </div>
@@ -118,7 +118,7 @@ export default function OpportunitiesPanel({ opportunities }) {
         <div className="rounded-2xl border border-kapio-500/30 bg-kapio-500/[0.06] px-4 py-3 flex items-center gap-3">
           <span className="text-2xl" aria-hidden="true">💰</span>
           <div>
-            <p className="text-[10px] text-kapio-300 font-bold uppercase tracking-widest">Gains potentiels identifiés</p>
+            <p className="text-xs text-kapio-300 font-bold uppercase tracking-widest">Gains potentiels identifiés</p>
             <p className="text-xl font-bold text-kapio-200">{totalGains.toLocaleString('fr-FR')} €</p>
           </div>
         </div>

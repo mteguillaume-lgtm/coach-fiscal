@@ -61,9 +61,9 @@ function PieTooltip({ active, payload }) {
 function InfoRow({ label, value, highlight }) {
   const valueClass = highlight ? 'text-kapio-300' : 'text-ink-0';
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
-      <span className="text-xs text-ink-100">{label}</span>
-      <span className={'text-xs font-semibold ' + valueClass}>{value}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-white/[0.04] last:border-0">
+      <span className="text-sm text-ink-100">{label}</span>
+      <span className={'text-sm font-semibold ' + valueClass}>{value}</span>
     </div>
   );
 }
@@ -86,7 +86,7 @@ function HeroStatCard({ Icon, label, value, suffix, accent, subtitle }) {
           <Icon size={18} className="text-kapio-300" />
         </div>
       </div>
-      <p className="text-xs uppercase tracking-wider text-ink-200 mb-2 font-semibold">{label}</p>
+      <p className="text-xs uppercase tracking-widest text-ink-100 mb-2 font-semibold">{label}</p>
       <p className={'text-3xl sm:text-4xl font-bold tracking-tight ' + accentColor}>
         {isEmpty ? (
           <span className="text-ink-300">—</span>
@@ -105,9 +105,9 @@ function StatCard({ label, value, suffix, accent }) {
   const accentColor = accent === 'kapio' ? 'text-kapio-300' : 'text-ink-0';
   const isEmpty = value == null || value === 0;
   return (
-    <div className="card-dark p-5">
-      <p className="text-xs text-ink-200 uppercase tracking-wider mb-2">{label}</p>
-      <p className={'text-xl font-bold ' + accentColor}>
+    <div className="card-dark p-6">
+      <p className="text-xs text-ink-100 uppercase tracking-widest mb-3 font-semibold">{label}</p>
+      <p className={'text-2xl font-bold ' + accentColor}>
         {isEmpty ? (
           <span className="text-ink-300">—</span>
         ) : (
@@ -478,7 +478,7 @@ function FoyerView({ p, summary, opps }) {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-[10px] text-ink-200 uppercase tracking-wider">Total</p>
+                  <p className="text-xs text-ink-200 uppercase tracking-wider">Total</p>
                   <p className="text-lg font-bold text-ink-0">{fmt(totalPat)} €</p>
                 </div>
               </div>

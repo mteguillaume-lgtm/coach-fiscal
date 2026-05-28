@@ -119,11 +119,11 @@ function CaseField({ fieldId, caseNum, label, extracted, manualVal, onManualChan
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
             📋 Case {caseNum}
           </span>
           {extracted != null && (
-            <span className="text-[9px] font-semibold text-teal-600 bg-teal-50 border border-teal-100 px-1.5 py-0.5 rounded-full">
+            <span className="text-2xs font-semibold text-teal-600 bg-teal-50 border border-teal-100 px-1.5 py-0.5 rounded-full">
               Extrait du profil
             </span>
           )}
@@ -161,9 +161,9 @@ function CaseField({ fieldId, caseNum, label, extracted, manualVal, onManualChan
             className="w-full text-xl font-bold font-mono text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm"
           />
           <div className="flex items-center justify-between mt-1 px-1">
-            <p className="text-[10px] text-gray-400">Non trouvé dans le profil — saisie manuelle</p>
+            <p className="text-xs text-gray-400">Non trouvé dans le profil — saisie manuelle</p>
             {manualVal && (
-              <button onClick={handleCopy} className="flex items-center gap-1 text-[10px] text-teal-600 hover:text-teal-700">
+              <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700">
                 <Copy size={10} /> Copier
               </button>
             )}
@@ -267,10 +267,10 @@ function StepperSidebar({ steps, current, doneItems, onSelect }) {
                 {step.title}
               </p>
               {isCur && (
-                <p className="text-[10px] text-gray-400 mt-0.5">En cours</p>
+                <p className="text-xs text-gray-400 mt-0.5">En cours</p>
               )}
               {allDone && !isCur && (
-                <p className="text-[10px] text-teal-400 mt-0.5">Terminé</p>
+                <p className="text-xs text-teal-400 mt-0.5">Terminé</p>
               )}
             </div>
           </div>
@@ -473,7 +473,7 @@ function StepPER({ parsed, doneItems, manualValues, onToggle, onManual }) {
 
       {/* ── PERO obligatoire ── */}
       {(parsed.per6QS || parsed.per6QT) && <>
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-1">PERO obligatoire</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">PERO obligatoire</p>
         <div className="flex items-start gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 leading-relaxed">
           <Info size={13} className="shrink-0 mt-0.5" />
           Attestation fiscale PERO : si vous ne l'avez pas encore reçue, contactez votre service RH ou votre gestionnaire de fonds.
@@ -509,7 +509,7 @@ function StepPER({ parsed, doneItems, manualValues, onToggle, onManual }) {
 
       {/* ── Versements volontaires PER individuel ── */}
       {(parsed.per6NS || parsed.per6NT) && <>
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-1 mt-2">PER individuel — versements volontaires</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mt-2">PER individuel — versements volontaires</p>
         <div className="flex items-start gap-2 text-xs text-teal-700 bg-teal-50 border border-teal-100 rounded-xl px-4 py-3 leading-relaxed">
           <Info size={13} className="shrink-0 mt-0.5" />
           Reportez le montant que vous avez <strong>effectivement versé</strong> sur votre PER individuel en 2025 — pas le plafond maximum. Le montant ci-dessous est votre <em>plafond disponible</em> à titre indicatif (art. 163 quatervicies CGI).
@@ -633,7 +633,7 @@ function StepRecap({ parsed, profile, mode, doneItems, onToggle, onShowConfetti 
             <div key={label} className="flex items-center justify-between px-4 py-3 gap-3">
               <div>
                 <p className="text-sm text-gray-700">{label}</p>
-                {note && <p className="text-[10px] text-gray-400">{note}</p>}
+                {note && <p className="text-xs text-gray-400">{note}</p>}
               </div>
               <span className="text-sm font-bold font-mono tabular-nums text-gray-800 shrink-0">
                 {value || '—'}
@@ -655,7 +655,7 @@ function StepRecap({ parsed, profile, mode, doneItems, onToggle, onShowConfetti 
                 }`}>
                   {rembours ? 'Remboursement estimé' : 'Supplément estimé'}
                 </p>
-                <p className="text-[10px] text-gray-400">IR total − PAS prélevé</p>
+                <p className="text-xs text-gray-400">IR total − PAS prélevé</p>
               </div>
               <span className={`text-sm font-bold font-mono tabular-nums shrink-0 ${
                 rembours   ? 'text-teal-700'
@@ -713,7 +713,7 @@ function StepRecap({ parsed, profile, mode, doneItems, onToggle, onShowConfetti 
         </div>
       )}
 
-      <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+      <p className="text-xs text-gray-400 text-center leading-relaxed">
         Estimation indicative basée sur {partLabel}. Le montant exact dépend des réductions d'impôt
         et du calcul officiel de l'administration fiscale.
       </p>

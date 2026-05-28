@@ -70,13 +70,13 @@ function FixtureCard({ path, raw, isActive, onLoad, onInspect }) {
           <p className="text-sm text-ink-0 font-medium mt-0.5 leading-snug">{title}</p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {mode && (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-200">
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-white/[0.06] text-ink-200">
                 {mode}
               </span>
             )}
-            <span className="text-[10px] text-ink-400">{lineCount} lignes</span>
+            <span className="text-xs text-ink-400">{lineCount} lignes</span>
             {isActive && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
+              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
                 ● Actif
               </span>
             )}
@@ -141,20 +141,20 @@ function InspectModal({ path, raw, onClose }) {
         <div className="flex-1 overflow-hidden grid grid-cols-2 divide-x divide-white/[0.06]">
           {/* Texte brut */}
           <div className="flex flex-col overflow-hidden">
-            <div className="px-4 py-2 text-[11px] font-semibold text-ink-400 uppercase tracking-wider border-b border-white/[0.04] bg-white/[0.01]">
+            <div className="px-4 py-2 text-xs font-semibold text-ink-400 uppercase tracking-wider border-b border-white/[0.04] bg-white/[0.01]">
               Profil brut
             </div>
-            <pre className="flex-1 overflow-auto p-4 text-[11px] font-mono text-ink-200 leading-relaxed whitespace-pre-wrap break-words">
+            <pre className="flex-1 overflow-auto p-4 text-xs font-mono text-ink-200 leading-relaxed whitespace-pre-wrap break-words">
               {raw}
             </pre>
           </div>
 
           {/* parsedProfile */}
           <div className="flex flex-col overflow-hidden">
-            <div className="px-4 py-2 text-[11px] font-semibold text-ink-400 uppercase tracking-wider border-b border-white/[0.04] bg-white/[0.01]">
+            <div className="px-4 py-2 text-xs font-semibold text-ink-400 uppercase tracking-wider border-b border-white/[0.04] bg-white/[0.01]">
               parsedProfile
             </div>
-            <pre className="flex-1 overflow-auto p-4 text-[11px] font-mono text-kapio-200 leading-relaxed whitespace-pre-wrap break-words">
+            <pre className="flex-1 overflow-auto p-4 text-xs font-mono text-kapio-200 leading-relaxed whitespace-pre-wrap break-words">
               {JSON.stringify(parsed, null, 2)}
             </pre>
           </div>
@@ -210,7 +210,7 @@ export default function DevFixtures() {
             <p className="text-sm text-ink-300 mt-1">
               Charge un profil de test pour valider les calculs PER, rapports et opportunités — sans toucher à ton profil réel.
             </p>
-            <p className="text-[11px] font-mono text-amber-400/80 mt-1.5">
+            <p className="text-xs font-mono text-amber-400/80 mt-1.5">
               ⚠️ Page disponible uniquement en <code className="bg-amber-400/10 px-1 rounded">npm run dev</code>
             </p>
           </div>

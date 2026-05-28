@@ -72,12 +72,12 @@ function ChecklistItem({ item, done, onToggle, extractedValues, onChat }) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${cfg.badge}`}>
+            <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${cfg.badge}`}>
               <cfg.Icon size={10} />
               {cfg.label}
             </span>
             {item.case && (
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-ink-700 text-ink-300 border border-white/[0.06]">
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-ink-700 text-ink-300 border border-white/[0.06]">
                 Case {item.case}
               </span>
             )}

@@ -73,7 +73,10 @@ export default {
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
-        '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
+        // ─── Base scale ajustée +1px pour lisibilité Finary-style ─────────
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],            // 11px (was 10px)
+        'xs':  ['0.8125rem', { lineHeight: '1.25rem' }],         // 13px (was 12px)
+        'sm':  ['0.9375rem', { lineHeight: '1.5rem' }],          // 15px (was 14px)
         'display-sm': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
         'display':    ['3rem',    { lineHeight: '1.05', letterSpacing: '-0.025em', fontWeight: '800' }],
         'display-lg': ['4rem',    { lineHeight: '1.0', letterSpacing: '-0.03em', fontWeight: '800' }],

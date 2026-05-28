@@ -22,6 +22,8 @@
     @apply bg-ink-900 text-ink-0 m-0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
+    line-height: 1.625;
+    font-size: 1rem; /* 16px base, classes text-sm/xs ensuite */
   }
 
   #root {

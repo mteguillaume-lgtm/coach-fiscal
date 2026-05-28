@@ -482,7 +482,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
           <div>
             <span className="font-semibold text-sm text-gray-800">{section.label}</span>
             {reason && !expertMode && (
-              <p className="text-[10px] text-teal-500 leading-tight mt-0.5">{reason}</p>
+              <p className="text-xs text-teal-500 leading-tight mt-0.5">{reason}</p>
             )}
           </div>
         </div>
@@ -528,9 +528,9 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
                     <Fragment key={f.key}>
                       {f.groupStart && (
                         <div className="col-span-2 mt-2 first:mt-0">
-                          <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wide">{f.groupStart.title}</p>
+                          <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">{f.groupStart.title}</p>
                           {f.groupStart.hint && (
-                            <p className="text-[11px] text-gray-500 leading-snug mt-1">{f.groupStart.hint}</p>
+                            <p className="text-xs text-gray-500 leading-snug mt-1">{f.groupStart.hint}</p>
                           )}
                         </div>
                       )}
@@ -816,20 +816,20 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
             <div className="grid grid-cols-2 gap-2 mb-3">
               {[{ label: 'D1', val: rniMensuelD1 }, { label: 'D2', val: rniMensuelD2 }].map(({ label, val }) => (
                 <div key={label} className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenu net mensuel {label}</p>
+                  <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenu net mensuel {label}</p>
                   <p className="text-sm font-bold text-blue-800 font-mono">{val.toLocaleString('fr-FR')} €/mois</p>
                 </div>
               ))}
-              <p className="col-span-2 text-[10px] text-blue-400 -mt-1">Après abattement 10 % (salaires) — source : cases 1AJ / 1BJ</p>
+              <p className="col-span-2 text-xs text-blue-400 -mt-1">Après abattement 10 % (salaires) — source : cases 1AJ / 1BJ</p>
             </div>
           )}
 
           {/* ── Mode solo : revenu global ── */}
           {!isCouple && rniMensuel > 0 && (
             <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5 mb-3">
-              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenu net mensuel estimé</p>
+              <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-0.5">Revenu net mensuel estimé</p>
               <p className="text-sm font-bold text-blue-800 font-mono">{rniMensuel.toLocaleString('fr-FR')} €/mois</p>
-              <p className="text-[10px] text-blue-400 mt-0.5">Après abattement 10 % salaires</p>
+              <p className="text-xs text-blue-400 mt-0.5">Après abattement 10 % salaires</p>
             </div>
           )}
 
@@ -882,11 +882,11 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
                     return (
                       <div key={label} className={`rounded-xl border px-3 py-2.5 ${c.bg} ${c.border}`}>
                         <div className="flex justify-between items-baseline mb-0.5">
-                          <p className={`text-[10px] font-bold uppercase tracking-widest ${c.label}`}>Capacité {label}</p>
+                          <p className={`text-xs font-bold uppercase tracking-widest ${c.label}`}>Capacité {label}</p>
                           <span className={`text-xs font-bold font-mono ${c.val}`}>{taux} %</span>
                         </div>
                         <p className={`text-base font-bold font-mono ${c.val}`}>{capacite.toLocaleString('fr-FR')} €/mois</p>
-                        <p className={`text-[10px] mt-0.5 ${c.msg}`}>{_capaciteMsg(taux)}</p>
+                        <p className={`text-xs mt-0.5 ${c.msg}`}>{_capaciteMsg(taux)}</p>
                       </div>
                     );
                   })}
@@ -894,7 +894,7 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
                 {capaciteTotal > 0 && (
                   <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
                     <div className="flex justify-between items-baseline">
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">Total foyer</p>
+                      <p className="text-xs font-bold text-teal-500 uppercase tracking-widest">Total foyer</p>
                       <span className="text-xs font-bold font-mono text-teal-600">
                         {rniMensuel > 0 ? Math.round(capaciteTotal / rniMensuel * 100) : 0} %
                       </span>
@@ -911,7 +911,7 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
               return (
                 <div className={`rounded-xl border px-3 py-2.5 ${c.bg} ${c.border}`}>
                   <div className="flex justify-between items-baseline mb-1">
-                    <p className={`text-[10px] font-bold uppercase tracking-widest ${c.label}`}>Capacité d&apos;épargne</p>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${c.label}`}>Capacité d&apos;épargne</p>
                     <span className={`text-xs font-bold font-mono ${c.val}`}>{tauxSolo} %</span>
                   </div>
                   <p className={`text-lg font-bold font-mono ${c.val}`}>{capaciteSolo.toLocaleString('fr-FR')} €/mois</p>

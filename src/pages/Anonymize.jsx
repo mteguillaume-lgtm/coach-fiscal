@@ -197,7 +197,7 @@ function DropZoneCard({ target, items, maxReached, onFiles, onRemove }) {
             }`}>
               {isDragging ? 'Déposez ici ✓' : 'Glisser ou cliquer'}
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5">
               PDF · {MAX_FILES_TARGET - myItems.length} restant(s)
             </p>
           </div>
@@ -397,7 +397,7 @@ export default function Anonymize() {
         <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
           {Object.entries(patternGroups).map(([group, patterns]) => (
             <div key={group}>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                 {GROUP_LABELS[group] ?? group}
               </p>
               <div className="flex flex-col gap-1.5">
@@ -414,7 +414,7 @@ export default function Anonymize() {
                       disabledLabels.has(p.label) ? 'text-gray-300 line-through' : 'text-gray-700'
                     }`}>{p.label}</span>
                     {p.dyn && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 font-bold tracking-wide">
+                      <span className="text-2xs px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 font-bold tracking-wide">
                         DYN
                       </span>
                     )}

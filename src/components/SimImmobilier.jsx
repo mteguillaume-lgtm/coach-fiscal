@@ -111,7 +111,7 @@ function computeProjectMetrics(project) {
 function NumField({ label, value, onChange, placeholder, step = '1', suffix }) {
   return (
     <div>
-      <label className="block text-[11px] font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
       <div className="relative">
         <input
           type="number"
@@ -150,11 +150,11 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
           <span className="text-xs font-semibold text-gray-700 truncate">
             {loan.label || `Prêt ${idx + 1}`}
           </span>
-          <span className="text-[10px] text-gray-400 truncate">
+          <span className="text-xs text-gray-400 truncate">
             {LOAN_TYPES.find(t => t.id === loan.type)?.label || ''}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-gray-500 font-mono shrink-0">
+        <div className="flex items-center gap-3 text-xs text-gray-500 font-mono shrink-0">
           <span>CRD {fmt(loan.crd)} €</span>
           <span title="Taux global = nominal + assurance" className="text-teal-700 font-semibold">
             {tauxGlobal.toFixed(2)} %
@@ -168,7 +168,7 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
         <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-100">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-medium text-gray-500 mb-1">Nom du prêt</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Nom du prêt</label>
               <input
                 type="text"
                 value={loan.label || ''}
@@ -177,7 +177,7 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-gray-500 mb-1">Type</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
               <select
                 value={loan.type}
                 onChange={e => onChange({ ...loan, type: e.target.value })}
@@ -198,7 +198,7 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
           </div>
 
           <div className="flex items-center justify-between rounded-lg bg-teal-50/60 border border-teal-100 px-3 py-2">
-            <span className="text-[11px] text-teal-700">
+            <span className="text-xs text-teal-700">
               Taux global (≈ TAEG) = {(+loan.taux || 0).toFixed(2)} % + {(+loan.assuranceTaux || 0).toFixed(2)} % assurance
             </span>
             <span className="text-sm font-bold font-mono text-teal-700">{tauxGlobal.toFixed(2)} %</span>
@@ -208,7 +208,7 @@ function LoanCard({ loan, idx, onChange, onRemove, canRemove }) {
             <button
               type="button"
               onClick={onRemove}
-              className="flex items-center gap-1 text-[11px] text-red-500 hover:text-red-600"
+              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600"
             >
               <Trash2 size={12} /> Supprimer ce prêt
             </button>
@@ -225,7 +225,7 @@ function LocatifPanel({ locatif, onChange }) {
   const upd = (k, v) => onChange({ ...locatif, [k]: v });
   return (
     <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Rentabilité locative</p>
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Rentabilité locative</p>
       <div className="grid grid-cols-2 gap-3">
         <NumField label="Loyers annuels (hors charges)" value={locatif.loyersAnnuels}    onChange={v => upd('loyersAnnuels',    v)} placeholder="12 000" suffix="€" />
         <NumField label="Charges non récupérables"      value={locatif.chargesNonRecup}  onChange={v => upd('chargesNonRecup',  v)} placeholder="800"    suffix="€" />
@@ -233,7 +233,7 @@ function LocatifPanel({ locatif, onChange }) {
         <NumField label="Frais de gestion"              value={locatif.fraisGestionPct}  onChange={v => upd('fraisGestionPct',  v)} placeholder="8"      suffix="%" step="0.1" />
         <NumField label="Travaux annuels moyens"        value={locatif.travaux}          onChange={v => upd('travaux',          v)} placeholder="0"      suffix="€" />
       </div>
-      <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+      <p className="mt-2 text-xs text-gray-400 leading-snug">
         La taxe foncière est saisie au niveau du bien (ci-dessus).
       </p>
     </div>
@@ -437,7 +437,7 @@ export default function SimImmobilier() {
           <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4 space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">Nom du projet</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Nom du projet</label>
                 <input
                   type="text"
                   value={active.label}
@@ -446,7 +446,7 @@ export default function SimImmobilier() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-gray-500 mb-1">Type</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
                 <select
                   value={active.type}
                   onChange={e => updateActive({ type: e.target.value })}
@@ -476,7 +476,7 @@ export default function SimImmobilier() {
             <button
               type="button"
               onClick={() => removeProject(active.id)}
-              className="flex items-center gap-1 text-[11px] text-red-500 hover:text-red-600 self-start"
+              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 self-start"
             >
               <Trash2 size={12} /> Supprimer ce projet
             </button>
@@ -485,11 +485,11 @@ export default function SimImmobilier() {
           {/* Prêts */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Prêts en cours</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Prêts en cours</p>
               <button
                 type="button"
                 onClick={addLoan}
-                className="flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-800"
+                className="flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-teal-800"
               >
                 <Plus size={12} /> Ajouter un prêt
               </button>
@@ -510,7 +510,7 @@ export default function SimImmobilier() {
 
           {/* Synthèse prêts */}
           <div className="rounded-2xl border border-teal-100 bg-teal-50/40 p-4">
-            <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-3">Synthèse financement</p>
+            <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">Synthèse financement</p>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="flex justify-between"><span className="text-gray-600">Capital restant dû</span><span className="font-bold font-mono text-gray-800">{fmt(metrics.crdTotal)} €</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Mensualité totale</span><span className="font-bold font-mono text-gray-800">{fmt(metrics.mensTotal)} €</span></div>
@@ -519,7 +519,7 @@ export default function SimImmobilier() {
               <div className="flex justify-between"><span className="text-gray-600">Durée max restante</span><span className="font-bold font-mono text-gray-800">{(metrics.dureeMaxMois / 12).toFixed(1)} ans</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Intérêts restants à payer</span><span className="font-bold font-mono text-red-500">{fmt(metrics.coutInteretsRestant)} €</span></div>
             </div>
-            <p className="mt-2 text-[10px] text-gray-400 leading-snug">
+            <p className="mt-2 text-xs text-gray-400 leading-snug">
               Taux global ≈ TAEG = taux nominal + assurance emprunteur. Pondération par capital restant dû.
             </p>
           </div>
@@ -534,7 +534,7 @@ export default function SimImmobilier() {
 
               {metrics.locatif && (
                 <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-3">Rentabilité</p>
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">Rentabilité</p>
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="flex justify-between"><span className="text-gray-600">Loyers / an</span><span className="font-bold font-mono text-gray-800">{fmt(metrics.locatif.loyers)} €</span></div>
                     <div className="flex justify-between"><span className="text-gray-600">Charges / an</span><span className="font-bold font-mono text-gray-800">{fmt(metrics.locatif.charges)} €</span></div>
@@ -543,7 +543,7 @@ export default function SimImmobilier() {
                     <div className="flex justify-between"><span className="text-gray-600">Rendement brut</span><span className="font-bold font-mono text-blue-700">{metrics.locatif.rendementBrut.toFixed(2)} %</span></div>
                     <div className="flex justify-between"><span className="text-gray-600">Rendement net</span><span className="font-bold font-mono text-blue-700">{metrics.locatif.rendementNet.toFixed(2)} %</span></div>
                   </div>
-                  <p className="mt-3 text-[10px] text-gray-400 leading-snug">
+                  <p className="mt-3 text-xs text-gray-400 leading-snug">
                     Rendement net = (loyers − charges) / valeur du bien. Hors fiscalité (impôt sur loyers à simuler dans l'onglet Foncier). Cash-flow = net annuel − mensualités totales.
                   </p>
                 </div>
@@ -580,7 +580,7 @@ export default function SimImmobilier() {
             </button>
           </div>
 
-          <p className="text-[10px] text-gray-400 text-center leading-snug">
+          <p className="text-xs text-gray-400 text-center leading-snug">
             Taux moyen pondéré par le capital restant dû — utile pour comparer plusieurs prêts (immo + PTZ + accession).
             Données persistées localement, jamais transmises.
           </p>

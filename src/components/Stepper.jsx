@@ -53,7 +53,7 @@ export default function Stepper() {
 
               {/* Label */}
               <span className={[
-                'text-[10px] font-semibold leading-none transition-colors whitespace-nowrap',
+                'text-xs font-semibold leading-none transition-colors whitespace-nowrap',
                 active && 'text-teal-600',
                 done   && 'text-teal-500',
                 future && 'text-gray-400',

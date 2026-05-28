@@ -27,7 +27,7 @@ export default function PERBandeau() {
   return (
     <div className="rounded-2xl border border-teal-200 bg-teal-50/60 px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-center gap-3 flex-wrap text-xs text-teal-800">
-        <span className="font-bold uppercase tracking-wide text-[10px] text-teal-500">PER simulé</span>
+        <span className="font-bold uppercase tracking-wide text-xs text-teal-500">PER simulé</span>
         {isCouple ? (
           <>
             <span>D1 : <strong className="font-mono">{fmt(d1)} €</strong></span>
@@ -48,7 +48,7 @@ export default function PERBandeau() {
       <button
         type="button"
         onClick={() => navigate('/simulator')}
-        className="text-[10px] font-semibold text-teal-600 hover:text-teal-800 underline underline-offset-2 whitespace-nowrap"
+        className="text-xs font-semibold text-teal-600 hover:text-teal-800 underline underline-offset-2 whitespace-nowrap"
       >
         Modifier
       </button>
