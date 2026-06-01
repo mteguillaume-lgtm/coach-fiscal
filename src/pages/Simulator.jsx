@@ -1532,7 +1532,7 @@ function SimFrais({ data }) {
         <p className="text-xs font-bold text-ink-300 uppercase tracking-widest mb-3">1 · Trajet domicile ↔ travail</p>
         <div className="flex flex-col gap-4">
           <SimSlider label="Distance aller simple"        value={distance} min={0} max={150} step={1}  onChange={setDistance} format={v => `${v} km`} />
-          <SimSlider label="Jours travaillés / semaine"   value={joursSem} min={1} max={6}   step={1}  onChange={setJoursSem} format={v => `${v} j`} />
+          <SimSlider label="Jours travaillés / semaine"   value={joursSem} min={0.5} max={6} step={0.5} onChange={setJoursSem} format={v => `${v.toLocaleString('fr-FR')} j`} />
           <SimSlider label="Semaines travaillées / an"    value={semaines} min={1} max={52}  step={1}  onChange={setSemaines} format={v => `${v} sem.`} />
           <ToggleGroup label="Puissance fiscale du véhicule" options={[3, 4, 5, 6, 7]} value={cv} onChange={setCv}
             format={v => v === 7 ? '7 CV et +' : `${v} CV`} />

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { baseIRFoyer, abattement10, calcIR, computeFoyerSummary, calcPlafondPer, computePlafondPERDeclarant } from '../taxCalculator.js';
+import { baseIRFoyer, abattement10, calcIR, computeFoyerSummary, calcPlafondPer, computePlafondPERDeclarant, plafonnementQF, QF_PLAFONDS } from '../taxCalculator.js';
 
 describe('baseIRFoyer — agrégation multi-plugins Sprint A', () => {
   it('salaires seuls (cas de base, rétrocompatibilité)', () => {
@@ -269,5 +269,108 @@ describe('computePlafondPERDeclarant — source de vérité UI (INC-01 à INC-03
     const r = computePlafondPERDeclarant({ rni: 46_500 });
     expect(r.brut10).toBe(4_650);
     expect(r.plafondBrut).toBe(4_710);  // plancher
+  });
+});
+
+// ─── Plafonnement QF — art. 197-2 CGI ─────────────────────────────────────────
+
+describe('plafonnementQF — algorithme art. 197-2 CGI', () => {
+  it('1. non-régression couple 0 enfant (partsReel = partsBase = 2) → no-op', () => {
+    const r = plafonnementQF(73_067, 2, 2, QF_PLAFONDS);
+    expect(r.plafonnementActif).toBe(false);
+    expect(r.avantageReel).toBe(0);
+    expect(r.avantageMax).toBe(0);
+    expect(r.irPlafonne).toBe(r.irSelon);
+  });
+
+  it('2. non-régression solo 0 enfant (partsReel = partsBase = 1) → no-op', () => {
+    const r = plafonnementQF(40_000, 1, 1, QF_PLAFONDS);
+    expect(r.plafonnementActif).toBe(false);
+    expect(r.irPlafonne).toBe(r.irSelon);
+  });
+
+  it('3. plafonnement actif : couple 2 enfants (3 parts), RNI 150 000 €', () => {
+    // nbDemiPartsSupp = (3−2)×2 = 2, avantageMax = 2×1807 = 3614
+    // irBase(2p) = 31208, irSelon(3p) = 24312, avantageReel = 6896 > 3614
+    // irPlafonne = 31208 − 3614 = 27594 > irSelon
+    const r = plafonnementQF(150_000, 3, 2, QF_PLAFONDS);
+    expect(r.plafonnementActif).toBe(true);
+    expect(r.avantageMax).toBe(3_614);
+    expect(r.irPlafonne).toBe(27_594);
+    expect(r.irPlafonne).toBeGreaterThan(r.irSelon);
+  });
+
+  it('4. plafonnement inactif : même foyer, faible RNI 50 000 €', () => {
+    // avantageReel = 2948 − 1672 = 1276 < 3614 = avantageMax → no-op
+    const r = plafonnementQF(50_000, 3, 2, QF_PLAFONDS);
+    expect(r.plafonnementActif).toBe(false);
+    expect(r.avantageReel).toBeLessThan(r.avantageMax);
+    expect(r.irPlafonne).toBe(r.irSelon);
+  });
+
+  it('5. cas-frontière : basculement entre 71 000 € (inactif) et 72 000 € (actif)', () => {
+    // À 71 000 : avantageReel 3526 < 3614 → inactif
+    const below = plafonnementQF(71_000, 3, 2, QF_PLAFONDS);
+    expect(below.plafonnementActif).toBe(false);
+    expect(below.avantageReel).toBeLessThanOrEqual(below.avantageMax);
+
+    // À 72 000 : avantageReel 3716 > 3614 → actif
+    const above = plafonnementQF(72_000, 3, 2, QF_PLAFONDS);
+    expect(above.plafonnementActif).toBe(true);
+    expect(above.avantageReel).toBeGreaterThan(above.avantageMax);
+    expect(above.avantageMax).toBe(3_614);
+  });
+
+  it('6. résidence alternée (0.25 part) : avantageMax = 0.5 × 1807 = 903.5', () => {
+    // couple + 1 enfant alternée → partsReel=2.25, partsBase=2, nbDemiPartsSupp=0.5
+    const high = plafonnementQF(150_000, 2.25, 2, QF_PLAFONDS);
+    expect(high.avantageMax).toBe(903.5);
+    expect(high.plafonnementActif).toBe(true);   // avantageReel 1725 > 903.5
+
+    // À faible RNI (40 000) → avantageReel 319 < 903.5 → inactif
+    const low = plafonnementQF(40_000, 2.25, 2, QF_PLAFONDS);
+    expect(low.plafonnementActif).toBe(false);
+    expect(low.irPlafonne).toBe(low.irSelon);
+  });
+});
+
+describe('calcIR — plafonnement QF intégré (non-régression + nouveaux cas)', () => {
+  it('1. non-régression : couple 2 parts, RNI 73 067 € → ~8 128 € (plafonnement no-op)', () => {
+    const ir = calcIR(73_067, 2, true);
+    expect(ir).toBeCloseTo(8_128, -1);
+    expect(ir).toBeLessThan(9_000);
+  });
+
+  it('2. non-régression : solo 1 part, RNI 40 000 € → ~5 104 € (plafonnement no-op)', () => {
+    expect(calcIR(40_000, 1, false)).toBeCloseTo(5_104, -1);
+  });
+
+  it('3. plafonnement actif : couple 2 enfants (3 parts), RNI 150 000 €', () => {
+    // IR_final = IR_base(2p) − 2×1807 = 31208 − 3614 = 27594
+    const ir3p = calcIR(150_000, 3, true);
+    const ir2p = calcIR(150_000, 2, true);  // IR base sans enfants = 31208
+    expect(ir3p).toBe(ir2p - 2 * 1_807);   // relation DGFIP exacte
+    expect(ir3p).toBe(27_594);
+    expect(ir3p).toBeGreaterThan(24_312);   // > irBrut(150k, 3 parts) sans plafonnement
+  });
+
+  it("4. plafonnement inactif : même foyer, RNI 50 000 € → même résultat qu'avant", () => {
+    // avantageReel < avantageMax → irPlafonne = irSelon → résultat inchangé
+    expect(calcIR(50_000, 3, true)).toBe(946);
+  });
+
+  it('5. cas-frontière : 71 000 € inactif (3982), 72 000 € actif (4194)', () => {
+    // En dessous : irBrut(71k,3p)=3982, décote=0 (>3277) → irNet=3982
+    expect(calcIR(71_000, 3, true)).toBe(3_982);
+    // Au-dessus : irPlafonne=7808−3614=4194, décote=0 → irNet=4194 > irBrut(72k,3p)=4092
+    expect(calcIR(72_000, 3, true)).toBe(4_194);
+    expect(calcIR(72_000, 3, true)).toBeGreaterThan(4_092);
+  });
+
+  it('6. résidence alternée 0.25 part : plafond 0.5×1807=903.5 respecté', () => {
+    // High RNI : irPlafonne = round(irBase − 903.5) = round(31208 − 903.5) = 30305
+    expect(calcIR(150_000, 2.25, true)).toBe(30_305);
+    // Low RNI : plafonnement inactif → résultat inchangé
+    expect(calcIR(40_000, 2.25, true)).toBe(738);
   });
 });

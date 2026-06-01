@@ -24,7 +24,10 @@
 
   "quotient_familial": {
     "plafond_gain_par_demi_part": 1807,
-    "description": "Avantage fiscal maximum par demi-part supplémentaire liée aux enfants à charge. Au-delà du seuil de revenu, le gain QF stagne."
+    "plafond_gain_parent_isole": null,
+    "plafond_gain_case_L": null,
+    "description": "Avantage fiscal maximum par demi-part supplémentaire liée aux enfants à charge. Au-delà du seuil de revenu, le gain QF stagne.",
+    "_note": "plafond_gain_parent_isole (case T, art. 194-II CGI) et plafond_gain_case_L : valeurs null = à vérifier sur BOI-IR-LIQ-10-20-20 pour revenus 2025"
   },
 
   "decote": {

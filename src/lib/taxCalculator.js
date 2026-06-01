@@ -64,6 +64,7 @@ export const ABT_PENSION = baremeRaw.abattement_pensions_10pct ?? { taux: 0.10, 
 
 // ─── Exports pour affichage (Rapport.jsx) ────────────────────────────────────
 
+export const QF_PLAFONDS = baremeRaw.quotient_familial;
 export { TRANCHES, DECOTE, ABT };
 
 // ─── PASS et plafonds PER (depuis le JSON) ────────────────────────────────────
@@ -211,20 +212,81 @@ function applyDecote(brut, isCouple) {
   return Math.max(0, Math.round(plafond - 0.4525 * brut));
 }
 
+// ─── Plafonnement QF (art. 197-2 CGI) ────────────────────────────────────────
+
+/**
+ * Double calcul DGFIP : IR selon les parts vs IR plafonné.
+ * Ordre strict : appeler avant la décote (jamais après).
+ *
+ * @param {number} rniFoyer   - RNI foyer après abattements
+ * @param {number} partsReel  - parts fiscales réelles
+ * @param {number} partsBase  - parts de base (1 solo / 2 couple)
+ * @param {object} plafonds   - bloc quotient_familial du JSON barème
+ * @param {object} [opts]
+ * @param {number} [opts.nbDemiPartsT=0] - demi-parts case T (parent isolé)
+ * @param {number} [opts.nbDemiPartsL=0] - demi-parts case L
+ * @returns {{ irSelon:number, irPlafonne:number, avantageReel:number, avantageMax:number, plafonnementActif:boolean }}
+ */
+export function plafonnementQF(rniFoyer, partsReel, partsBase, plafonds, opts = {}) {
+  const irSelon = irBrut(rniFoyer, partsReel);
+
+  if (partsReel <= partsBase) {
+    return { irSelon, irPlafonne: irSelon, avantageReel: 0, avantageMax: 0, plafonnementActif: false };
+  }
+
+  const irBase          = irBrut(rniFoyer, partsBase);
+  const avantageReel    = Math.max(0, irBase - irSelon);
+  const nbDemiPartsSupp = (partsReel - partsBase) * 2;
+  const nbT             = opts.nbDemiPartsT || 0;
+  const nbL             = opts.nbDemiPartsL || 0;
+  const nbClassic       = Math.max(0, nbDemiPartsSupp - nbT - nbL);
+
+  const pClassic = plafonds.plafond_gain_par_demi_part;
+  const pT       = plafonds.plafond_gain_parent_isole;
+  const pL       = plafonds.plafond_gain_case_L;
+
+  let avantageMax = nbClassic * pClassic;
+
+  if (nbT > 0) {
+    if (pT == null) {
+      console.warn('[taxCalculator] plafond_gain_parent_isole (case T) null dans le JSON — fallback plafond classique');
+      avantageMax += nbT * pClassic;
+    } else {
+      avantageMax += nbT * pT;
+    }
+  }
+
+  if (nbL > 0) {
+    if (pL == null) {
+      console.warn('[taxCalculator] plafond_gain_case_L null dans le JSON — fallback plafond classique');
+      avantageMax += nbL * pClassic;
+    } else {
+      avantageMax += nbL * pL;
+    }
+  }
+
+  const plafonnementActif = avantageReel > avantageMax;
+  const irPlafonne        = plafonnementActif ? Math.round(irBase - avantageMax) : irSelon;
+
+  return { irSelon, irPlafonne, avantageReel, avantageMax, plafonnementActif };
+}
+
 // ─── calcIR ───────────────────────────────────────────────────────────────────
 
 /**
- * Calcule l'IR net (barème + décote) pour une base fiscale.
+ * Calcule l'IR net (barème + plafonnement QF + décote) pour une base fiscale.
+ * Ordre de liquidation : barème → plafonnement QF → décote.
  *
  * @param {number}  base      - RNI APRÈS abattement(s) sur salaires
  * @param {number}  parts     - nombre de parts fiscales
- * @param {boolean} isCouple  - true → décote couple (seuil 3 277 €)
+ * @param {boolean} isCouple  - true → partsBase=2, décote couple
  * @returns {number} IR net en €
  */
 export function calcIR(base, parts = 1, isCouple = false) {
   if (!base || base <= 0) return 0;
-  const brut = irBrut(base, parts);
-  return Math.max(0, brut - applyDecote(brut, isCouple));
+  const partsBase = isCouple ? 2 : 1;
+  const { irPlafonne } = plafonnementQF(base, parts, partsBase, QF_PLAFONDS);
+  return Math.max(0, irPlafonne - applyDecote(irPlafonne, isCouple));
 }
 
 // ─── Bases IR ────────────────────────────────────────────────────────────────
@@ -444,9 +506,16 @@ export function computeFoyerSummary(profile) {
   const rniFoyer  = profile.rniFoyer || 0;
   if (!rniFoyer) return null;
 
-  const irBrutVal  = irBrut(rniFoyer, parts);
-  const decoteVal  = applyDecote(irBrutVal, isCouple);
-  const irNet      = Math.max(0, irBrutVal - decoteVal);
+  const partsBase = isCouple ? 2 : 1;
+  const qfOpts    = {
+    nbDemiPartsT: profile.nbDemiPartsT || 0,
+    nbDemiPartsL: profile.nbDemiPartsL || 0,
+  };
+  const qf            = plafonnementQF(rniFoyer, parts, partsBase, QF_PLAFONDS, qfOpts);
+  const irBrutVal     = qf.irSelon;
+  const irPlafonneVal = qf.irPlafonne;
+  const decoteVal     = applyDecote(irPlafonneVal, isCouple);
+  const irNet         = Math.max(0, irPlafonneVal - decoteVal);
 
   const foncierBrut = profile.revensFonciers || 0;
   const foncierNet  = (profile.foncierNet != null && profile.foncierNet >= 0)
@@ -481,6 +550,10 @@ export function computeFoyerSummary(profile) {
     partsFiscales: parts,
     quotientFamilial: parts > 0 ? Math.round(rniFoyer / parts) : rniFoyer,
     irBrut: irBrutVal,
+    irPlafonne: irPlafonneVal,
+    plafonnementQFActif: qf.plafonnementActif,
+    avantageQF: qf.avantageReel,
+    avantageQFMax: qf.avantageMax,
     decote: decoteVal,
     irNet,
     psFoncier,
