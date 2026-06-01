@@ -24,10 +24,44 @@
 
   "quotient_familial": {
     "plafond_gain_par_demi_part": 1807,
-    "plafond_gain_parent_isole": null,
-    "plafond_gain_case_L": null,
-    "description": "Avantage fiscal maximum par demi-part supplémentaire liée aux enfants à charge. Au-delà du seuil de revenu, le gain QF stagne.",
-    "_note": "plafond_gain_parent_isole (case T, art. 194-II CGI) et plafond_gain_case_L : valeurs null = à vérifier sur BOI-IR-LIQ-10-20-20 pour revenus 2025"
+    "plafond_gain_parent_isole": 2131,
+    "plafond_gain_parent_isole_premier_enfant": 4262,
+    "plafond_gain_case_L": 1079,
+    "plafond_gain_invalidite": 1079,
+    "description": "Avantages fiscaux maximaux liés aux demi-parts supplémentaires. Au-delà d'un seuil de revenu, le gain QF stagne (art. 197-2 CGI).",
+    "_note_parent_isole": "Parent isolé (case T, art. 194-II CGI) : le 1er enfant ouvre droit à une PART ENTIÈRE (et non une demi-part), dont l'avantage est plafonné à 4 262 € pour les revenus 2025. Modélisé ici comme 2 demi-parts T à 2 131 € chacune (4 262 / 2).",
+    "_note_case_L": "Case L (personne vivant seule ayant élevé un enfant ≥ 5 ans, art. 195-1 CGI) : demi-part supplémentaire plafonnée à 1 079 €.",
+    "_note_invalidite": "Cases P/F/G/S/W (invalidité, ancien combattant, veuvage de guerre, art. 195 CGI) : demi-part supplémentaire plafonnée à 1 079 €.",
+    "parts": {
+      "_source": "Art. 194 et 195 CGI — BOI-IR-LIQ-10-10",
+      "base_celibataire_divorce_separe": 1,
+      "base_marie_pacse": 2,
+      "base_veuf_sans_enfant": 1,
+      "majoration_enfant_rang_1": 0.5,
+      "majoration_enfant_rang_2": 0.5,
+      "majoration_enfant_rang_3_et_plus": 1,
+      "facteur_residence_alternee": 0.5,
+      "majoration_parent_isole_case_T": 0.5,
+      "majoration_enfant_invalide": 0.5,
+      "majoration_invalidite_declarant_conjoint": 0.5,
+      "_note_residence_alternee": "Enfant en résidence alternée : moitié des majorations classiques (0,25 / 0,25 / 0,5).",
+      "_note_parent_isole": "Case T : +0,5 part sur le premier enfant à charge (célibataire/divorcé/séparé/veuf élevant seul ses enfants, non en concubinage).",
+      "_note_rattachement_majeur": "Enfant majeur rattaché (< 21 ans, ou < 25 ans si étudiant) : compté comme enfant à charge pour les parts (mêmes rangs). Alternative = déduction pension alimentaire — arbitrage hors périmètre PHASE 0."
+    },
+    "_meta_sources_plafonds": {
+      "references": [
+        "BOI-IR-LIQ-20-20-20-20 (plafonnement QF, revenus 2025)",
+        "https://www.economie.gouv.fr/particuliers/impots-et-fiscalite/gerer-mon-impot-sur-le-revenu/quotient-familial-et-impot-sur-le-revenu-comment-ca-marche",
+        "Loi n°2026-103 du 19 février 2026 de finances pour 2026, art. 4 (indexation +0,9%)"
+      ],
+      "date_verification": "2026-06-01",
+      "valeurs_revenus_2025": {
+        "plafond_par_demi_part": 1807,
+        "plafond_part_entiere_premier_enfant_parent_isole": 4262,
+        "plafond_demi_part_invalidite_case_L": 1079,
+        "reduction_complementaire_invalidite_max": 1801
+      }
+    }
   },
 
   "decote": {

@@ -620,7 +620,7 @@ export function extractProfileData(parsedProfileOrText) {
       detected.compte_crypto = true;
     }
     if (/revolut|n26|wise|bunq|compte.*étranger|étranger.*compte/i.test(profile)) detected.compte_bancaire_etranger = true;
-    if (/interactive broker|trading212|degiro|saxo/i.test(profile)) detected.courtier_etranger = true;
+    if (/interactive ?broker|trading ?212|degiro|saxo|schwab|courtier étranger/i.test(profile)) detected.courtier_etranger = true;
     if (/lmnp|airbnb|meublé|bic.*location/i.test(profile))     detected.loyers_meubles = true;
     if (/loyer|foncier|4be|sci\b|indivision/i.test(profile))   detected.loyers_nus = true;
     if (/fermage|terres agricoles/i.test(profile))              detected.fermage = true;
@@ -649,6 +649,7 @@ export function extractProfileData(parsedProfileOrText) {
   if (p.mode === 'couple')      detected.marie_pacse = true;
   if (p.hasCrypto)              { detected.cessions_crypto = true; detected.compte_crypto = true; }
   if (p.hasCompteEtranger)      detected.compte_bancaire_etranger = true;
+  if (/interactive ?broker|trading ?212|degiro|saxo|schwab|étranger/i.test(`${p.ctoCourtierD1 || ''} ${p.ctoCourtierD2 || ''}`)) detected.courtier_etranger = true;
   if (p.hasIndivision)          detected.loyers_nus = true;
   if (p.revensFonciers > 0)     detected.loyers_nus = true;
   if (p.revenusLoc > 0)         detected.loyers_meubles = true;

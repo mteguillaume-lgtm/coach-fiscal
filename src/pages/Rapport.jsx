@@ -395,6 +395,7 @@ function EpargneTable({ p }) {
     { label: 'Livret+ / Livret bancaire',  d1: p.livretPlusD1, d2: p.livretPlusD2 },
     { label: 'PEL',                        d1: p.pelD1,        d2: p.pelD2        },
     { label: 'PEA',                        d1: p.peaD1,        d2: p.peaD2        },
+    { label: 'CTO (compte-titres)',        d1: p.ctoD1,        d2: p.ctoD2        },
     { label: 'Assurance-vie',              d1: p.avD1,         d2: p.avD2         },
     { label: 'PERCO / PER',               d1: p.percoD1,      d2: p.percoD2      },
     { label: 'PEE',                        d1: p.peeD1,        d2: p.peeD2        },
@@ -1947,6 +1948,7 @@ function PelModule({ p }) {
 
 const PIE_COLORS_ALLOC = [
   '#0d9488', // PEA
+  '#0ea5e9', // CTO
   '#14b8a6', // Assurance-vie
   '#8b5cf6', // PER/PERCO
   '#f59e0b', // PEL
@@ -1959,6 +1961,7 @@ function diversificationScorePA(p) {
   let score = 0;
   if ((p.epargneLiquide  || 0) > 0) score += 2;
   if ((p.peaD1   || 0) + (p.peaD2   || 0) > 0) score += 2;
+  if ((p.ctoD1   || 0) + (p.ctoD2   || 0) > 0) score += 1;
   if ((p.avD1    || 0) + (p.avD2    || 0) > 0) score += 2;
   if ((p.percoD1 || 0) > 0) score += 1;
   if ((p.peeD1   || 0) + (p.peeD2   || 0) > 0) score += 1;
@@ -1979,6 +1982,7 @@ function AllocationActifsModule({ p }) {
   const buildData = (v) => {
     if (v === 'D1') return [
       { name: 'PEA',           value: p.peaD1    || 0 },
+      { name: 'CTO',           value: p.ctoD1    || 0 },
       { name: 'Assurance-vie', value: p.avD1     || 0 },
       { name: 'PER / PERCO',  value: p.percoD1  || 0 },
       { name: 'PEL',           value: p.pelD1    || 0 },
@@ -1988,6 +1992,7 @@ function AllocationActifsModule({ p }) {
     ].filter(d => d.value > 0);
     if (v === 'D2') return [
       { name: 'PEA',           value: p.peaD2    || 0 },
+      { name: 'CTO',           value: p.ctoD2    || 0 },
       { name: 'Assurance-vie', value: p.avD2     || 0 },
       { name: 'PER / PERCO',  value: p.percoD2  || 0 },
       { name: 'PEL',           value: p.pelD2    || 0 },
@@ -1997,6 +2002,7 @@ function AllocationActifsModule({ p }) {
     ].filter(d => d.value > 0);
     return [
       { name: 'PEA',            value: (p.peaD1   || 0) + (p.peaD2   || 0) },
+      { name: 'CTO',            value: (p.ctoD1   || 0) + (p.ctoD2   || 0) },
       { name: 'Assurance-vie',  value: (p.avD1    || 0) + (p.avD2    || 0) },
       { name: 'PER / PERCO',   value: (p.percoD1 || 0) + (p.percoD2 || 0) },
       { name: 'PEL',            value: (p.pelD1   || 0) + (p.pelD2   || 0) },
@@ -2464,7 +2470,7 @@ function BilanPatrimonialModule({ p }) {
         </thead>
         <tbody>
           {liq > 0 && <tr><Td>Épargne liquide (livrets réglementés)</Td><Td right>{e0(liq)}</Td></tr>}
-          {lt > 0  && <tr><Td>Épargne long terme (PEA, AV, PEL, PERCO)</Td><Td right>{e0(lt)}</Td></tr>}
+          {lt > 0  && <tr><Td>Épargne long terme (PEA, CTO, AV, PEL, PERCO)</Td><Td right>{e0(lt)}</Td></tr>}
           {cpt > 0 && <tr><Td>Actifs crypto</Td><Td right>{e0(cpt)}</Td></tr>}
           {rpv > 0 && <tr><Td>Résidence principale (valeur estimée)</Td><Td right>{e0(rpv)}</Td></tr>}
           {crd > 0 && <tr><Td className="pl-8">− Crédit restant dû</Td><Td right minus>− {e0(crd)}</Td></tr>}

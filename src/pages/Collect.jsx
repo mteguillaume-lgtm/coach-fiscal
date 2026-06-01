@@ -125,8 +125,21 @@ function pluginFields(ids, excludeKeys = []) {
 const SECTION_SIT = {
   id: 'sit', Icon: User, label: 'Situation du foyer', fields: [
     { key: 'statut',  label: 'Situation familiale', type: 'select', opts: ['Célibataire', 'Marié(e)', 'Pacsé(e)', 'Divorcé(e)', 'Veuf/Veuve'] },
-    { key: 'parts',   label: 'Parts fiscales',      type: 'number', ph: '1, 1.5, 2…' },
-    { key: 'enfants', label: 'Enfants à charge',    type: 'number', ph: '0' },
+    { key: 'enfants', label: 'Enfants à charge (résidence principale)', type: 'number', ph: '0' },
+    { key: 'enfants_alternes', label: 'Enfants en résidence alternée', type: 'number', ph: '0',
+      hint: 'Garde alternée : chaque enfant compte pour la moitié des majorations de parts (0,25 / 0,25 / 0,5).' },
+    { key: 'parent_isole', label: 'Parent isolé (case T) ?', type: 'select', opts: ['Non', 'Oui'],
+      dependsOn: { key: 'enfants', check: v => parseFloat(v || 0) > 0 },
+      hint: 'Case T : vous vivez seul(e) (sans concubin) et assumez la charge principale d\'au moins un enfant. +0,5 part (1er enfant → part entière). Art. 194-II CGI.' },
+    { key: 'enfants_invalides', label: 'Enfants titulaires CMI-invalidité', type: 'number', ph: '0',
+      dependsOn: { key: 'enfants', check: v => parseFloat(v || 0) > 0 },
+      hint: '+0,5 part par enfant invalide (plafond d\'avantage spécifique 1 079 €).' },
+    { key: 'invalidite_demiparts', label: 'Demi-parts invalidité déclarant/conjoint', type: 'number', ph: '0',
+      hint: 'Cases P/F/G/S/W : invalidité, ancien combattant, veuvage de guerre. 1 demi-part chacune (plafond 1 079 €).' },
+    { key: 'enfants_rattaches', label: 'Enfants majeurs rattachés', type: 'number', ph: '0',
+      hint: 'Enfant majeur < 21 ans (ou < 25 ans si étudiant) demandant le rattachement : compté comme enfant à charge pour les parts.' },
+    { key: 'parts',   label: 'Parts fiscales (laisser vide = calcul auto)', type: 'number', ph: 'auto',
+      hint: 'Laissez vide pour un calcul automatique depuis la composition du foyer (art. 194-195 CGI). Renseignez uniquement pour forcer une valeur.' },
     { key: 'dept',    label: 'Département',         type: 'text',   ph: 'Calvados (14)' },
   ],
 };
@@ -146,6 +159,17 @@ const REV_FIELDS = [
     hint: 'Laissez vide pour utiliser l\'abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer puis reporter ici.' },
 ];
 
+// CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
+// compteur fiscal). Le courtier étranger déclenche le flag 3916.
+const CTO_FIELDS = [
+  { key: 'cto', label: 'CTO (compte-titres ordinaire) — valorisation (€)', type: 'number', ph: '0',
+    hint: 'Compte-titres ordinaire : actions/ETF/obligations détenus hors PEA. Aucune fiscalité à l\'entrée ; dividendes et plus-values imposés (PFU 30 % ou barème) — chiffrage en phases ultérieures.' },
+  { key: 'cto_courtier', label: 'CTO — courtier', type: 'select',
+    opts: ['Courtier français', 'Interactive Brokers', 'Trading 212', 'Degiro', 'Saxo Bank', 'Charles Schwab', 'Autre étranger', 'Autre'],
+    dependsOn: { key: 'cto', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Courtier établi à l\'étranger (Interactive Brokers, Trading 212, Degiro, Saxo…) → déclaration obligatoire du compte via le formulaire 3916.' },
+];
+
 const EP_INDIV_FIELDS = [
   { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
   { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
@@ -159,6 +183,7 @@ const EP_INDIV_FIELDS = [
     dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
   { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
     dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
+  ...CTO_FIELDS,
   { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0', requires: 'perVolontaire' },
   { key: 'pee',                label: 'PEE — valorisation (€)',         type: 'number', ph: '0',
     requires: 'epargneSalariale',
@@ -239,6 +264,7 @@ const SECTION_EP_SOLO = {
       dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
     { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
       dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
+    ...CTO_FIELDS,
     { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
     { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate,
       dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 } },

@@ -12,6 +12,7 @@
 
 import perRaw            from '../data/paperasse/fiscaliste/data/per-plafonds.json';
 import pfuRaw            from '../data/paperasse/fiscaliste/data/pfu-prelevements-sociaux.json';
+import nichesRaw         from '../data/paperasse/fiscaliste/data/niches-fiscales.json';
 import fonciersRaw       from '../data/paperasse/fiscaliste/data/regimes-fonciers-lmnp.json';
 import hsSuppRaw         from '../data/paperasse/fiscaliste/data/heures-supplementaires-ppv.json';
 import apprentissageRaw  from '../data/paperasse/fiscaliste/data/apprentissage.json';
@@ -66,6 +67,14 @@ export const ABT_PENSION = baremeRaw.abattement_pensions_10pct ?? { taux: 0.10, 
 
 export const QF_PLAFONDS = baremeRaw.quotient_familial;
 export { TRANCHES, DECOTE, ABT };
+
+// ─── Règles de parts (depuis le JSON — art. 194-195 CGI) ──────────────────────
+// Aucun increment de part en dur : tout est lu dans quotient_familial.parts.
+export const QF_PARTS = baremeRaw.quotient_familial.parts;
+
+// ─── Plafonnement global des niches fiscales (depuis le JSON) ─────────────────
+export const PLAFOND_NICHES_METROPOLE = nichesRaw.plafonnement_global.plafond_metropole;
+export const PLAFOND_NICHES_OUTRE_MER = nichesRaw.plafonnement_global.plafond_investissements_outre_mer;
 
 // ─── PASS et plafonds PER (depuis le JSON) ────────────────────────────────────
 
@@ -165,6 +174,126 @@ export function abattement10Auto(montant, type = 'salaire', pensionPart = 0) {
   return abattement10(montant);
 }
 
+// ─── Parts fiscales (quotient familial) ──────────────────────────────────────
+
+/**
+ * Dérive le nombre de parts fiscales depuis la composition du foyer.
+ * Source unique : QF_PARTS (bareme-ir-YYYY.json → quotient_familial.parts),
+ * art. 194-195 CGI. Aucun increment de part codé en dur.
+ *
+ * Renvoie aussi le détail des demi-parts supplémentaires par catégorie, pour
+ * alimenter plafonnementQF (chaque catégorie a son propre plafond d'avantage).
+ *
+ * @param {object} sit
+ * @param {boolean} [sit.isCouple=false]      - mariés/pacsés (imposition commune)
+ * @param {boolean} [sit.veuf=false]          - veuf/veuve (avec enfant → base 2)
+ * @param {number}  [sit.nbEnfants=0]         - enfants à charge en résidence principale (hors alternée)
+ * @param {number}  [sit.nbEnfantsAlternes=0] - enfants en résidence alternée
+ * @param {number}  [sit.nbEnfantsInvalides=0]- enfants titulaires CMI-invalidité (parmi les enfants à charge)
+ * @param {boolean} [sit.parentIsole=false]   - case T (parent isolé, ≥ 1 enfant)
+ * @param {number}  [sit.nbDemiPartsInvalidite=0] - demi-parts invalidité déclarant/conjoint (cases P/F/G/S/W)
+ * @param {number}  [sit.nbEnfantsRattaches=0]    - enfants majeurs rattachés (comptés comme enfants à charge)
+ * @returns {{
+ *   parts: number, partsBase: number,
+ *   nbDemiPartsClassiques: number, nbDemiPartsT: number,
+ *   nbDemiPartsInvalidite: number, nbDemiPartsL: number,
+ *   detail: object,
+ * }}
+ */
+export function calcParts(sit = {}) {
+  const q = QF_PARTS;
+  const isCouple = !!sit.isCouple;
+  const veuf     = !!sit.veuf;
+
+  // Total des enfants comptés pour le rang (résidence principale + rattachés + alternés).
+  // Les enfants en résidence alternée comptent pour le rang mais à valeur réduite (×0,5).
+  const nbPlein    = (sit.nbEnfants || 0) + (sit.nbEnfantsRattaches || 0);
+  const nbAlternes = sit.nbEnfantsAlternes || 0;
+  const nbInvalEnf = Math.min(sit.nbEnfantsInvalides || 0, nbPlein + nbAlternes);
+
+  const partsBase = isCouple ? q.base_marie_pacse
+                  : veuf && (nbPlein + nbAlternes) > 0 ? q.base_marie_pacse
+                  : q.base_celibataire_divorce_separe;
+
+  // Majoration par rang d'enfant. Les enfants en résidence alternée occupent les
+  // derniers rangs à valeur ×facteur_residence_alternee.
+  const rangValue = (rang) =>
+    rang <= 1 ? q.majoration_enfant_rang_1
+    : rang === 2 ? q.majoration_enfant_rang_2
+    : q.majoration_enfant_rang_3_et_plus;
+
+  let majEnfantsPlein = 0;
+  for (let r = 1; r <= nbPlein; r++) majEnfantsPlein += rangValue(r);
+  let majEnfantsAlternes = 0;
+  for (let r = nbPlein + 1; r <= nbPlein + nbAlternes; r++) {
+    majEnfantsAlternes += rangValue(r) * q.facteur_residence_alternee;
+  }
+
+  // Case T (parent isolé) : +0,5 part → le 1er enfant devient une part entière.
+  // Cette part entière (2 demi-parts) relève du plafond « parent isolé » (4 262 €).
+  const totalEnfants = nbPlein + nbAlternes;
+  const parentIsole  = !!sit.parentIsole && totalEnfants > 0;
+  const majParentIsole = parentIsole ? q.majoration_parent_isole_case_T : 0;
+  // 2 demi-parts T (la part entière du 1er enfant) si parent isolé.
+  const nbDemiPartsT = parentIsole ? 2 : 0;
+
+  // Invalidité enfant : +0,5 part par enfant invalide (demi-parts à plafond invalidité).
+  const majEnfantsInvalides = nbInvalEnf * q.majoration_enfant_invalide;
+  // Invalidité déclarant/conjoint : demi-parts directes (cases P/F/G/S/W).
+  const nbDemiPartsInvaliditeDirect = sit.nbDemiPartsInvalidite || 0;
+  const nbDemiPartsInvalidite = Math.round((nbInvalEnf * 1 + nbDemiPartsInvaliditeDirect) * 100) / 100;
+
+  const parts = Math.round(
+    (partsBase + (majEnfantsPlein + majEnfantsAlternes) + majParentIsole
+     + majEnfantsInvalides + nbDemiPartsInvaliditeDirect * 0.5) * 100,
+  ) / 100;
+
+  // Demi-parts « classiques » = reliquat des demi-parts supplémentaires une fois
+  // retirées les catégories à plafond propre (T, invalidité, L). Cohérent avec le
+  // recalcul interne de plafonnementQF.
+  const totalSuppDemiParts = Math.round((parts - partsBase) * 2 * 100) / 100;
+  const nbDemiPartsClassiquesNet = Math.max(0, totalSuppDemiParts - nbDemiPartsT - nbDemiPartsInvalidite);
+
+  return {
+    parts,
+    partsBase,
+    nbDemiPartsClassiques: nbDemiPartsClassiquesNet,
+    nbDemiPartsT,
+    nbDemiPartsInvalidite,
+    nbDemiPartsL: 0,
+    detail: {
+      isCouple, veuf, nbPlein, nbAlternes, nbInvalEnf, parentIsole,
+      majEnfantsPlein, majEnfantsAlternes, majParentIsole, majEnfantsInvalides,
+    },
+  };
+}
+
+// ─── Plafonnement global des niches fiscales (art. 200-0 A CGI) ───────────────
+
+/**
+ * Applique le plafonnement global des avantages fiscaux (réductions + crédits
+ * concernés). Source : niches-fiscales.json (plafond 10 000 € métropole,
+ * 18 000 € avec investissements outre-mer/SOFICA).
+ *
+ * NB : certains avantages sont HORS plafond (dons, emploi à domicile, garde
+ * d'enfant…). L'appelant ne transmet que les avantages SOUMIS au plafond.
+ *
+ * @param {number}  avantagesSoumis  - total des réductions/crédits soumis au plafond
+ * @param {boolean} [outreMer=false] - true → plafond majoré (18 000 €)
+ * @returns {{ plafond:number, avantageRetenu:number, exces:number, actif:boolean }}
+ */
+export function plafonnementNiches(avantagesSoumis, outreMer = false) {
+  const av = Math.max(0, avantagesSoumis || 0);
+  const plafond = outreMer ? PLAFOND_NICHES_OUTRE_MER : PLAFOND_NICHES_METROPOLE;
+  const avantageRetenu = Math.min(av, plafond);
+  return {
+    plafond,
+    avantageRetenu,
+    exces: Math.max(0, av - plafond),   // excédent perdu (non reportable)
+    actif: av > plafond,
+  };
+}
+
 // ─── CEHR — Contribution Exceptionnelle Hauts Revenus ────────────────────────
 
 /**
@@ -223,8 +352,9 @@ function applyDecote(brut, isCouple) {
  * @param {number} partsBase  - parts de base (1 solo / 2 couple)
  * @param {object} plafonds   - bloc quotient_familial du JSON barème
  * @param {object} [opts]
- * @param {number} [opts.nbDemiPartsT=0] - demi-parts case T (parent isolé)
- * @param {number} [opts.nbDemiPartsL=0] - demi-parts case L
+ * @param {number} [opts.nbDemiPartsT=0]          - demi-parts case T (parent isolé)
+ * @param {number} [opts.nbDemiPartsL=0]          - demi-parts case L (personne ayant élevé un enfant)
+ * @param {number} [opts.nbDemiPartsInvalidite=0] - demi-parts invalidité/ancien combattant (cases P/F/G/S/W et enfant invalide)
  * @returns {{ irSelon:number, irPlafonne:number, avantageReel:number, avantageMax:number, plafonnementActif:boolean }}
  */
 export function plafonnementQF(rniFoyer, partsReel, partsBase, plafonds, opts = {}) {
@@ -239,11 +369,13 @@ export function plafonnementQF(rniFoyer, partsReel, partsBase, plafonds, opts = 
   const nbDemiPartsSupp = (partsReel - partsBase) * 2;
   const nbT             = opts.nbDemiPartsT || 0;
   const nbL             = opts.nbDemiPartsL || 0;
-  const nbClassic       = Math.max(0, nbDemiPartsSupp - nbT - nbL);
+  const nbInval         = opts.nbDemiPartsInvalidite || 0;
+  const nbClassic       = Math.max(0, nbDemiPartsSupp - nbT - nbL - nbInval);
 
   const pClassic = plafonds.plafond_gain_par_demi_part;
   const pT       = plafonds.plafond_gain_parent_isole;
   const pL       = plafonds.plafond_gain_case_L;
+  const pInval   = plafonds.plafond_gain_invalidite;
 
   let avantageMax = nbClassic * pClassic;
 
@@ -262,6 +394,15 @@ export function plafonnementQF(rniFoyer, partsReel, partsBase, plafonds, opts = 
       avantageMax += nbL * pClassic;
     } else {
       avantageMax += nbL * pL;
+    }
+  }
+
+  if (nbInval > 0) {
+    if (pInval == null) {
+      console.warn('[taxCalculator] plafond_gain_invalidite null dans le JSON — fallback plafond classique');
+      avantageMax += nbInval * pClassic;
+    } else {
+      avantageMax += nbInval * pInval;
     }
   }
 
@@ -508,14 +649,27 @@ export function computeFoyerSummary(profile) {
 
   const partsBase = isCouple ? 2 : 1;
   const qfOpts    = {
-    nbDemiPartsT: profile.nbDemiPartsT || 0,
-    nbDemiPartsL: profile.nbDemiPartsL || 0,
+    nbDemiPartsT:          profile.nbDemiPartsT || 0,
+    nbDemiPartsL:          profile.nbDemiPartsL || 0,
+    nbDemiPartsInvalidite: profile.nbDemiPartsInvalidite || 0,
   };
   const qf            = plafonnementQF(rniFoyer, parts, partsBase, QF_PLAFONDS, qfOpts);
   const irBrutVal     = qf.irSelon;
   const irPlafonneVal = qf.irPlafonne;
   const decoteVal     = applyDecote(irPlafonneVal, isCouple);
-  const irNet         = Math.max(0, irPlafonneVal - decoteVal);
+  const irApresDecote = Math.max(0, irPlafonneVal - decoteVal);
+
+  // Étape réductions/crédits avec plafonnement global des niches (art. 200-0 A CGI).
+  // Les avantages SOUMIS au plafond sont fournis par le profil (phases ≥ 1) ;
+  // les avantages HORS plafond (dons, emploi à domicile…) s'imputent à part.
+  const niches        = plafonnementNiches(profile.reductionsNichesSoumises || 0, !!profile.nichesOutreMer);
+  const reductionsHorsPlafond = profile.reductionsHorsPlafond || 0;
+  const reductionsRetenues    = niches.avantageRetenu + reductionsHorsPlafond;
+  // Réductions : ne rendent pas l'impôt négatif. Crédits (remboursables) : gérés au solde.
+  const irNet = Math.max(0, irApresDecote - reductionsRetenues);
+
+  // CEHR (art. 223 sexies CGI) — assise sur le RFR, s'ajoute à l'IR net.
+  const cehr = calcCEHR(profile.rfr || rniFoyer, isCouple);
 
   const foncierBrut = profile.revensFonciers || 0;
   const foncierNet  = (profile.foncierNet != null && profile.foncierNet >= 0)
@@ -525,7 +679,7 @@ export function computeFoyerSummary(profile) {
       : Math.round(foncierBrut * (1 - ABATTEMENT_MICRO_FONCIER));
   const psFoncier = Math.round(foncierNet * TAUX_PS_CAPITAL);
 
-  const totalDu = irNet + psFoncier;
+  const totalDu = irNet + cehr + psFoncier;
 
   // Priorité à pasTotal consolidé (tous plugins) si disponible
   const pasTotal = profile.pasTotal > 0
@@ -555,6 +709,12 @@ export function computeFoyerSummary(profile) {
     avantageQF: qf.avantageReel,
     avantageQFMax: qf.avantageMax,
     decote: decoteVal,
+    irApresDecote,
+    reductionsRetenues,
+    plafonnementNichesActif: niches.actif,
+    nichesPlafond: niches.plafond,
+    nichesExces: niches.exces,
+    cehr,
     irNet,
     psFoncier,
     totalDu,

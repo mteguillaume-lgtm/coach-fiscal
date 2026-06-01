@@ -158,7 +158,7 @@ function TabBar({ active, onChange }) {
 
 function DeclarantView({ label, rev, ep, fiscal }) {
   const totalEp = (ep.livretA || 0) + (ep.ldds || 0) + (ep.lep || 0) + (ep.livretPlus || 0)
-                + (ep.pel || 0) + (ep.pea || 0) + (ep.av || 0) + (ep.perco || 0)
+                + (ep.pel || 0) + (ep.pea || 0) + (ep.cto || 0) + (ep.av || 0) + (ep.perco || 0)
                 + (ep.pee || 0) + (ep.crypto || 0);
 
   const epLines = [
@@ -168,6 +168,7 @@ function DeclarantView({ label, rev, ep, fiscal }) {
     { label: 'Livret bancaire', v: ep.livretPlus },
     { label: 'PEL',             v: ep.pel        },
     { label: 'PEA',             v: ep.pea        },
+    { label: 'CTO',             v: ep.cto        },
     { label: 'Assurance-vie',   v: ep.av         },
     { label: 'PER versements',  v: ep.perco      },
     { label: 'PEE',             v: ep.pee        },
@@ -816,11 +817,11 @@ export default function Dashboard() {
   };
   const d1Ep = {
     livretA: p.livretAD1, ldds: p.lddsD1, lep: p.lepD1, livretPlus: p.livretPlusD1,
-    pel: p.pelD1, pea: p.peaD1, av: p.avD1, perco: p.percoD1, pee: p.peeD1, crypto: p.cryptoD1,
+    pel: p.pelD1, pea: p.peaD1, cto: p.ctoD1, av: p.avD1, perco: p.percoD1, pee: p.peeD1, crypto: p.cryptoD1,
   };
   const d2Ep = {
     livretA: p.livretAD2, ldds: p.lddsD2, lep: p.lepD2, livretPlus: p.livretPlusD2,
-    pel: p.pelD2, pea: p.peaD2, av: p.avD2, perco: p.percoD2, pee: p.peeD2, crypto: p.cryptoD2,
+    pel: p.pelD2, pea: p.peaD2, cto: p.ctoD2, av: p.avD2, perco: p.percoD2, pee: p.peeD2, crypto: p.cryptoD2,
   };
   const d1Fis = { rni: p.rniD1, plafondPer: p.plafondPerD1 };
   const d2Fis = { rni: p.rniD2, plafondPer: p.plafondPerD2 };

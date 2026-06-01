@@ -1,6 +1,7 @@
 # Couverture des cas fiscaux — coach-fiscal
 
-Dernière MAJ : 2026-05-18 — Sprint A — PR A1 (multi-employeurs) + PR A2 (chômage) + PR A3 (apprentissage) + PR A4 (heures supp) + PR A5 (frais réels) + PR A6 (licenciement + PPV)
+Dernière MAJ : 2026-06-01 — **PHASE 0 (socle)** : CTO + moteur IR complet (plafonnement QF case T/L/invalidité, step niches, CEHR) + situation familiale dérivée (calcParts)
+Historique : Sprint A — PR A1 (multi-employeurs) + PR A2 (chômage) + PR A3 (apprentissage) + PR A4 (heures supp) + PR A5 (frais réels) + PR A6 (licenciement + PPV)
 
 Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
@@ -153,8 +154,8 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | MaPrimeRénov (déclaratif info) | — | ❌ | D |
 | CITE résiduel | — | 🚫 | — |
 | Intérêts emprunt étudiant | 7UK | ❌ | D |
-| Plafonnement global niches 10 000€ | — | ❌ | D |
-| Plafonnement spécifique 18 000€ (outre-mer/SOFICA) | — | ❌ | D |
+| Plafonnement global niches 10 000€ | — | 🟡 | 0 — moteur prêt (`plafonnementNiches`), entrées en D |
+| Plafonnement spécifique 18 000€ (outre-mer/SOFICA) | — | 🟡 | 0 — moteur prêt, entrées en D |
 
 ## Situations familiales
 
@@ -167,17 +168,17 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Veuf·ve | 🟡 | E |
 | Année du mariage/PACS — option séparée vs commune | ❌ | E |
 | Année du divorce — déclaration séparée | ❌ | E |
-| Enfant à charge mineur | 🟡 | E |
-| Enfant majeur rattaché < 21 ans | ❌ | E |
-| Enfant majeur rattaché étudiant < 25 ans | ❌ | E |
-| Garde alternée — demi-parts partagées | ❌ | E |
+| Enfant à charge mineur | ✅ | 0 |
+| Enfant majeur rattaché < 21 ans | 🟡 | 0 — parts OK ; arbitrage pension vs rattachement en E |
+| Enfant majeur rattaché étudiant < 25 ans | 🟡 | 0 — parts OK ; arbitrage en E |
+| Garde alternée — demi-parts partagées | ✅ | 0 |
 | Pension alimentaire vs rattachement (simulateur) | ❌ | E |
-| Parent isolé case T | ❌ | E |
-| Invalidité contribuable case P | ❌ | E |
-| Invalidité conjoint case F | ❌ | E |
-| Plafonnement quotient familial 1 759€/demi-part | ❌ | E |
+| Parent isolé case T | ✅ | 0 — plafond 4 262 € sourcé |
+| Invalidité contribuable case P | ✅ | 0 |
+| Invalidité conjoint case F | ✅ | 0 |
+| Plafonnement quotient familial 1 807€/demi-part | ✅ | 0 — + plafonds case T (4 262 €) / case L / invalidité (1 079 €) |
 | Décote IR | ✅ | Initial |
-| Contribution exceptionnelle haut revenus | ❌ | F |
+| Contribution exceptionnelle haut revenus | ✅ | 0 — `calcCEHR` intégré au pipeline `computeFoyerSummary` |
 
 ## Patrimoine et IFI
 
@@ -187,6 +188,7 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Suivi immobilier locatif | 🟡 | C |
 | PEA antériorité 5 ans | ✅ | Initial |
 | PEA-PME antériorité | ❌ | B |
+| CTO (compte-titres ordinaire) — bilan + allocation | ✅ | 0 — flag 3916 si courtier étranger ; revenus chiffrés en phases 1 & 4 |
 | Assurance-vie multi-supports | 🟡 | B |
 | Antériorité AV 8 ans abattement 4 600€/9 200€ | ❌ | B |
 | PER individuel suivi capital | ✅ | Initial |
@@ -221,9 +223,9 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
 | État | Nombre de cas |
 |---|---|
-| ✅ Couvert | ~32 |
-| 🟡 Partiel | ~11 |
-| ❌ Non couvert (V1) | ~76 |
+| ✅ Couvert | ~41 |
+| 🟡 Partiel | ~13 |
+| ❌ Non couvert (V1) | ~65 |
 | 🚫 Hors scope V1 | ~15 |
 
 **Objectif fin V1 (Sprint F terminé)** : 100+ cas en ✅, < 10 en 🟡.

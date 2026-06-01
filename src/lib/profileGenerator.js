@@ -1,6 +1,57 @@
-import { abattement10, abattement10Pension, calcPlafondPer, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
+
+// CTO : ligne courtier optionnelle. Si courtier étranger → marqueur 3916
+// (réutilise la détection courtier_etranger de checklistGenerator.js).
+const _CTO_COURTIER_ETRANGER = /interactive ?broker|trading ?212|degiro|saxo|schwab|étranger/i;
+function _ctoCourtierLine(cto, courtier) {
+  if (!cto || cto === '0' || !courtier) return '';
+  const flag = _CTO_COURTIER_ETRANGER.test(courtier) ? ' (courtier étranger → 3916)' : '';
+  return `\nCTO courtier : ${courtier}${flag}`;
+}
+
+// Composition familiale → parts + demi-parts par catégorie (art. 194-195 CGI).
+// Le nombre de parts est DÉRIVÉ de la composition (calcParts) ; un champ `parts`
+// renseigné par l'utilisateur reste prioritaire (override manuel).
+function _famille(d, isCouple) {
+  const nbEnfants             = parseInt(d.enfants || 0)             || 0;
+  const nbEnfantsAlternes     = parseInt(d.enfants_alternes || 0)   || 0;
+  const nbEnfantsInvalides    = parseInt(d.enfants_invalides || 0)  || 0;
+  const nbEnfantsRattaches    = parseInt(d.enfants_rattaches || 0)  || 0;
+  const nbDemiPartsInvalidite = parseInt(d.invalidite_demiparts || 0) || 0;
+  const parentIsole           = d.parent_isole === 'Oui';
+  const veuf                  = /veuf/i.test(d.statut || '');
+
+  const pc = calcParts({
+    isCouple, veuf, nbEnfants, nbEnfantsAlternes, nbEnfantsInvalides,
+    parentIsole, nbDemiPartsInvalidite, nbEnfantsRattaches,
+  });
+  const partsManuel = parseFloat(d.parts || 0);
+  const parts = partsManuel > 0 ? partsManuel : pc.parts;
+  return {
+    ...pc, parts, partsManuel, parentIsole, veuf,
+    nbEnfants, nbEnfantsAlternes, nbEnfantsInvalides, nbEnfantsRattaches,
+    invaliditeDirecte: nbDemiPartsInvalidite, // demi-parts P/F/G/S/W déclarant/conjoint
+  };
+}
+
+// Bloc texte des lignes familiales (lisibles par le parser).
+function _familleLines(fam) {
+  const L = [];
+  L.push(`Enfants à charge : ${fam.nbEnfants}`);
+  if (fam.nbEnfantsAlternes > 0)  L.push(`Enfants en résidence alternée : ${fam.nbEnfantsAlternes}`);
+  if (fam.nbEnfantsInvalides > 0) L.push(`Enfants invalides (CMI) : ${fam.nbEnfantsInvalides}`);
+  if (fam.nbEnfantsRattaches > 0) L.push(`Enfants majeurs rattachés : ${fam.nbEnfantsRattaches}`);
+  if (fam.parentIsole)            L.push(`Parent isolé (case T) : Oui`);
+  if (fam.invaliditeDirecte > 0)  L.push(`Demi-parts invalidité (déclarant/conjoint) : ${fam.invaliditeDirecte}`);
+  L.push(`Parts fiscales : ${fam.parts}${fam.partsManuel > 0 ? ' (saisie manuelle)' : ' (calculées)'}`);
+  // Lignes machine pour le plafonnement QF (chaque catégorie a son plafond propre).
+  if (fam.nbDemiPartsT > 0)          L.push(`Demi-parts case T : ${fam.nbDemiPartsT}`);
+  if (fam.nbDemiPartsL > 0)          L.push(`Demi-parts case L : ${fam.nbDemiPartsL}`);
+  if (fam.nbDemiPartsInvalidite > 0) L.push(`Demi-parts invalidité QF : ${fam.nbDemiPartsInvalidite}`);
+  return L.join('\n');
+}
 
 const fmt    = v => v && v !== '0' ? Number(v).toLocaleString('fr-FR') + ' €' : 'Néant';
 const fmtOui = v => v && v !== '0' ? `OUI ~${Number(v).toLocaleString('fr-FR')} €` : 'Néant';
@@ -42,7 +93,8 @@ function _buildSolo(d, docSums) {
   const rni      = abattement10(net1AJ);
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
   const rniTotal = rni + foncier.net;
-  const parts    = parseFloat(d.parts || 1);
+  const fam      = _famille(d, false);
+  const parts    = fam.parts;
   const pero     = parseFloat(d.pero_d1 || 0);
   const pas      = parseFloat(d.pas_tot || 0);
   const abondD1  = parseFloat(d.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D1
@@ -63,8 +115,7 @@ Généré le ${new Date().toLocaleDateString('fr-FR')} — Outil ${APP_VERSION}
 
 == SITUATION PERSONNELLE ==
 Statut : ${d.statut || 'Non renseigné'}
-Parts fiscales : ${d.parts || '1'}
-Enfants à charge : ${d.enfants || '0'}
+${_familleLines(fam)}
 Département : ${d.dept || 'Non renseigné'}
 
 == PROFIL & RETRAITE ==
@@ -120,6 +171,7 @@ LEP : ${fmtOui(d.lep)}
 Livret+ / Livret bancaire : ${fmtOui(d.livret_plus)}
 PEL : ${fmtOui(d.pel)}${d.pel_date ? `\nPEL date ouverture : ${d.pel_date}` : ''}
 PEA : ${fmtOui(d.pea)}${d.pea_date ? `\nPEA date ouverture : ${d.pea_date}` : ''}${d.pea_verse && d.pea_verse !== '0' ? `\nPEA total versé : ${Number(d.pea_verse).toLocaleString('fr-FR')} €` : ''}
+CTO (compte-titres ordinaire) : ${fmtOui(d.cto)}${_ctoCourtierLine(d.cto, d.cto_courtier)}
 Assurance-vie : ${fmtOui(d.av)}${d.av_date ? `\nAV date souscription : ${d.av_date}` : ''}${d.av_verse && d.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d.av_verse).toLocaleString('fr-FR')} €` : ''}
 PER versements 2025 : ${fmt(d.per)}
 PEE (valorisation) : ${fmtOui(d.pee)}${d.pee_verse && d.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d.pee_verse).toLocaleString('fr-FR')} €` : ''}${abondD1 > 0 ? `\nPERCO — abondement employeur 2025 : ${abondD1.toLocaleString('fr-FR')} €` : ''}
@@ -200,7 +252,8 @@ function _buildCouple(d, d1, d2, docSums) {
   const rniD1 = rniSalD1 + rniRenteD1;
   const rniD2 = rniSalD2 + rniRenteD2;
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
-  const parts    = parseFloat(d.parts || 2);
+  const fam      = _famille(d, true);
+  const parts    = fam.parts;
   const rniFoyer = rniD1 + rniD2 + foncier.net;
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
@@ -220,8 +273,7 @@ Mode : Déclaration commune (${d.statut || 'couple'})
 
 == SITUATION DU FOYER ==
 Statut : ${d.statut || 'Non renseigné'}
-Parts fiscales : ${d.parts || '2'}
-Enfants à charge : ${d.enfants || '0'}
+${_familleLines(fam)}
 Département : ${d.dept || 'Non renseigné'}
 
 == PROFIL & RETRAITE ==
@@ -318,6 +370,7 @@ LEP : ${fmtOui(d1.lep)}
 Livret+ / Livret bancaire : ${fmtOui(d1.livret_plus)}
 PEL : ${fmtOui(d1.pel)}${d1.pel_date ? `\nPEL date ouverture : ${d1.pel_date}` : ''}
 PEA : ${fmtOui(d1.pea)}${d1.pea_date ? `\nPEA date ouverture : ${d1.pea_date}` : ''}${d1.pea_verse && d1.pea_verse !== '0' ? `\nPEA total versé : ${Number(d1.pea_verse).toLocaleString('fr-FR')} €` : ''}
+CTO (compte-titres ordinaire) : ${fmtOui(d1.cto)}${_ctoCourtierLine(d1.cto, d1.cto_courtier)}
 PER versements 2025 : ${fmt(d1.per)}
 PEE (valorisation) : ${fmtOui(d1.pee)}${d1.pee_verse && d1.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d1.pee_verse).toLocaleString('fr-FR')} €` : ''}${abondD1c > 0 ? `\nPERCO — abondement employeur 2025 : ${abondD1c.toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d1.av)}${d1.av_date ? `\nAV date souscription : ${d1.av_date}` : ''}${d1.av_verse && d1.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d1.av_verse).toLocaleString('fr-FR')} €` : ''}
@@ -330,6 +383,7 @@ LEP : ${fmtOui(d2.lep)}
 Livret+ / Livret bancaire : ${fmtOui(d2.livret_plus)}
 PEL : ${fmtOui(d2.pel)}${d2.pel_date ? `\nPEL date ouverture : ${d2.pel_date}` : ''}
 PEA : ${fmtOui(d2.pea)}${d2.pea_date ? `\nPEA date ouverture : ${d2.pea_date}` : ''}${d2.pea_verse && d2.pea_verse !== '0' ? `\nPEA total versé : ${Number(d2.pea_verse).toLocaleString('fr-FR')} €` : ''}
+CTO (compte-titres ordinaire) : ${fmtOui(d2.cto)}${_ctoCourtierLine(d2.cto, d2.cto_courtier)}
 PER versements 2025 : ${fmt(d2.per)}
 PEE (valorisation) : ${fmtOui(d2.pee)}${d2.pee_verse && d2.pee_verse !== '0' ? `\nPEE versements salarié 2025 : ${Number(d2.pee_verse).toLocaleString('fr-FR')} €` : ''}${abondD2c > 0 ? `\nPERCO — abondement employeur 2025 : ${abondD2c.toLocaleString('fr-FR')} €` : ''}
 Assurance-vie : ${fmtOui(d2.av)}${d2.av_date ? `\nAV date souscription : ${d2.av_date}` : ''}${d2.av_verse && d2.av_verse !== '0' ? `\nAV versements nets cumulés : ${Number(d2.av_verse).toLocaleString('fr-FR')} €` : ''}
