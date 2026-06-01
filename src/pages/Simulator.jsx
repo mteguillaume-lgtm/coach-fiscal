@@ -1865,6 +1865,26 @@ export default function Simulator() {
         </p>
       </motion.div>
 
+      {/* Tabs simulateur */}
+      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl overflow-x-auto">
+        {TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={[
+              'shrink-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
+              tab === id
+                ? 'bg-ink-700 text-kapio-300'
+                : 'text-ink-300 hover:text-ink-0',
+            ].join(' ')}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Toggle mode */}
       <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl">
         {MODES.map(({ id, label, Icon }) => (
@@ -2076,26 +2096,6 @@ export default function Simulator() {
           )}
         </div>
       )}
-
-      {/* Tabs simulateur */}
-      <div className="flex gap-1 p-1 bg-ink-800/80 border border-white/[0.06] rounded-2xl overflow-x-auto">
-        {TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={[
-              'shrink-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
-              tab === id
-                ? 'bg-ink-700 text-kapio-300'
-                : 'text-ink-300 hover:text-ink-0',
-            ].join(' ')}
-          >
-            <Icon size={13} />
-            {label}
-          </button>
-        ))}
-      </div>
 
       {/* Contenu simulateur */}
       <ScrollReveal delay={0.1}>
