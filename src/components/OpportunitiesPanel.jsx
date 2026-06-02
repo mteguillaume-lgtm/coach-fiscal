@@ -1,28 +1,34 @@
 import { useState, useMemo } from 'react';
 import { useNavigate }       from 'react-router-dom';
-import { TrendingUp, AlertTriangle, Zap, MessageCircle, Euro } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Zap, MessageCircle, Euro, Info } from 'lucide-react';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const TYPE_CFG = {
-  gain:   { label: 'Gain',   Icon: TrendingUp,   color: 'text-kapio-300',   bg: 'bg-kapio-500/[0.08]',  border: 'border-kapio-500/30',   badge: 'bg-kapio-500/15 text-kapio-300'   },
-  risque: { label: 'Risque', Icon: AlertTriangle, color: 'text-danger-400',  bg: 'bg-danger-500/[0.08]', border: 'border-danger-500/30',  badge: 'bg-danger-500/10 text-danger-400'  },
-  action: { label: 'Action', Icon: Zap,           color: 'text-blue-400',   bg: 'bg-blue-500/[0.08]',   border: 'border-blue-500/30',    badge: 'bg-blue-500/10 text-blue-400'     },
+  gain:   { label: 'Gain',    Icon: TrendingUp,    color: 'text-kapio-300',   bg: 'bg-kapio-500/[0.08]',  border: 'border-kapio-500/30',   badge: 'bg-kapio-500/15 text-kapio-300'   },
+  risque: { label: 'Risque',  Icon: AlertTriangle, color: 'text-danger-400',  bg: 'bg-danger-500/[0.08]', border: 'border-danger-500/30',  badge: 'bg-danger-500/10 text-danger-400'  },
+  alerte: { label: 'Alerte',  Icon: AlertTriangle, color: 'text-warning-400', bg: 'bg-warning-500/[0.08]', border: 'border-warning-500/30', badge: 'bg-warning-500/10 text-warning-400' },
+  action: { label: 'Action',  Icon: Zap,           color: 'text-blue-400',    bg: 'bg-blue-500/[0.08]',   border: 'border-blue-500/30',    badge: 'bg-blue-500/10 text-blue-400'     },
+  info:   { label: 'Conseil', Icon: Info,          color: 'text-teal-300',    bg: 'bg-teal-500/[0.08]',   border: 'border-teal-500/30',    badge: 'bg-teal-500/10 text-teal-300'     },
 };
+// Fallback défensif : tout type inconnu est traité comme un conseil informatif.
+const cfgFor = (type) => TYPE_CFG[type] || TYPE_CFG.info;
 
 const URGENCE_CFG = {
   immediate:         { label: 'Urgent — À faire maintenant',          color: 'text-danger-400'  },
   avant_decembre:    { label: 'À faire avant le 31/12',               color: 'text-warning-400' },
   avant_declaration: { label: 'À l\'occasion de la déclaration',      color: 'text-warning-400' },
+  a_etudier:         { label: 'À étudier',                            color: 'text-ink-200'     },
   long_terme:        { label: 'Long terme',                           color: 'text-ink-200'     },
 };
+const urgenceFor = (u) => URGENCE_CFG[u] || URGENCE_CFG.long_terme;
 
 // ─── Carte opportunité ────────────────────────────────────────────────────────
 
 function OpportunityCard({ opp }) {
   const navigate = useNavigate();
-  const cfg      = TYPE_CFG[opp.type];
-  const urgence  = URGENCE_CFG[opp.urgence];
+  const cfg      = cfgFor(opp.type);
+  const urgence  = urgenceFor(opp.urgence);
 
   return (
     <div className={`rounded-2xl border ${cfg.border} bg-ink-800/60 shadow-sm`}>
@@ -79,8 +85,9 @@ export default function OpportunitiesPanel({ opportunities }) {
   const [filter, setFilter] = useState('all');
 
   const gains   = useMemo(() => opportunities.filter(o => o.type === 'gain'),   [opportunities]);
-  const risques = useMemo(() => opportunities.filter(o => o.type === 'risque'), [opportunities]);
+  const risques = useMemo(() => opportunities.filter(o => o.type === 'risque' || o.type === 'alerte'), [opportunities]);
   const actions = useMemo(() => opportunities.filter(o => o.type === 'action'), [opportunities]);
+  const infos   = useMemo(() => opportunities.filter(o => o.type === 'info'),   [opportunities]);
 
   const totalGains = useMemo(
     () => gains.reduce((sum, o) => sum + o.impactEuros, 0),
@@ -91,17 +98,19 @@ export default function OpportunitiesPanel({ opportunities }) {
     if (filter === 'gain')   return gains;
     if (filter === 'risque') return risques;
     if (filter === 'action') return actions;
+    if (filter === 'info')   return infos;
     return opportunities;
-  }, [filter, opportunities, gains, risques, actions]);
+  }, [filter, opportunities, gains, risques, actions, infos]);
 
   if (opportunities.length === 0) return null;
 
   const FILTERS = [
     { id: 'all',    label: `Tous (${opportunities.length})` },
     { id: 'gain',   label: `Gains (${gains.length})` },
-    { id: 'risque', label: `Risques (${risques.length})` },
+    { id: 'risque', label: `Alertes (${risques.length})` },
     { id: 'action', label: `Actions (${actions.length})` },
-  ];
+    { id: 'info',   label: `Conseils (${infos.length})` },
+  ].filter(t => t.id === 'all' || t.id === 'gain' || (t.id === 'risque' && risques.length) || (t.id === 'action' && actions.length) || (t.id === 'info' && infos.length));
 
   return (
     <div className="flex flex-col gap-4">

@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
 import { calcIR, computeFoyerSummary } from '../lib/taxCalculator';
+import DisclaimerBanner from '../components/DisclaimerBanner';
 import AnimatedNumber from '../components/motion/AnimatedNumber';
 import GlowCard from '../components/motion/GlowCard';
 import AuroraBackground from '../components/motion/AuroraBackground';
@@ -937,6 +938,11 @@ export default function Dashboard() {
             <QuickLink to="/opportunites" Icon={Sparkles}      label="Opportunités"  desc="Toutes les actions" />
           </div>
         </section>
+
+        {/* Disclaimer global permanent */}
+        <div className="pt-8">
+          <DisclaimerBanner variant="dark" />
+        </div>
 
         {/* Lien profil complet */}
         <div className="flex justify-center pt-8 pb-4">

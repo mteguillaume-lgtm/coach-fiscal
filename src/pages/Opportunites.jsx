@@ -6,7 +6,10 @@ import { motion } from 'framer-motion';
 
 import { useApp } from '../context/AppContext';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
+import { genererSynthese } from '../lib/conseilPatrimonial';
 import OpportunitiesPanel from '../components/OpportunitiesPanel';
+import SyntheseConseil from '../components/SyntheseConseil';
+import DisclaimerBanner from '../components/DisclaimerBanner';
 import PERBandeau from '../components/PERBandeau';
 
 import AuroraBackground from '../components/motion/AuroraBackground';
@@ -36,6 +39,11 @@ export default function Opportunites() {
   const opportunities = useMemo(
     () => detectOpportunities(state.parsedProfile ?? {}),
     [state.parsedProfile],
+  );
+
+  const synthese = useMemo(
+    () => genererSynthese(state.parsedProfile ?? {}, null, opportunities),
+    [state.parsedProfile, opportunities],
   );
 
   if (!state.profile) return null;
@@ -115,6 +123,10 @@ export default function Opportunites() {
             <PERBandeau />
           </ScrollReveal>
 
+          <ScrollReveal delay={0.35}>
+            <SyntheseConseil synthese={synthese} />
+          </ScrollReveal>
+
           <ScrollReveal delay={0.4}>
             <OpportunitiesPanel opportunities={opportunities} />
           </ScrollReveal>
@@ -174,6 +186,11 @@ export default function Opportunites() {
               </GlowCard>
             </ScrollReveal>
           )}
+
+          {/* Disclaimer global permanent */}
+          <ScrollReveal delay={0.8}>
+            <DisclaimerBanner variant="dark" />
+          </ScrollReveal>
 
           {/* Retour */}
           <motion.div

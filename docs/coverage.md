@@ -233,6 +233,16 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Trust à l'étranger | 🚫 V2 | — |
 | Régime impatriés (art. 155 B CGI) | 🟡 | PHASE 6 — détection + routage avocat fiscaliste |
 
+## Conseil universel & garde-fous (PHASE 7)
+
+| Cas | État | Sprint cible |
+|---|---|---|
+| Synthèse patrimoniale rédigée (sans/avec action, chiffrée €) | ✅ | PHASE 7 — `conseilPatrimonial.genererSynthese` |
+| Agrégation des leviers de toutes les phases (gain total) | ✅ | PHASE 7 |
+| Détecteur de zones non couvertes → orientation pro | ✅ | PHASE 7 — `detectZonesNonCouvertes` (international, LMNP/TNS réel, IFI, défisc fermé, PV immo) |
+| Disclaimer global permanent + renvoi impots.gouv.fr | ✅ | PHASE 7 — `DisclaimerBanner` sur Opportunités/Rapport/Dashboard |
+| Robustesse panneau leviers (types info/alerte, urgence à étudier) | ✅ | PHASE 7 — fallbacks défensifs `OpportunitiesPanel` |
+
 ---
 
 ## Synthèse rapide

@@ -162,6 +162,25 @@ est notée pour usage ultérieur.
 > fonciers étrangers complexes, expatriation partielle, double résidence. Le détecteur
 > émet une alerte `levier_routage_international` dans ces cas.
 
+## PHASE 7 — Conseil universel & garde-fous (clôture de la roadmap)
+
+Phase de **synthèse** : aucune nouvelle donnée fiscale (les orientations citent les
+règles/professionnels déjà sourcés aux phases 0-6). Livrables :
+- `src/lib/conseilPatrimonial.js` : `genererSynthese` (agrégation des leviers, vue
+  « sans action / avec action » chiffrée) + `detectZonesNonCouvertes` (orientation pro
+  pour les signaux hors périmètre) + `DISCLAIMER_GLOBAL` / `LIEN_VERIF_OFFICIEL`.
+- `DisclaimerBanner` rendu en permanence sur Opportunités, Rapport et Dashboard
+  (« aide à la décision, ne se substitue pas à un conseil professionnel ; vérifier sur
+  impots.gouv.fr »).
+- Correctif garde-fou : `OpportunitiesPanel` gère désormais les leviers de type
+  `info`/`alerte` et l'urgence `à étudier` (fallbacks défensifs), évitant tout plantage
+  d'affichage des leviers introduits aux phases 1-6.
+
+> **Roadmap « Généralisation profil français » terminée** : phases 0 → 7 livrées,
+> 22 plugins actifs / 0 stub. Toute la chaîne (collecte → generator → parser →
+> calculator → detector → conseil) couvre les situations courantes du contribuable
+> français ; les cas complexes sont détectés et routés vers le bon professionnel.
+
 ## Rituel annuel de bascule d'année (procédure — à NE PAS exécuter ici)
 
 Chaque janvier, après publication de la Loi de finances :
