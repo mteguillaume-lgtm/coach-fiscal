@@ -1,7 +1,7 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR, computePerOptimumCascade, arbitragePfuBareme } from './taxCalculator';
+import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto } from './taxCalculator';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 
@@ -203,6 +203,69 @@ export function detectOpportunities(parsedProfile) {
       impactEuros: 0,
       action: 'Comparer abattement micro-BIC vs amortissements au réel. Pour le régime réel (liasse 2031/2033-A), faites établir le résultat par un expert-comptable.',
       questionChat: 'Je loue en meublé (LMNP). Le régime réel avec amortissements serait-il plus avantageux que le micro-BIC, et quel est mon risque de bascule en LMP ?',
+    });
+  }
+
+  // Levier option barème sur les plus-values (PHASE 4) — TMI faible / titres < 2018.
+  const _pvMobGain    = parsedProfile.pvMobGain || 0;
+  const _cryptoPvImp  = parsedProfile.cryptoExoneree ? 0 : (parsedProfile.cryptoPvImposable || 0);
+  if (_pvMobGain + _cryptoPvImp > 0) {
+    const _parts = parts || (isCouple ? 2 : 1);
+    const pm = _pvMobGain > 0
+      ? calcPvMobiliere({ plusValue: _pvMobGain, rniFoyer: rniFoyer || 0, parts: _parts, isCouple })
+      : null;
+    const cp = _cryptoPvImp > 0
+      ? calcCrypto({ plusValue: _cryptoPvImp, totalCessions: Math.max(_cryptoPvImp, 306), rniFoyer: rniFoyer || 0, parts: _parts, isCouple })
+      : null;
+    const economie = (pm && pm.recommande === 'bareme' ? pm.economie : 0)
+                   + (cp && cp.recommande === 'bareme' ? cp.economie : 0);
+    if (economie >= 50) {
+      opps.push({
+        id: 'levier_option_bareme_pv',
+        type: 'gain',
+        urgence: 'avant_declaration',
+        titre: '💡 Plus-values : l\'option barème (2OP) semble plus avantageuse',
+        description: 'Vos plus-values (mobilières/crypto) sont imposées par défaut au PFU 12,8 % d\'IR. À votre tranche marginale, le barème progressif serait moins coûteux. Si vos titres ont été acquis avant 2018, le barème ouvre en plus droit à un abattement pour durée de détention (50 % à 85 %), réservé à l\'IR.',
+        impact: `Économie estimée : ${fmt(economie)} € en optant pour le barème (case 2OP).`,
+        impactEuros: economie,
+        action: 'Cocher la case 2OP lors de la déclaration. ATTENTION : l\'option est GLOBALE pour tous les revenus du capital de l\'année (dividendes, intérêts, plus-values) et irrévocable.',
+        questionChat: `Mes plus-values seraient-elles moins taxées au barème (case 2OP) qu'au PFU 12,8 % ? Économie estimée ~${fmt(economie)} €. Peux-tu confirmer compte tenu de mon TMI et m'expliquer l'abattement pour durée de détention si mes titres datent d'avant 2018 ?`,
+      });
+    }
+  }
+
+  // Levier moins-values reportables (PHASE 4) : plus-value déclarée → vérifier le stock
+  // de moins-values des 10 années précédentes (3VH), imputables sur les PV de même nature.
+  if (_pvMobGain > 0) {
+    opps.push({
+      id: 'levier_moins_values_reportables',
+      type: 'info',
+      urgence: 'avant_declaration',
+      titre: '📉 Moins-values reportables : pensez à les imputer',
+      description: 'Vos moins-values de cession de valeurs mobilières des 10 années précédentes (case 3VH) s\'imputent en priorité sur vos plus-values de même nature de l\'année — avant tout calcul d\'impôt. Une moins-value non reportée est définitivement perdue après 10 ans.',
+      impact: 'Chaque 1 000 € de moins-value imputée économise ~128 € d\'IR (PFU) + 172 € de PS.',
+      impactEuros: 0,
+      action: 'Vérifier vos avis d\'imposition / IFU des 10 dernières années pour retrouver vos moins-values non imputées et les reporter en 3VH.',
+      questionChat: 'J\'ai réalisé des plus-values mobilières cette année. Comment retrouver et imputer mes moins-values reportables (3VH) des 10 années précédentes, et dans quel ordre s\'appliquent-elles ?',
+    });
+  }
+
+  // Levier plus-values immobilières (PHASE 4) : cession d'un bien → exonérations
+  // (RP, durée de détention 22 ans IR / 30 ans PS), surtaxe > 50 000 €, routage notaire.
+  // Alerte seuil crypto 305 € intégrée.
+  const _pvImmoBrute   = parsedProfile.pvImmoBrute || 0;
+  const _pvImmoEstim   = parsedProfile.pvImmoEstimation || 0;
+  if (_pvImmoBrute > 0 || _pvImmoEstim > 0 || parsedProfile.pvImmoExoneree) {
+    opps.push({
+      id: 'levier_pv_immo',
+      type: 'info',
+      urgence: 'a_etudier',
+      titre: '🏠 Plus-value immobilière : exonérations & calendrier',
+      description: 'La plus-value immobilière (hors résidence principale, totalement exonérée) est imposée à 19 % d\'IR + 17,2 % de PS, prélevés directement par le notaire à la vente. Des abattements pour durée de détention réduisent la base : exonération totale d\'IR à 22 ans, de PS à 30 ans. Une surtaxe de 2 % à 6 % s\'applique au-delà de 50 000 € de plus-value imposable.',
+      impact: _pvImmoEstim > 0 ? `Estimation de l'impôt sur la plus-value : ${fmt(_pvImmoEstim)} € (prélevé chez le notaire, hors déclaration annuelle).` : 'Le calendrier de cession peut fortement réduire l\'imposition.',
+      impactEuros: 0,
+      action: 'Vérifier les conditions d\'exonération (résidence principale, première cession avec remploi) et l\'impact d\'un report de la vente pour franchir un palier d\'abattement. Le calcul définitif est établi par le notaire.',
+      questionChat: 'Je vends un bien immobilier. Quelles exonérations puis-je obtenir (résidence principale, durée de détention) et comment réduire la plus-value imposable et l\'éventuelle surtaxe avant de signer chez le notaire ?',
     });
   }
 

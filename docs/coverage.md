@@ -54,14 +54,17 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
 | Cas | Cases | État | Sprint cible |
 |---|---|---|---|
-| Plus-values mobilières simples | 3VG | ❌ | B |
-| Moins-values reportables 10 ans | 3VH | ❌ | B |
-| Formulaire 2074 multi-cessions | 2074 | ❌ | B |
-| Abattement durée détention (titres < 2018) | 3SG | ❌ | B |
+| Plus-values mobilières simples (PFU 12,8% + 17,2% PS) | 3VG | ✅ | PHASE 4 |
+| Moins-values reportables 10 ans (imputées sur PV même nature) | 3VH | ✅ | PHASE 4 |
+| Option barème + arbitrage PFU/barème (levier détecteur) | 2OP | ✅ | PHASE 4 |
+| Abattement durée détention (titres < 2018, droit commun 50/65%) | — | ✅ | PHASE 4 (option barème, IR seul) |
+| Abattement durée détention renforcé PME (50/65/85%) | — | ✅ | PHASE 4 |
+| Abattement dirigeant retraite 500 000€ | — | 🟡 | PHASE 4 (→ avocat fiscaliste) |
+| Formulaire 2074 multi-cessions | 2074 | 🟡 | PHASE 4 (gain net saisi) |
 | Crypto détention compte étranger | 8UU + 3916bis | ✅ | Initial |
-| Crypto cession unique 2025 | 3AN | 🟡 | B |
-| Crypto cessions multiples PAMC | 2086 + 3AN | ❌ | B |
-| Crypto > 305€ de cessions seuil imposition | — | 🟡 | B |
+| Crypto plus-value (PFU 12,8% + 17,2% PS) | 3AN | ✅ | PHASE 4 |
+| Crypto > 305€ de cessions seuil imposition (exonération ≤ 305€) | — | ✅ | PHASE 4 |
+| Crypto cessions multiples PAMC | 2086 + 3AN | 🟡 | PHASE 4 (PV nette saisie) |
 
 ## Revenus fonciers
 
@@ -95,12 +98,14 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
 | Cas | Cases | État | Sprint cible |
 |---|---|---|---|
-| Plus-value cession résidence secondaire | 3VZ | ❌ | C1 |
-| Abattement durée détention IR (22 ans) | — | ❌ | C1 |
-| Abattement durée détention PS (30 ans) | — | ❌ | C1 |
-| Exonération résidence principale | — | ❌ | C1 |
-| Exonération première cession non-RP | — | ❌ | C1 |
-| Surtaxe PV > 50 000€ | — | ❌ | C1 |
+| Plus-value cession résidence secondaire (estimation IR 19% + 17,2% PS) | 3VZ | ✅ | PHASE 4 (→ notaire, hors solde annuel) |
+| Abattement durée détention IR (exonération 22 ans) | — | ✅ | PHASE 4 |
+| Abattement durée détention PS (exonération 30 ans) | — | ✅ | PHASE 4 |
+| Prix d'acquisition majoré (forfait 7,5% frais + 15% travaux) | — | ✅ | PHASE 4 |
+| Exonération résidence principale | — | ✅ | PHASE 4 |
+| Exonération petit prix ≤ 15 000€ | — | ✅ | PHASE 4 |
+| Exonération première cession non-RP (remploi) | — | 🟡 | PHASE 4 (→ notaire) |
+| Surtaxe PV > 50 000€ (barème lissé art. 1609 nonies G) | — | ✅ | PHASE 4 |
 
 ## BIC / BNC / BA (indépendants)
 

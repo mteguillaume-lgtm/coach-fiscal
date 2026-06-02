@@ -212,6 +212,53 @@ const IMMO_FIELDS = [
     hint: 'Recettes meublées au réel — sert uniquement à détecter une éventuelle bascule LMP (> 23 000 € ET > 50 % des revenus pro).' },
 ];
 
+// Plus-values & capital (PHASE 4). PV mobilières (3VG) + moins-values reportables
+// (3VH) → PFU 12,8 % + PS 17,2 % par défaut, option barème (abattement durée si
+// titres acquis avant 2018). Crypto : option barème. PV immobilière (cession hors RP)
+// = estimation prélevée chez le notaire, hors déclaration annuelle. Champs foyer.
+const PV_FIELDS = [
+  { key: 'pv_mob_gain', label: 'Plus-values mobilières — gain de l\'année (3VG) (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers', advanced: true,
+    hint: 'Plus-values de cession d\'actions/ETF/parts (compte-titres). Imposées au PFU 12,8 % + 17,2 % PS par défaut.' },
+  { key: 'pv_mob_mv_reportees', label: 'Moins-values reportables (3VH) (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers', advanced: true,
+    dependsOn: { key: 'pv_mob_gain', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Moins-values de cession des 10 années précédentes non encore imputées. Elles s\'imputent en priorité sur les plus-values de même nature.' },
+  { key: 'pv_mob_option_bareme', label: 'Option barème progressif (2OP) ?', type: 'select', opts: ['Non', 'Oui'], requires: 'capitauxMobiliers', advanced: true,
+    dependsOn: { key: 'pv_mob_gain', check: v => parseFloat(v || 0) > 0 },
+    hint: 'L\'option barème est globale pour tous les revenus du capital de l\'année. Avantageuse à TMI faible et/ou pour les titres acquis avant 2018 (abattement durée).' },
+  { key: 'pv_mob_anteriorite_2018', label: 'Titres acquis avant le 1er janvier 2018 ?', type: 'select', opts: ['Non', 'Oui'], requires: 'capitauxMobiliers', advanced: true,
+    dependsOn: { key: 'pv_mob_option_bareme', value: 'Oui' },
+    hint: 'L\'abattement pour durée de détention ne s\'applique qu\'aux titres acquis avant 2018 ET seulement si option barème (IR uniquement, pas les PS).' },
+  { key: 'pv_mob_type_abattement', label: 'Type d\'abattement durée', type: 'select', requires: 'capitauxMobiliers', advanced: true,
+    opts: [
+      { value: 'droit_commun', label: 'Droit commun (50 % ≥ 2 ans, 65 % ≥ 8 ans)' },
+      { value: 'renforce_pme', label: 'Renforcé PME (50/65/85 %)' },
+    ],
+    dependsOn: { key: 'pv_mob_anteriorite_2018', value: 'Oui' },
+    hint: 'Abattement renforcé : cession de titres de PME de moins de 10 ans à la souscription (conditions strictes).' },
+  { key: 'pv_mob_duree', label: 'Durée de détention (années)', type: 'number', ph: '0', requires: 'capitauxMobiliers', advanced: true,
+    dependsOn: { key: 'pv_mob_anteriorite_2018', value: 'Oui' } },
+  { key: 'crypto_option_bareme', label: 'Crypto — option barème progressif ?', type: 'select', opts: ['Non', 'Oui'], requires: 'crypto', advanced: true,
+    dependsOn: { key: 'crypto_cessions', value: 'Oui' },
+    hint: 'Option barème possible pour les plus-values crypto (avantageuse à TMI ≤ 11 %). Exonération totale si cessions annuelles ≤ 305 €.' },
+  // PV immobilière — estimation (prélevée à la source par le notaire, hors déclaration annuelle).
+  { key: 'pv_immo_cession', label: 'PV immo — prix de cession (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    hint: 'Vente d\'un bien immobilier (hors résidence principale, exonérée). L\'impôt est prélevé chez le notaire — estimation indicative.' },
+  { key: 'pv_immo_residence_principale', label: 'Bien = résidence principale ?', type: 'select', opts: ['Non', 'Oui'], requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'pv_immo_cession', check: v => parseFloat(v || 0) > 0 },
+    hint: 'La cession de la résidence principale est totalement exonérée d\'IR et de PS.' },
+  { key: 'pv_immo_acquisition', label: 'PV immo — prix d\'acquisition d\'origine (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'pv_immo_cession', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'pv_immo_duree', label: 'PV immo — durée de détention (années)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'pv_immo_cession', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Abattements : exonération IR à 22 ans, PS à 30 ans. Forfait travaux 15 % applicable si détention ≥ 5 ans.' },
+  { key: 'pv_immo_frais_reels', label: 'PV immo — frais d\'acquisition réels (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'pv_immo_cession', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Laissez vide pour appliquer le forfait 7,5 % du prix d\'acquisition.' },
+  { key: 'pv_immo_travaux_reels', label: 'PV immo — travaux réels justifiés (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'pv_immo_cession', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Laissez vide pour appliquer le forfait 15 % (si détention ≥ 5 ans). Non cumulable avec les travaux déjà déduits des revenus fonciers.' },
+];
+
 // CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
 // compteur fiscal). Le courtier étranger déclenche le flag 3916.
 const CTO_FIELDS = [
@@ -310,6 +357,7 @@ const SECTION_REV_SOLO = {
       dependsOn: { key: 'divid', check: v => parseFloat(v || 0) > 0 },
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
+    ...PV_FIELDS,
     ...TNS_FIELDS,
   ],
 };
@@ -415,6 +463,7 @@ const SECTION_REV_FOYER = {
       dependsOn: { key: 'divid', check: v => parseFloat(v || 0) > 0 },
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
+    ...PV_FIELDS,
   ],
 };
 

@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -260,6 +260,110 @@ Base PS immobilier foyer : ${fmtN(psBase)}`;
   return { deltaRni, psBase, section, reelFlag, lmpFlag };
 }
 
+// Plus-values & capital (PHASE 4) — PV mobilières (3VG) + crypto (3AN) imposées
+// sur la déclaration annuelle (PFU 12,8 % IR + 17,2 % PS par défaut, option barème),
+// consolidées en `capitalIR` (montant IR PFU) + `capitalPsBase` (base PS 17,2 %)
+// réintégrés au total dû foyer. PV immobilière (cession hors RP) = ESTIMATION séparée,
+// prélevée à la source par le notaire → HORS solde annuel + routage notaire.
+// `declarants` = [{ decl }] (consolidation crypto par déclarant, comme _tnsBlock).
+function _capitalGainsBlock(d, declarants, rniFoyer = 0, parts = 1, isCouple = false) {
+  // ─ PV mobilières (champs foyer) ─
+  const pvMobGain    = parseFloat(d.pv_mob_gain || 0);
+  const pvMobMV      = parseFloat(d.pv_mob_mv_reportees || 0);
+  const pvMobBareme  = d.pv_mob_option_bareme === 'Oui';
+  const pvMobAnt2018 = d.pv_mob_anteriorite_2018 === 'Oui';
+  const pvMobType    = d.pv_mob_type_abattement === 'renforce_pme' ? 'renforce_pme' : 'droit_commun';
+  const pvMobDuree   = parseFloat(d.pv_mob_duree || 0);
+
+  // ─ Crypto (consolidé par déclarant : section Épargne) ─
+  let cryptoPv = 0, cryptoCessions = 0;
+  for (const { decl } of declarants) {
+    cryptoPv       += parseFloat(decl.crypto_pv || 0);
+    cryptoCessions += parseFloat(decl.crypto_montant_cede || 0);
+  }
+  const cryptoBareme = d.crypto_option_bareme === 'Oui';
+
+  // ─ PV immobilière (champs foyer, estimation) ─
+  const pvImmoCession = parseFloat(d.pv_immo_cession || 0);
+  const pvImmoAcq     = parseFloat(d.pv_immo_acquisition || 0);
+  const pvImmoFrais   = parseFloat(d.pv_immo_frais_reels || 0);
+  const pvImmoTravaux = parseFloat(d.pv_immo_travaux_reels || 0);
+  const pvImmoDuree   = parseFloat(d.pv_immo_duree || 0);
+  const pvImmoRP      = d.pv_immo_residence_principale === 'Oui';
+
+  const hasPvMob  = pvMobGain > 0;
+  const hasCrypto = cryptoPv > 0;
+  const hasPvImmo = pvImmoCession > 0;
+  if (!hasPvMob && !hasCrypto && !hasPvImmo) {
+    return { capitalIR: 0, capitalPsBase: 0, section: '', baremeFlag: false };
+  }
+
+  const lignes = [];
+  let capitalIR = 0;
+  let capitalPsBase = 0;
+  let baremeFlag = false;
+
+  // ─ PV mobilières (3VG) ─
+  if (hasPvMob) {
+    const pm = calcPvMobiliere({
+      plusValue: pvMobGain, moinsValuesReportees: pvMobMV,
+      optionBareme: pvMobBareme, anteriorite2018: pvMobAnt2018,
+      typeAbattement: pvMobType, dureeDetention: pvMobDuree,
+      rniFoyer, parts, isCouple,
+    });
+    capitalIR     += pm.ir;
+    capitalPsBase += pm.gainImposable;
+    lignes.push(`Plus-values mobilières (3VG) : ${fmtN(pm.plusValue)}${pm.moinsValuesImputees > 0 ? ` | moins-values imputées (3VH) : ${fmtN(pm.moinsValuesImputees)}` : ''}`);
+    lignes.push(`PV mobilières — gain imposable : ${fmtN(pm.gainImposable)} | régime : ${pvMobBareme ? 'barème' : 'PFU 12,8 %'}${pm.abattementDuree > 0 ? ` | abattement durée ${Math.round(pm.abattementDuree * 100)} %` : ''}`);
+    lignes.push(`PV mobilières — IR : ${fmtN(pm.ir)} | base PS : ${fmtN(pm.gainImposable)}`);
+    if (pm.recommande === 'bareme' && !pvMobBareme && pm.economie > 0) {
+      lignes.push(`ℹ️ Option barème (2OP) potentiellement plus avantageuse pour les PV mobilières (~${fmtN(pm.economie)} € d'écart) — option globale capital`);
+      baremeFlag = true;
+    }
+  }
+
+  // ─ Crypto (3AN) ─
+  if (hasCrypto) {
+    const cp = calcCrypto({ plusValue: cryptoPv, totalCessions: cryptoCessions, optionBareme: cryptoBareme, rniFoyer, parts, isCouple });
+    if (cp.exonere) {
+      lignes.push(`Plus-values crypto (3AN) : ${fmtN(cp.plusValue)} — EXONÉRÉES (cessions annuelles ${fmtN(cp.totalCessions)} ≤ seuil ${fmtN(cp.seuilExoneration)} €)`);
+    } else {
+      capitalIR     += cp.ir;
+      capitalPsBase += cp.plusValue;
+      lignes.push(`Plus-values crypto (3AN) : ${fmtN(cp.plusValue)} | cessions annuelles : ${fmtN(cp.totalCessions)} | régime : ${cryptoBareme ? 'barème' : 'PFU 12,8 %'}`);
+      lignes.push(`PV crypto — IR : ${fmtN(cp.ir)} | base PS : ${fmtN(cp.plusValue)}`);
+      if (cp.recommande === 'bareme' && !cryptoBareme && cp.economie > 0) {
+        lignes.push(`ℹ️ Option barème potentiellement plus avantageuse pour la crypto (~${fmtN(cp.economie)} € d'écart)`);
+        baremeFlag = true;
+      }
+    }
+  }
+
+  // ─ PV immobilière : ESTIMATION (payée chez le notaire, hors solde annuel) ─
+  if (hasPvImmo) {
+    const pi = calcPvImmo({
+      prixCession: pvImmoCession, prixAcquisition: pvImmoAcq,
+      fraisAcqReels: pvImmoFrais, travauxReels: pvImmoTravaux,
+      dureeDetention: pvImmoDuree, residencePrincipale: pvImmoRP,
+    });
+    if (pi.exonere) {
+      lignes.push(`Plus-value immobilière (cession ${fmtN(pvImmoCession)}) : EXONÉRÉE (${pi.motifExoneration === 'residence_principale' ? 'résidence principale' : 'petit prix ≤ 15 000 €'})`);
+    } else {
+      lignes.push(`Plus-value immobilière — prix de cession : ${fmtN(pi.prixCession)} | prix d'acquisition majoré : ${fmtN(pi.prixAcqMajore)} (frais ${fmtN(pi.fraisAcq)} + travaux ${fmtN(pi.travaux)})`);
+      lignes.push(`PV immobilière brute : ${fmtN(pi.pvBrute)} | abattement durée IR ${Math.round(pi.abattIR * 100)} % / PS ${Math.round(pi.abattPS * 100)} %`);
+      lignes.push(`PV immo — base IR : ${fmtN(pi.baseIR)} (IR 19 % : ${fmtN(pi.ir)}) | base PS : ${fmtN(pi.basePS)} (PS 17,2 % : ${fmtN(pi.ps)})${pi.surtaxe > 0 ? ` | surtaxe : ${fmtN(pi.surtaxe)}` : ''}`);
+      lignes.push(`ESTIMATION impôt PV immobilière (prélevé chez le notaire, HORS déclaration annuelle) : ${fmtN(pi.total)} — notaire recommandé`);
+    }
+  }
+
+  const section = `
+== PLUS-VALUES & CAPITAL ==
+${lignes.join('\n')}
+Plus-values mobilières/crypto — IR foyer : ${fmtN(capitalIR)}
+Plus-values mobilières/crypto — base PS foyer : ${fmtN(capitalPsBase)}`;
+  return { capitalIR, capitalPsBase, section, baremeFlag };
+}
+
 // Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO et abondement.
 // Délègue à calcPlafondPer (source unique de vérité dans taxCalculator.js) pour le calcul de dispo.
 function fmtPlafondPer(netImp, pero, abondPEEPERCO = 0) {
@@ -292,6 +396,7 @@ function _buildSolo(d, docSums) {
   const rniTotal = Math.max(0, rni + foncier.net + dedInfo.deltaRni + tns.deltaRni + immo.deltaRni);
   const fam      = _famille(d, false);
   const parts    = fam.parts;
+  const cap      = _capitalGainsBlock(d, [{ decl: d }], rniTotal, parts, false);
   const pero     = parseFloat(d.pero_d1 || 0);
   const pas      = parseFloat(d.pas_tot || 0);
   const abondD1  = parseFloat(d.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D1
@@ -347,6 +452,7 @@ ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
 ${immo.section}
+${cap.section}
 == DONNÉES POUR CALCUL IR ==
 RNI total (salaires + foncier net + TNS + immobilier) : ${fmtN(rniTotal)}
 Parts fiscales : ${parts}
@@ -456,6 +562,7 @@ function _buildCouple(d, d1, d2, docSums) {
   const tns      = _tnsBlock([{ decl: d1, who: 'D1' }, { decl: d2, who: 'D2' }]);
   const immo     = _immoBlock(d, rniD1 + rniD2 + tns.deltaRni);
   const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni + tns.deltaRni + immo.deltaRni);
+  const cap      = _capitalGainsBlock(d, [{ decl: d1 }, { decl: d2 }], rniFoyer, parts, true);
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
   const pasD2    = parseFloat(d2.pas_tot || 0);
@@ -529,6 +636,7 @@ ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
 ${immo.section}
+${cap.section}
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniSalD1)}
 ${rniRenteD1 > 0 ? `Rente 1BS D1 (après abat. 10% pension) : ${fmtN(rniRenteD1)}` : ''}

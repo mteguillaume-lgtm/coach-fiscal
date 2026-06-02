@@ -19,6 +19,8 @@ import hsSuppRaw         from '../data/paperasse/fiscaliste/data/heures-suppleme
 import apprentissageRaw  from '../data/paperasse/fiscaliste/data/apprentissage.json';
 import baremeKmRaw       from '../data/paperasse/fiscaliste/data/bareme-kilometrique-2025.json';
 import microTnsRaw       from '../data/paperasse/fiscaliste/data/micro-tns.json';
+import pvMobRaw          from '../data/paperasse/fiscaliste/data/plus-values-mobilieres-crypto.json';
+import pvImmoRaw         from '../data/paperasse/fiscaliste/data/plus-values-immo-abattements.json';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -129,6 +131,32 @@ export const MICRO_TNS_REGIMES      = microTnsRaw.regimes;
 export const MICRO_TNS_ABATT_MIN    = microTnsRaw.abattement_minimum_euros;
 // Identifiants de régime acceptés par calcMicroTns / le générateur / le parser.
 export const MICRO_TNS_TYPES        = Object.keys(microTnsRaw.regimes); // micro_bic_vente, micro_bic_service, micro_bnc, micro_ba
+
+// ─── Plus-values & capital — PHASE 4 (depuis les JSON) ────────────────────────
+
+// PFU : part IR 12,8 % et part PS 17,2 % (réutilisées par les PV mobilières/crypto).
+export const PFU_TAUX_IR              = pfuRaw.pfu.detail_ir;
+export const PFU_TAUX_PS              = pfuRaw.pfu.detail_ps;
+export const DIV_ABATTEMENT_BAREME    = pfuRaw.dividendes_option_bareme.abattement;
+
+// PV mobilières : abattements pour durée de détention (titres acquis avant 2018, option barème, IR seul).
+export const PV_MOB_ABATT_DROIT_COMMUN = pvMobRaw.plus_values_mobilieres.abattements_duree_detention_avant_2018.grille_machine.droit_commun;
+export const PV_MOB_ABATT_RENFORCE_PME = pvMobRaw.plus_values_mobilieres.abattements_duree_detention_avant_2018.grille_machine.renforce_pme;
+
+// Crypto : seuil d'exonération annuel (cessions cumulées) — art. 150 VH bis CGI.
+export const CRYPTO_SEUIL_EXONERATION  = pvMobRaw.crypto_actifs.exoneration.seuil_annuel;
+
+// PV immobilières : taux IR/PS, grilles d'abattement durée, surtaxe, seuils.
+export const PV_IMMO_TAUX_IR           = pvImmoRaw.regime_general.taux_ir;
+export const PV_IMMO_TAUX_PS           = pvImmoRaw.regime_general.taux_ps;
+export const PV_IMMO_ABATT_IR          = pvImmoRaw.abattements_ir.grille_machine;
+export const PV_IMMO_ABATT_PS          = pvImmoRaw.abattements_ps.grille_machine;
+export const PV_IMMO_FRAIS_ACQ_FORFAIT = pvImmoRaw.prix_acquisition_majore.frais_acquisition_forfait;
+export const PV_IMMO_TRAVAUX_FORFAIT   = pvImmoRaw.prix_acquisition_majore.travaux_forfait;
+export const PV_IMMO_TRAVAUX_DETENTION_MIN = pvImmoRaw.prix_acquisition_majore.travaux_forfait_detention_min_annees;
+export const PV_IMMO_SEUIL_PETIT_PRIX  = pvImmoRaw.exonerations.seuil_petit_prix;
+export const PV_IMMO_SURTAXE_SEUIL     = pvImmoRaw.surtaxe_pv_importantes.seuil_declenchement;
+export const PV_IMMO_SURTAXE_BAREME    = pvImmoRaw.surtaxe_pv_importantes.bareme;
 
 /**
  * Calcule les frais kilométriques (voiture thermique ou électrique).
@@ -624,6 +652,212 @@ export function arbitragePfuBareme({ dividendes = 0, interets = 0, rniFoyer = 0,
   };
 }
 
+// ─── Plus-values & capital — PHASE 4 ─────────────────────────────────────────
+
+/**
+ * Taux d'abattement pour durée de détention (titres mobiliers acquis avant 2018).
+ * Lit la grille machine [min_annees inclus, max_annees exclu].
+ * @param {Array<{min_annees:number,max_annees:number|null,taux:number}>} grille
+ * @param {number} duree - durée de détention en années révolues
+ * @returns {number} taux d'abattement (0 si aucune tranche applicable)
+ */
+function tauxAbattementMobiliere(grille, duree) {
+  const d = Math.max(0, duree || 0);
+  const t = (grille || []).find(b => d >= b.min_annees && (b.max_annees == null || d < b.max_annees));
+  return t ? t.taux : 0;
+}
+
+/**
+ * Plus-value de cession de valeurs mobilières (actions, OPC, parts) — case 3VG.
+ * Source : plus-values-mobilieres-crypto.json + pfu-prelevements-sociaux.json.
+ * - Moins-values reportables (3VH) imputées en priorité sur la PV (même nature).
+ * - PS 17,2 % toujours sur le gain net (l'abattement durée NE s'applique PAS aux PS).
+ * - IR : PFU 12,8 % par défaut ; option barème → abattement durée de détention
+ *   (IR seulement) si titres acquis avant 2018, puis IR marginal au barème.
+ *
+ * @param {object} o
+ * @param {number}  o.plusValue            - plus-value brute de l'année
+ * @param {number}  [o.moinsValuesReportees=0] - stock de moins-values reportables imputables
+ * @param {boolean} [o.optionBareme=false] - option barème progressif (globale capital)
+ * @param {boolean} [o.anteriorite2018=false] - titres acquis avant le 1er janvier 2018
+ * @param {string}  [o.typeAbattement='droit_commun'] - 'droit_commun' | 'renforce_pme'
+ * @param {number}  [o.dureeDetention=0]   - durée de détention en années
+ * @param {number}  [o.rniFoyer=0]         - RNI hors PV (pour l'IR marginal au barème)
+ * @param {number}  [o.parts=1]
+ * @param {boolean} [o.isCouple=false]
+ */
+export function calcPvMobiliere({
+  plusValue = 0, moinsValuesReportees = 0,
+  optionBareme = false, anteriorite2018 = false, typeAbattement = 'droit_commun',
+  dureeDetention = 0, rniFoyer = 0, parts = 1, isCouple = false,
+} = {}) {
+  const pv = Math.max(0, plusValue || 0);
+  const mvImputees = Math.min(Math.max(0, moinsValuesReportees || 0), pv);
+  const gainImposable = _round(pv - mvImputees);
+
+  const ps    = _round(gainImposable * PFU_TAUX_PS);
+  const irPfu = _round(gainImposable * PFU_TAUX_IR);
+
+  const grille = typeAbattement === 'renforce_pme' ? PV_MOB_ABATT_RENFORCE_PME : PV_MOB_ABATT_DROIT_COMMUN;
+  const abattementDuree = (optionBareme && anteriorite2018) ? tauxAbattementMobiliere(grille, dureeDetention) : 0;
+  const baseIRBareme = _round(gainImposable * (1 - abattementDuree));
+  const irBareme = Math.max(0, calcIR(rniFoyer + baseIRBareme, parts, isCouple) - calcIR(rniFoyer, parts, isCouple));
+
+  const ir         = optionBareme ? irBareme : irPfu;
+  const totalPfu    = irPfu + ps;
+  const totalBareme = irBareme + ps;
+  return {
+    plusValue: pv, moinsValuesImputees: mvImputees, gainImposable,
+    ps, irPfu, irBareme, ir,
+    abattementDuree, baseIRBareme,
+    total: ir + ps,
+    totalPfu, totalBareme,
+    recommande: totalBareme <= totalPfu ? 'bareme' : 'pfu',
+    economie: Math.abs(totalPfu - totalBareme),
+  };
+}
+
+/**
+ * Plus-value de cession d'actifs numériques (crypto) — cases 3AN (gain) / 3BN (perte).
+ * Source : plus-values-mobilieres-crypto.json → crypto_actifs.
+ * - Exonération TOTALE si cessions cumulées de l'année ≤ 305 € (au-delà : imposition
+ *   intégrale de la PV, pas seulement la fraction excédentaire).
+ * - PFU 30 % par défaut (12,8 % IR + 17,2 % PS), option barème possible.
+ *
+ * @param {object} o
+ * @param {number}  o.plusValue          - plus-value nette de l'année (gains − pertes crypto)
+ * @param {number}  [o.totalCessions=0]  - montant total des cessions de l'année (déclenche le seuil 305 €)
+ * @param {boolean} [o.optionBareme=false]
+ * @param {number}  [o.rniFoyer=0]
+ * @param {number}  [o.parts=1]
+ * @param {boolean} [o.isCouple=false]
+ */
+export function calcCrypto({
+  plusValue = 0, totalCessions = 0, optionBareme = false,
+  rniFoyer = 0, parts = 1, isCouple = false,
+} = {}) {
+  const pv       = Math.max(0, plusValue || 0);
+  const cessions = Math.max(0, totalCessions || 0);
+  const exonere  = cessions > 0 && cessions <= CRYPTO_SEUIL_EXONERATION;
+  if (exonere || pv <= 0) {
+    return {
+      plusValue: pv, totalCessions: cessions, exonere,
+      seuilExoneration: CRYPTO_SEUIL_EXONERATION,
+      ps: 0, irPfu: 0, irBareme: 0, ir: 0, total: 0,
+      totalPfu: 0, totalBareme: 0, recommande: 'pfu', economie: 0,
+    };
+  }
+  const ps      = _round(pv * PFU_TAUX_PS);
+  const irPfu   = _round(pv * PFU_TAUX_IR);
+  const irBareme = Math.max(0, calcIR(rniFoyer + pv, parts, isCouple) - calcIR(rniFoyer, parts, isCouple));
+  const ir      = optionBareme ? irBareme : irPfu;
+  return {
+    plusValue: pv, totalCessions: cessions, exonere: false,
+    seuilExoneration: CRYPTO_SEUIL_EXONERATION,
+    ps, irPfu, irBareme, ir, total: ir + ps,
+    totalPfu: irPfu + ps, totalBareme: irBareme + ps,
+    recommande: (irBareme + ps) <= (irPfu + ps) ? 'bareme' : 'pfu',
+    economie: Math.abs(irPfu - irBareme),
+  };
+}
+
+/** Abattement durée de détention PV immo — grille IR (exonération 22 ans). */
+function tauxAbattementImmoIR(duree) {
+  const g = PV_IMMO_ABATT_IR;
+  const d = Math.max(0, duree || 0);
+  if (d <= g.seuil_debut_annees) return 0;
+  if (d >= g.exoneration_totale_annees) return 1;
+  const annees = Math.min(d, 21) - g.seuil_debut_annees;
+  return Math.min(1, annees * g.taux_annuel_6_a_21);
+}
+
+/** Abattement durée de détention PV immo — grille PS (exonération 30 ans). */
+function tauxAbattementImmoPS(duree) {
+  const g = PV_IMMO_ABATT_PS;
+  const d = Math.max(0, duree || 0);
+  if (d <= g.seuil_debut_annees) return 0;
+  if (d >= g.exoneration_totale_annees) return 1;
+  let t = (Math.min(d, 21) - g.seuil_debut_annees) * g.taux_annuel_6_a_21;
+  if (d >= 22) t += g.taux_annee_22;
+  if (d >= 23) t += (Math.min(d, 30) - 22) * g.taux_annuel_23_a_30;
+  return Math.min(1, t);
+}
+
+/**
+ * Surtaxe sur les plus-values immobilières imposables > 50 000 € (art. 1609 nonies G CGI).
+ * Source : plus-values-immo-abattements.json → surtaxe_pv_importantes.bareme.
+ * Assise = PV imposable après abattements durée (base IR). Taux progressif 2 %→6 %
+ * avec lissage dans les tranches de transition : taxe = taux × PV − (borne − PV) × coef.
+ *
+ * @param {number} pvImposable - plus-value imposable après abattements (base IR)
+ * @returns {number} surtaxe en €
+ */
+export function calcSurtaxePvImmo(pvImposable = 0) {
+  const pv = Math.max(0, pvImposable || 0);
+  if (pv <= PV_IMMO_SURTAXE_SEUIL) return 0;
+  const t = PV_IMMO_SURTAXE_BAREME.find(b => pv >= b.min && (b.max == null || pv <= b.max));
+  if (!t) return 0;
+  const lissage = t.lissage_borne != null ? (t.lissage_borne - pv) * t.lissage_coef : 0;
+  return Math.max(0, _round(t.taux * pv - lissage));
+}
+
+/**
+ * Plus-value immobilière des particuliers (cession d'un bien autre que la RP).
+ * Source : plus-values-immo-abattements.json (BOI-RFPI-PVI).
+ * IMPORTANT : impôt prélevé À LA SOURCE par le notaire au moment de la cession,
+ * HORS déclaration annuelle de revenus → résultat = ESTIMATION (non ajoutée au
+ * solde IR annuel). IR 19 % + PS 17,2 % + surtaxe, sur la PV après abattements
+ * durée (grilles distinctes IR 22 ans / PS 30 ans). Exonérations : RP, petit prix.
+ *
+ * @param {object} o
+ * @param {number}  o.prixCession           - prix de vente
+ * @param {number}  o.prixAcquisition       - prix d'achat d'origine
+ * @param {number}  [o.fraisAcqReels=0]     - frais d'acquisition réels (sinon forfait 7,5 %)
+ * @param {number}  [o.travauxReels=0]      - travaux réels (sinon forfait 15 % si détention ≥ 5 ans)
+ * @param {number}  [o.dureeDetention=0]    - durée de détention en années
+ * @param {boolean} [o.residencePrincipale=false] - exonération totale si RP
+ * @returns {object}
+ */
+export function calcPvImmo({
+  prixCession = 0, prixAcquisition = 0,
+  fraisAcqReels = 0, travauxReels = 0,
+  dureeDetention = 0, residencePrincipale = false,
+} = {}) {
+  const cession = Math.max(0, prixCession || 0);
+  const acq     = Math.max(0, prixAcquisition || 0);
+
+  // Exonérations totales.
+  if (residencePrincipale) {
+    return { exonere: true, motifExoneration: 'residence_principale', pvBrute: 0, baseIR: 0, basePS: 0, ir: 0, ps: 0, surtaxe: 0, total: 0 };
+  }
+  if (cession > 0 && cession <= PV_IMMO_SEUIL_PETIT_PRIX) {
+    return { exonere: true, motifExoneration: 'petit_prix', pvBrute: 0, baseIR: 0, basePS: 0, ir: 0, ps: 0, surtaxe: 0, total: 0 };
+  }
+
+  const fraisAcq = fraisAcqReels > 0 ? fraisAcqReels : _round(acq * PV_IMMO_FRAIS_ACQ_FORFAIT);
+  const travaux  = travauxReels > 0
+    ? travauxReels
+    : (dureeDetention >= PV_IMMO_TRAVAUX_DETENTION_MIN ? _round(acq * PV_IMMO_TRAVAUX_FORFAIT) : 0);
+  const prixAcqMajore = acq + fraisAcq + travaux;
+  const pvBrute = Math.max(0, _round(cession - prixAcqMajore));
+
+  const abattIR = tauxAbattementImmoIR(dureeDetention);
+  const abattPS = tauxAbattementImmoPS(dureeDetention);
+  const baseIR  = _round(pvBrute * (1 - abattIR));
+  const basePS  = _round(pvBrute * (1 - abattPS));
+
+  const ir      = _round(baseIR * PV_IMMO_TAUX_IR);
+  const ps      = _round(basePS * PV_IMMO_TAUX_PS);
+  const surtaxe = calcSurtaxePvImmo(baseIR);
+
+  return {
+    exonere: false, motifExoneration: null,
+    prixCession: cession, prixAcquisition: acq, fraisAcq, travaux, prixAcqMajore,
+    pvBrute, abattIR, abattPS, baseIR, basePS,
+    ir, ps, surtaxe, total: ir + ps + surtaxe,
+  };
+}
+
 // ─── CEHR — Contribution Exceptionnelle Hauts Revenus ────────────────────────
 
 /**
@@ -975,7 +1209,13 @@ export function computeFoyerSummary(profile) {
   const isCouple  = profile.mode === 'couple';
   const parts     = Math.max(1, profile.parts || (isCouple ? 2 : 1));
   const rniFoyer  = profile.rniFoyer || 0;
-  if (!rniFoyer) return null;
+  // PHASE 4 : un foyer peut n'avoir QUE des revenus du capital imposés hors barème
+  // (plus-values mobilières/crypto au PFU, PS immobiliers) → RNI barème nul mais
+  // impôt dû. On poursuit le calcul si une base de capital/PS est présente.
+  const hasCapitalBase = (profile.pvCapitalIR || 0) > 0
+                      || (profile.pvCapitalPsBase || 0) > 0
+                      || (profile.immoPsBase || 0) > 0;
+  if (!rniFoyer && !hasCapitalBase) return null;
 
   const partsBase = isCouple ? 2 : 1;
   const qfOpts    = {
@@ -1031,7 +1271,13 @@ export function computeFoyerSummary(profile) {
   // LMNP micro/réel, quote-part SCI à l'IR) — base consolidée par le générateur.
   const psImmo = Math.round((profile.immoPsBase || 0) * TAUX_PS_CAPITAL);
 
-  const totalDu = irNet + cehr + psFoncier + psImmo;
+  // PHASE 4 : plus-values mobilières (3VG) + crypto (3AN) imposées sur la déclaration
+  // annuelle. IR (PFU 12,8 % ou barème) consolidé par le générateur ; PS 17,2 % sur la
+  // base consolidée. La PV immobilière est prélevée à la source par le notaire → hors total dû.
+  const pvCapitalIR = profile.pvCapitalIR || 0;
+  const psCapital   = Math.round((profile.pvCapitalPsBase || 0) * TAUX_PS_CAPITAL);
+
+  const totalDu = irNet + cehr + psFoncier + psImmo + pvCapitalIR + psCapital;
 
   // Priorité à pasTotal consolidé (tous plugins) si disponible
   const pasTotal = profile.pasTotal > 0
@@ -1078,6 +1324,9 @@ export function computeFoyerSummary(profile) {
     psImmo,
     psImmoBase: profile.immoPsBase || 0,
     immoDeltaRni: profile.immoDeltaRni || 0,
+    pvCapitalIR,
+    psCapital,
+    pvCapitalPsBase: profile.pvCapitalPsBase || 0,
     totalDu,
     pasTotal,
     acomptesIR,

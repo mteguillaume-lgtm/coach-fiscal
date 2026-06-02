@@ -2,11 +2,17 @@
   "_meta": {
     "revenus": 2025,
     "declaration": 2026,
-    "source": "BOI-RFPI-PVI"
+    "as_of": "2026-06",
+    "sources": [
+      "BOI-RFPI-PVI",
+      "BOI-RFPI-PVI-20-20 (abattements pour durée de détention)",
+      "Article 1609 nonies G du CGI + BOI-RFPI-TPVIE-20 (surtaxe sur les plus-values immobilières élevées)",
+      "Vérifié le 2026-06 sur impots.gouv.fr / bofip.impots.gouv.fr"
+    ]
   },
 
   "regime_general": {
-    "description": "Plus-value immobilière des particuliers — deux grilles distinctes (IR et PS) avec durées différentes",
+    "description": "Plus-value immobilière des particuliers — deux grilles distinctes (IR et PS) avec durées différentes. Imposée et prélevée à la source par le notaire au moment de la cession, hors déclaration annuelle de revenus.",
     "taux_ir": 0.19,
     "taux_ps": 0.172,
     "taux_total_sans_abattement": 0.362,
@@ -21,7 +27,14 @@
       { "annees": "6 à 21", "taux_par_annee": 0.06 },
       { "annees": "22", "taux_par_annee": 0.04 },
       { "exoneration_totale_annees": 22 }
-    ]
+    ],
+    "grille_machine": {
+      "description": "Abattement cumulé en fonction du nombre d'années révolues de détention. Aucune abattement avant la 6e année.",
+      "seuil_debut_annees": 5,
+      "taux_annuel_6_a_21": 0.06,
+      "taux_annee_22": 0.04,
+      "exoneration_totale_annees": 22
+    }
   },
 
   "abattements_ps": {
@@ -33,7 +46,15 @@
       { "annees": "22", "taux_par_annee": 0.016 },
       { "annees": "23 à 30", "taux_par_annee": 0.09 },
       { "exoneration_totale_annees": 30 }
-    ]
+    ],
+    "grille_machine": {
+      "description": "Abattement cumulé en fonction du nombre d'années révolues de détention. Aucune abattement avant la 6e année.",
+      "seuil_debut_annees": 5,
+      "taux_annuel_6_a_21": 0.0165,
+      "taux_annee_22": 0.016,
+      "taux_annuel_23_a_30": 0.09,
+      "exoneration_totale_annees": 30
+    }
   },
 
   "exonerations": {
@@ -41,19 +62,35 @@
     "premiere_cession_logement_autre_que_rp": "Exonération sous conditions de remploi (construction/acquisition d'une RP dans les 24 mois), pas de détention d'une RP dans les 4 ans",
     "expatries": "Exonération partielle pour les non-résidents qui vendent leur ancienne résidence en France",
     "petit_prix": "Exonération si prix ≤ 15 000 € (par quote-part si indivision)",
+    "seuil_petit_prix": 15000,
     "duree_detention": "≥ 22 ans pour l'IR, ≥ 30 ans pour les PS"
   },
 
   "prix_acquisition_majore": {
     "description": "Le prix d'acquisition peut être majoré pour réduire la PV taxable",
     "frais_acquisition": "7.5% forfaitaire OU frais réels sur justificatifs (notaire, droits enregistrement)",
-    "travaux": "15% forfaitaire si détention ≥ 5 ans, OU travaux réels sur justificatifs (construction, reconstruction, agrandissement, amélioration) - si non déjà déduits des revenus fonciers"
+    "frais_acquisition_forfait": 0.075,
+    "travaux": "15% forfaitaire si détention ≥ 5 ans, OU travaux réels sur justificatifs (construction, reconstruction, agrandissement, amélioration) - si non déjà déduits des revenus fonciers",
+    "travaux_forfait": 0.15,
+    "travaux_forfait_detention_min_annees": 5
   },
 
   "surtaxe_pv_importantes": {
-    "description": "Surtaxe sur les plus-values immobilières imposables > 50 000 €",
+    "description": "Taxe additionnelle sur les plus-values immobilières imposables (après abattements) supérieures à 50 000 €. Assise sur la TOTALITÉ de la PV imposable (pas seulement la fraction excédentaire). S'applique en sus de l'IR (19%) et des PS (17.2%). Ne concerne pas les terrains à bâtir.",
     "seuil_declenchement": 50000,
-    "taux_progressif": "2% à 6% selon le montant de la PV imposable (après abattements)",
-    "application": "Cumulative avec IR + PS"
+    "assise": "plus_value_imposable_apres_abattements",
+    "note_lissage": "Les tranches de transition appliquent un mécanisme de lissage : taxe = taux × PV − (borne_haute − PV) × coef_lissage. Les tranches en plateau appliquent taxe = taux × PV.",
+    "bareme": [
+      { "min": 50001,  "max": 60000,   "taux": 0.02, "lissage_borne": 60000,  "lissage_coef": 0.05 },
+      { "min": 60001,  "max": 100000,  "taux": 0.02, "lissage_borne": null,   "lissage_coef": 0 },
+      { "min": 100001, "max": 110000,  "taux": 0.03, "lissage_borne": 110000, "lissage_coef": 0.10 },
+      { "min": 110001, "max": 150000,  "taux": 0.03, "lissage_borne": null,   "lissage_coef": 0 },
+      { "min": 150001, "max": 160000,  "taux": 0.04, "lissage_borne": 160000, "lissage_coef": 0.15 },
+      { "min": 160001, "max": 200000,  "taux": 0.04, "lissage_borne": null,   "lissage_coef": 0 },
+      { "min": 200001, "max": 210000,  "taux": 0.05, "lissage_borne": 210000, "lissage_coef": 0.20 },
+      { "min": 210001, "max": 250000,  "taux": 0.05, "lissage_borne": null,   "lissage_coef": 0 },
+      { "min": 250001, "max": 260000,  "taux": 0.06, "lissage_borne": 260000, "lissage_coef": 0.25 },
+      { "min": 260001, "max": null,    "taux": 0.06, "lissage_borne": null,   "lissage_coef": 0 }
+    ]
   }
 }

@@ -24,7 +24,19 @@
         { "duree_annees": "≥ 4 et < 8", "taux": 0.65 },
         { "duree_annees": "≥ 8", "taux": 0.85 }
       ],
-      "note": "L'abattement s'applique à l'IR uniquement, pas aux prélèvements sociaux"
+      "note": "L'abattement s'applique à l'IR uniquement, pas aux prélèvements sociaux",
+      "grille_machine": {
+        "description": "Bornes numériques [min_annees inclus, max_annees exclu]. max_annees null = pas de borne supérieure.",
+        "droit_commun": [
+          { "min_annees": 2, "max_annees": 8,    "taux": 0.50 },
+          { "min_annees": 8, "max_annees": null, "taux": 0.65 }
+        ],
+        "renforce_pme": [
+          { "min_annees": 1, "max_annees": 4,    "taux": 0.50 },
+          { "min_annees": 4, "max_annees": 8,    "taux": 0.65 },
+          { "min_annees": 8, "max_annees": null, "taux": 0.85 }
+        ]
+      }
     },
 
     "abattement_dirigeant_retraite": {

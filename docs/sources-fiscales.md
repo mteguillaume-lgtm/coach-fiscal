@@ -74,6 +74,36 @@ est notée pour usage ultérieur.
 > `cases*`, `deficit_foncier.*`, `lmp_vs_lmnp.seuils_cumulatifs.*`) pour rester
 > lisibles par le moteur, sans chiffre en dur.
 
+## PHASE 4 — Plus-values & capital (revenus 2025)
+
+| Donnée | Valeur | Fichier Paperasse | Source officielle | Vérifié le |
+|--------|--------|-------------------|-------------------|-----------|
+| PV mobilières (3VG) — PFU | 12,8 % IR + 17,2 % PS (= 30 %) | `pfu-prelevements-sociaux.json` → `pfu` | art. 200 A CGI ; BOI-RPPM-PVBMI | 2026-06-02 |
+| Moins-values mobilières (3VH) — report | imputables sur PV de même nature, 10 ans | `plus-values-mobilieres-crypto.json` → `plus_values_mobilieres.moins_values` | art. 150-0 D CGI | 2026-06-02 |
+| Abattement durée détention — droit commun | 50 % (≥ 2 ans) / 65 % (≥ 8 ans) — titres < 2018, option barème, IR seul | `plus-values-mobilieres-crypto.json` → `...grille_machine.droit_commun` | art. 150-0 D 1 ter CGI | 2026-06-02 |
+| Abattement durée détention — renforcé PME | 50 % / 65 % / 85 % (≥ 1/4/8 ans) | `plus-values-mobilieres-crypto.json` → `...grille_machine.renforce_pme` | art. 150-0 D 1 quater CGI | 2026-06-02 |
+| Crypto (3AN) — PFU / exonération | PFU 30 % ; exonération totale si cessions ≤ 305 €/an | `plus-values-mobilieres-crypto.json` → `crypto_actifs` | art. 150 VH bis CGI ; BOI-RPPM-PVBMC-30 | 2026-06-02 |
+| PV immobilière — taux | IR 19 % + PS 17,2 % (prélevés chez le notaire) | `plus-values-immo-abattements.json` → `regime_general` | art. 150 U-VH CGI ; BOI-RFPI-PVI | 2026-06-02 |
+| PV immo — abattement durée IR | exonération à 22 ans (6 %/an de 6 à 21, +4 % an 22) | `plus-values-immo-abattements.json` → `abattements_ir.grille_machine` | art. 150 VC CGI | 2026-06-02 |
+| PV immo — abattement durée PS | exonération à 30 ans (1,65 %/an 6-21, +1,6 % an 22, 9 %/an 23-30) | `plus-values-immo-abattements.json` → `abattements_ps.grille_machine` | art. 150 VC CGI ; art. L136-7 CSS | 2026-06-02 |
+| PV immo — prix d'acquisition majoré | forfait 7,5 % frais + 15 % travaux (si détention ≥ 5 ans) | `plus-values-immo-abattements.json` → `prix_acquisition_majore` | art. 150 VB CGI | 2026-06-02 |
+| PV immo — exonérations | RP ; petit prix ≤ 15 000 € | `plus-values-immo-abattements.json` → `exonerations` | art. 150 U CGI | 2026-06-02 |
+| PV immo — surtaxe > 50 000 € | barème lissé 2 %→6 % (10 tranches, coef. lissage) | `plus-values-immo-abattements.json` → `surtaxe_pv_importantes.bareme` | art. 1609 nonies G CGI ; BOI-RFPI-TPVIE-20 | 2026-06-02 |
+
+> **Manque comblé en PHASE 4** : le **barème de la surtaxe PV immo** n'était décrit
+> dans la Paperasse que par « 2 % à 6 % selon le montant » (non calculable). Les
+> **10 tranches chiffrées** avec leur mécanisme de lissage (taxe = taux × PV −
+> (borne − PV) × coef) ont été ajoutées dans `plus-values-immo-abattements.json`
+> (`surtaxe_pv_importantes.bareme`), source art. 1609 nonies G CGI. Les grilles
+> d'abattement durée (IR/PS) et les abattements mobiliers < 2018, rédigés en texte,
+> ont été doublés d'une forme `grille_machine` numérique exploitable sans chiffre
+> en dur.
+>
+> **Hors périmètre (routage)** : abattement dirigeant-retraite 500 000 € (conditions
+> strictes → avocat fiscaliste), crypto en activité habituelle (BIC), PV immo en
+> démembrement / SCI à l'IS / remploi première cession (→ notaire). La PV immo est
+> traitée en **estimation** car prélevée à la source par le notaire, hors solde annuel.
+
 ## Rituel annuel de bascule d'année (procédure — à NE PAS exécuter ici)
 
 Chaque janvier, après publication de la Loi de finances :
