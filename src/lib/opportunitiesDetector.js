@@ -16,9 +16,8 @@ export function detectOpportunities(parsedProfile) {
   }
 
   const {
-    tmi,
     rniFoyer, rfr,
-    plafondPerD1, plafondPerD2, plafondPerTotal,
+    plafondPerD1, plafondPerD2,
     livretAD1, livretAD2, lddsD1, lddsD2,
     lepD1, lepD2,
     livretPlusD1, livretPlusD2,
@@ -26,12 +25,10 @@ export function detectOpportunities(parsedProfile) {
     avD1, avD2,
     pelD1, pelD2,
     pelDateD1, pelDateD2,
-    tauxPasD1, tauxPasD2,
     remboursement,
     cryptoTotal,
     mode,
     hasCrypto,
-    hasCompteEtranger,
     hasIndivision,
     hasTestamentManquant,
     irNet, foncierNet, pasTotal, pasD1, pasD2, parts,
@@ -63,7 +60,6 @@ export function detectOpportunities(parsedProfile) {
                     + lddsD1   + lddsD2
                     + lepD1    + lepD2
                     + (livretPlusD1 || 0) + (livretPlusD2 || 0);
-  const tauxPAS       = tauxPasD1;
 
   // Taux effectif réel (IR net / RNI) — toujours plus bas que le TMI
   const irNetEstime     = irNet > 0 ? irNet : calcIR(rniFoyer || 0, parts || 1, isCouple);

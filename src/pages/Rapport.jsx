@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Printer, Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
+import { Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Button from '../components/Button';
 import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, MAX_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
@@ -11,8 +11,6 @@ import AuroraBackground from '../components/motion/AuroraBackground';
 import SpotlightCursor from '../components/motion/SpotlightCursor';
 import Grain from '../components/motion/Grain';
 import SplitText from '../components/motion/SplitText';
-import MagneticButton from '../components/motion/MagneticButton';
-import ScrollReveal from '../components/motion/ScrollReveal';
 
 // ─── Float parser ─────────────────────────────────────────────────────────────
 
@@ -118,7 +116,7 @@ function computeData(profile, p = {}) {
   const foncierAbt = isMicro ? foncierBrut * 0.30 : 0;
   const foncierNet = foncierBrut - foncierAbt;
 
-  const parts     = p.parts || pf(profile, /Parts fiscales\s*:\s*([\d,\.]+)/) || (isCouple ? 2 : 1);
+  const parts     = p.parts || pf(profile, /Parts fiscales\s*:\s*([\d,.]+)/) || (isCouple ? 2 : 1);
   // Prefer parsedProfile rniFoyer (handles pension/salary abattement differences)
   const rniFoyer  = (p.rniFoyer > 0 ? p.rniFoyer : null) ?? (retD1 + retD2 + foncierNet);
   const quotient  = parts > 0 ? rniFoyer / parts : rniFoyer;
@@ -932,7 +930,7 @@ function GainPacsTable({ d }) {
 
 function AccordCoupleProseBlock({ d }) {
   if (!d.isCouple || d.gainPacs <= 0) return null;
-  const { contribD1, contribD2, pasD1, pasD2, regloD1, regloD2, solde } = d;
+  const { contribD1, contribD2, regloD1, regloD2 } = d;
 
   const regloMsg = () => {
     if (regloD1 > 50 && regloD2 > 50)
@@ -1160,7 +1158,6 @@ function PerScenariosTable({ p, d }) {
     const prio  = perOpt.prioritaire || 'D1';
     const sec   = prio === 'D1' ? 'D2' : 'D1';
     const prioOpt  = prio === 'D1' ? perOpt.optimumD1 : perOpt.optimumD2;
-    const secOpt   = prio === 'D1' ? perOpt.optimumD2 : perOpt.optimumD1;
     const prioPlaf = prio === 'D1' ? plafD1 : plafD2;
     const secPlaf  = prio === 'D1' ? plafD2 : plafD1;
     scenarios = [

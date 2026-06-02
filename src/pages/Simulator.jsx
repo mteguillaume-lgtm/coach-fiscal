@@ -86,7 +86,6 @@ function brutEnv(id, P, r, t, m) {
 }
 
 function envNet(id, P, r, t, tmiE, tmiS = null, reinvest = true, isCouple = false, avVerse = 0, m = 0) {
-  const rate    = id === 'livretA' ? 0.03 : r;
   const Brut    = brutEnv(id, P, r, t, m);
   const P_total = P + m * t * 12;           // capital total investi
   const G       = Math.max(0, Brut - P_total);
@@ -879,7 +878,6 @@ function SimEnveloppes({ data }) {
   const perRow  = tableRows.find(r => r.id === 'per');
   const peaRow  = tableRows.find(r => r.id === 'pea');
   const perWins = (perRow?.net ?? 0) > (peaRow?.net ?? 0);
-  const totalInvesti = capital + mensualite * 12 * duration;
   const econoIR = Math.round((capital + mensualite * 12) * tmiE / 100); // économie annuelle estimée
 
   const contextMsg = (() => {

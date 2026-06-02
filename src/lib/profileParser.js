@@ -36,7 +36,7 @@ function _sections(text, mode) {
 
 function _situation(text) {
   return {
-    parts:       f(text, /Parts fiscales\s*:\s*([\d,\.]+)/) || 1,
+    parts:       f(text, /Parts fiscales\s*:\s*([\d,.]+)/) || 1,
     departement: s(text, /Département\s*:\s*(\w{2,3})/),
     statut:      s(text, /^Statut\s*:\s*([^\n]+)/im)
               || s(text, /Mode\s*:.*?Déclaration commune \(([^)]+)\)/i)
@@ -245,7 +245,7 @@ function _immo(sec) {
   return {
     rpValeur:         n(sec, /RP — valeur estimée[^:\n]*:\s*([\d\s,]+)\s*€/i),
     creditCrd:        n(sec, /Capital restant dû[^:\n]*:\s*([\d\s,]+)\s*€/i),
-    creditTaux:       f(sec, /Taux crédit\s*:\s*([\d,\.]+)/i),
+    creditTaux:       f(sec, /Taux crédit\s*:\s*([\d,.]+)/i),
     creditMensualite: n(sec, /Mensualité crédit[^:\n]*:\s*([\d\s,]+)\s*€/i),
     taxeFonciere:     n(sec, /Taxe foncière[^:\n]*:\s*([\d\s,]+)\s*€/i),
   };

@@ -19,7 +19,6 @@ import {
 import AuroraBackground from '../components/motion/AuroraBackground';
 import SpotlightCursor from '../components/motion/SpotlightCursor';
 import Grain from '../components/motion/Grain';
-import SplitText from '../components/motion/SplitText';
 import GlowCard from '../components/motion/GlowCard';
 import MagneticButton from '../components/motion/MagneticButton';
 import ScrollReveal from '../components/motion/ScrollReveal';

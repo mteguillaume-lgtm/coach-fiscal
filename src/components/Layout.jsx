@@ -67,7 +67,7 @@ export default function Layout() {
     const ok = window.confirm('Etes-vous sur ? Toutes vos donnees seront effacees.');
     if (!ok) return;
     dispatch({ type: 'RESET_ALL' });
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     navigate('/');
   };
 

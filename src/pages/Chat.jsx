@@ -122,7 +122,7 @@ function Sidebar({ onSelect, onClose }) {
               {cat.category}
             </p>
             <div className="space-y-0.5">
-              {cat.questions.map((q, i) => (
+              {cat.questions.map((q) => (
                 <motion.button
                   key={q}
                   type="button"

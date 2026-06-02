@@ -28,7 +28,7 @@ function hasActiveSession() {
     const hasProfile = (parsed.profile || '').length > 0;
     const hasChat = (parsed.chatHistory || []).length > 0;
     return hasForm || hasProfile || hasChat;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -212,7 +212,7 @@ export default function Home() {
     dispatch({ type: 'RESET_ALL' });
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch (e) {
+    } catch {
       /* ignore */
     }
     navigate('/setup');

@@ -47,7 +47,7 @@ export default {
     };
   },
 
-  generator(formData, d1Data, d2Data, mode) {
+  generator(formData, d1Data, d2Data /*, mode */) {
     const render = (data, suffix) => {
       const montant = parseFloat(data?.rente_1bs_montant || 0);
       if (!montant) return '';

@@ -31,13 +31,13 @@ export default {
       areNetD1:  n(secD1, /Allocations nettes ARE[^:]*:\s*([\d\s,]+)\s*€/i)
               || n(secD1, /Case 1AP\s*:\s*([\d\s,]+)\s*€/i),
       arePasD1:  n(secD1, /PAS prélevé France Travail\s*:\s*([\d\s,]+)\s*€/i),
-      tauxPasAreD1: f(secD1, /Taux PAS\s*:\s*([\d,\.]+)\s*%/i),
+      tauxPasAreD1: f(secD1, /Taux PAS\s*:\s*([\d,.]+)\s*%/i),
 
       areBrutD2: n(secD2, /Allocations brutes ARE\s*:\s*([\d\s,]+)\s*€/i),
       areNetD2:  n(secD2, /Allocations nettes ARE[^:]*:\s*([\d\s,]+)\s*€/i)
               || n(secD2, /Case 1BP\s*:\s*([\d\s,]+)\s*€/i),
       arePasD2:  n(secD2, /PAS prélevé France Travail\s*:\s*([\d\s,]+)\s*€/i),
-      tauxPasAreD2: f(secD2, /Taux PAS\s*:\s*([\d,\.]+)\s*%/i),
+      tauxPasAreD2: f(secD2, /Taux PAS\s*:\s*([\d,.]+)\s*%/i),
     };
   },
 

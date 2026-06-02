@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calcParts, plafonnementNiches, plafonnementQF, calcIR,
+  calcParts, plafonnementNiches, plafonnementQF,
   computeFoyerSummary, QF_PLAFONDS,
 } from '../taxCalculator.js';
 import { buildProfile } from '../profileGenerator.js';

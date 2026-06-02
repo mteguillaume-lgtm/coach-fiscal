@@ -7,8 +7,7 @@ import {
   ClipboardList, Calculator, BookOpen, MessageSquare,
   FileText, User, Users, TrendingUp, Sparkles,
   Wallet, Building2, Coins, PiggyBank, Target,
-  AlertCircle, Activity, Zap, ArrowRight, ChevronRight,
-  Clock,
+  AlertCircle, Activity, Zap, ArrowRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 

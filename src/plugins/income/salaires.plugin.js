@@ -22,7 +22,7 @@ function _parseSources(sec) {
       brut:      n(body, /Brut imposable\s*:\s*([\d\s,]+)\s*€/),
       net:       n(body, /Net imposable\s*:\s*([\d\s,]+)\s*€/),
       pas:       n(body, /PAS prélevé\s*:\s*([\d\s,]+)\s*€/),
-      tauxPas:   f(body, /Taux PAS\s*:\s*([\d,\.]+)\s*%/),
+      tauxPas:   f(body, /Taux PAS\s*:\s*([\d,.]+)\s*%/),
     });
   }
   return sources.length > 0 ? sources : null;
@@ -110,9 +110,9 @@ export default {
       salaireNetImposableD1:   n(secRevD1, /Net imposable annuel[^:]*:\s*([\d\s,]+)\s*€/),
       salairesBrutImposableD1: n(secRevD1, /Brut imposable annuel[^:]*:\s*([\d\s,]+)\s*€/),
       pasD1:       n(secRevD1, /PAS prélevé 2025\s*:\s*([\d\s,]+)\s*€/),
-      tauxPasD1:   f(secRevD1, /Taux PAS\s*:\s*([\d,\.]+)\s*%/),
+      tauxPasD1:   f(secRevD1, /Taux PAS\s*:\s*([\d,.]+)\s*%/),
       ijCpamD1:    n(secRevD1, /\(dont\s+([\d\s,]+)\s*€\s*IJ\s*CPAM/i),
-      ijCpamOrgD1: s(secRevD1, /IJ\s*CPAM[^—\n]*—\s*attestation\s+([^\)\n]+)/i),
+      ijCpamOrgD1: s(secRevD1, /IJ\s*CPAM[^—\n]*—\s*attestation\s+([^)\n]+)/i),
       salaireSourcesD1: _parseSources(secRevD1),
       fraisDistanceAllerD1: frD1.distanceAller,
       fraisJoursD1:         frD1.jours,
@@ -124,9 +124,9 @@ export default {
       salaireNetImposableD2:   n(secRevD2, /Net imposable annuel[^:]*:\s*([\d\s,]+)\s*€/),
       salairesBrutImposableD2: n(secRevD2, /Brut imposable annuel[^:]*:\s*([\d\s,]+)\s*€/),
       pasD2:       n(secRevD2, /PAS prélevé 2025\s*:\s*([\d\s,]+)\s*€/),
-      tauxPasD2:   f(secRevD2, /Taux PAS\s*:\s*([\d,\.]+)\s*%/),
+      tauxPasD2:   f(secRevD2, /Taux PAS\s*:\s*([\d,.]+)\s*%/),
       ijCpamD2:    n(secRevD2, /\(dont\s+([\d\s,]+)\s*€\s*IJ\s*CPAM/i),
-      ijCpamOrgD2: s(secRevD2, /IJ\s*CPAM[^—\n]*—\s*attestation\s+([^\)\n]+)/i),
+      ijCpamOrgD2: s(secRevD2, /IJ\s*CPAM[^—\n]*—\s*attestation\s+([^)\n]+)/i),
       salaireSourcesD2: _parseSources(secRevD2),
       fraisDistanceAllerD2: frD2.distanceAller,
       fraisJoursD2:         frD2.jours,

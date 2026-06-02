@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Copy, Download, ArrowLeft, Check, FileText, Sparkles,
   ClipboardList, TrendingUp, BookOpen, FolderOpen, Wand2,
-  Loader2, LayoutDashboard, CheckCircle2, ArrowRight, Zap,
+  Loader2, LayoutDashboard, CheckCircle2, ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

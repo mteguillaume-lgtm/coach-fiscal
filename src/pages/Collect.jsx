@@ -15,7 +15,6 @@ import { buildProfile }             from '../lib/profileGenerator';
 import { abattement10 }             from '../lib/taxCalculator';
 import { registry }                 from '../plugins/registry.js';
 import Button                       from '../components/Button';
-import Card                         from '../components/Card';
 
 // ─── Compute helpers (module-level — called by FieldRow at render time) ────────
 
@@ -928,7 +927,7 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
               <div className="flex flex-col gap-2 mt-1">
                 <div className="grid grid-cols-2 gap-2">
                   {[{ label: 'D1', capacite: capaciteD1, taux: tauxD1, rni: rniMensuelD1 },
-                    { label: 'D2', capacite: capaciteD2, taux: tauxD2, rni: rniMensuelD2 }].map(({ label, capacite, taux, rni }) => {
+                    { label: 'D2', capacite: capaciteD2, taux: tauxD2, rni: rniMensuelD2 }].map(({ label, capacite, taux }) => {
                     const col = _capaciteColor(taux);
                     const c = _capaciteColorMap[col];
                     return (

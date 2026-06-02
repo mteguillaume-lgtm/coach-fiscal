@@ -253,7 +253,7 @@ export async function anonymizePdf(file, options = {}) {
   let detectedPeriod = null;
   const detections   = [];
 
-  for (const { pageNumber, height: pageHeightPx, lines } of pages) {
+  for (const { pageNumber, lines } of pages) {
     const pageIdx = pageNumber - 1;
     const pdfPage = pdfDoc.getPage(pageIdx);
     const { height: pdfHeight } = pdfPage.getSize(); // coordonnées pdf-lib (bottom-origin)
