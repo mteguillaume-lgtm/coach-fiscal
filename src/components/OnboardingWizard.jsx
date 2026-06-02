@@ -40,8 +40,10 @@ const TOTAL_STEPS = 7;
 
 function computeModules({ typeD1, typeD2, adults, placements, biens, credits }) {
   const isSalarie = t => t === 'Salarié(e)' || t === 'Mixte';
+  const isTns     = t => t === 'Indépendant(e)/TNS';
   return {
     salaires:             isSalarie(typeD1) || (adults === 2 && isSalarie(typeD2)),
+    tns:                  isTns(typeD1) || (adults === 2 && isTns(typeD2)),
     fraisReels:           false,
     foncier:              placements.includes('loyers') || biens.includes('indivision'),
     immobilier:           biens.includes('rp') || biens.includes('locatif') || biens.includes('indivision'),

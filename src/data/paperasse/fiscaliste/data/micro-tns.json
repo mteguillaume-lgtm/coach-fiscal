@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "revenus": 2025,
+    "declaration": 2026,
+    "description": "Régimes micro des travailleurs non salariés (TNS) : micro-BIC, micro-BNC, micro-BA + option versement libératoire de l'IR (auto-entrepreneur). Sert au calcul du bénéfice imposable (abattement forfaitaire) intégré au RNI du foyer. Le régime réel (liasses 2031/2035) est HORS scope → routage expert-comptable (skill comptable).",
+    "sources": [
+      "impots.gouv.fr — Le régime unique des micro-entreprises / Déclarer les revenus de micro-entrepreneur",
+      "economie.gouv.fr — Gérer sa micro-entreprise (cotisations, versement libératoire)",
+      "autoentrepreneur.urssaf.fr — L'essentiel du statut",
+      "Bpifrance Création — Régime fiscal de la micro-entreprise (BIC et BNC)"
+    ],
+    "as_of": "2026-06"
+  },
+
+  "abattement_minimum_euros": 305,
+
+  "regimes": {
+    "micro_bic_vente": {
+      "label": "Micro-BIC — vente de marchandises / fourniture de logement",
+      "seuil_recettes_brutes": 188700,
+      "abattement": 0.71,
+      "cases_recettes": { "D1": "5KO", "D2": "5LO", "pac": "5MO" },
+      "note": "Achat-revente, ventes à consommer sur place, fourniture de logement (hors meublés de tourisme non classés — voir regimes-fonciers-lmnp)."
+    },
+    "micro_bic_service": {
+      "label": "Micro-BIC — prestations de services",
+      "seuil_recettes_brutes": 77700,
+      "abattement": 0.50,
+      "cases_recettes": { "D1": "5KP", "D2": "5LP", "pac": "5MP" },
+      "note": "Prestations de services commerciales et artisanales relevant des BIC."
+    },
+    "micro_bnc": {
+      "label": "Micro-BNC — bénéfices non commerciaux",
+      "seuil_recettes_brutes": 77700,
+      "abattement": 0.34,
+      "cases_recettes": { "D1": "5HQ", "D2": "5IQ", "pac": "5JQ" },
+      "note": "Professions libérales et titulaires de charges/offices relevant des BNC."
+    },
+    "micro_ba": {
+      "label": "Micro-BA — bénéfices agricoles",
+      "seuil_recettes_brutes": 91900,
+      "abattement": 0.87,
+      "cases_recettes": { "D1": "5XB", "D2": "5YB", "pac": "5ZB" },
+      "note": "Seuil = moyenne triennale des recettes HT. Bénéfice = moyenne triennale des recettes − abattement 87 %. Cas complexe (lissage 3 ans) → routage expert-comptable conseillé si recettes irrégulières."
+    }
+  },
+
+  "versement_liberatoire": {
+    "description": "Option de paiement de l'IR au fil de l'eau, en % du chiffre d'affaires brut, en plus des cotisations sociales (art. 151-0 CGI). Éligibilité : RFR N-2 par part ≤ limite de la 2e tranche du barème. Si choisi, ces revenus ne sont PAS réintégrés au barème progressif (mais comptent pour le taux effectif / RFR).",
+    "taux": {
+      "micro_bic_vente": 0.01,
+      "micro_bic_service": 0.017,
+      "micro_bnc": 0.022
+    },
+    "cases_ca_vl": {
+      "micro_bic_vente": { "D1": "5TA", "D2": "5UA", "pac": "5VA" },
+      "micro_bic_service": { "D1": "5TB", "D2": "5UB", "pac": "5VB" },
+      "micro_bnc": { "D1": "5TE", "D2": "5UE", "pac": "5VE" }
+    }
+  },
+
+  "cotisations_micro_social": {
+    "description": "ESTIMATION INDICATIVE des cotisations sociales (micro-social simplifié), en % du chiffre d'affaires brut. Ne remplace pas le décompte URSSAF réel. N'inclut pas la CFP ni la taxe pour frais de chambre consulaire. Le taux BNC est en montée progressive pluriannuelle.",
+    "taux": {
+      "micro_bic_vente": 0.123,
+      "micro_bic_service": 0.212,
+      "micro_bnc": 0.246
+    },
+    "note_bnc_ramp": "Taux BNC (hors Cipav) relevé par paliers : ~24,6 % en 2025 → 26,1 % à terme. Activités libérales réglementées affiliées Cipav : barème distinct (~23,2 %). Valeur retenue = estimation 2025.",
+    "as_of": "2026-06"
+  },
+
+  "requalification": {
+    "description": "Flags de vigilance : dépassement de seuil ou requalification possible.",
+    "depassement_seuil": "Dépassement du seuil 2 années civiles consécutives → sortie du régime micro au 1er janvier suivant (passage au réel).",
+    "regime_reel": "Recettes > seuil OU option pour le réel → liasse 2031 (BIC) / 2035 (BNC) hors scope de l'outil → routage expert-comptable.",
+    "salariat_deguise": "Prestataire avec un donneur d'ordre unique et lien de subordination → risque de requalification en salariat."
+  }
+}

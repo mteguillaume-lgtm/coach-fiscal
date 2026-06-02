@@ -108,7 +108,9 @@ function _rni(pd, profil, text) {
   // pension alimentaire reçue ajoutée — pour rester aligné avec le RNI net émis.
   const deductionsRevenu = pd.deductionsRevenu || 0;
   const pensionAlimRecue = pd.pensionAlimRecue || 0;
-  const rniFoyerSum  = Math.max(0, rniD1 + rniD2 + (pd.foncierNet || 0) - deductionsRevenu + pensionAlimRecue);
+  // PHASE 2 : bénéfice TNS micro (BIC/BNC/BA) hors versement libératoire, réintégré au barème.
+  const beneficeTns = pd.beneficeTnsImposable || 0;
+  const rniFoyerSum  = Math.max(0, rniD1 + rniD2 + (pd.foncierNet || 0) - deductionsRevenu + pensionAlimRecue + beneficeTns);
   const rniFoyerText = n(text, /RNI FOYER TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /RNI total[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /Revenu net imposable total estimé\s*:\s*([\d\s,]+)\s*€/);

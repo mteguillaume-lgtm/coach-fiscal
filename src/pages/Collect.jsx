@@ -152,10 +152,30 @@ const EXCLUDE_REV = [
   'frais_electrique', 'frais_autres', 'frais_option',
 ];
 
+// PHASE 2 — Revenus des indépendants (TNS) au régime micro (BIC/BNC/BA).
+// Les valeurs de tns_type sont les clés de regimes dans micro-tns.json.
+const TNS_FIELDS = [
+  { key: 'tns_type', label: 'Activité indépendante (régime micro)', type: 'select', requires: 'tns',
+    opts: [
+      { value: 'micro_bic_vente',   label: 'Micro-BIC — vente de marchandises (abat. 71 %)' },
+      { value: 'micro_bic_service', label: 'Micro-BIC — prestations de services (abat. 50 %)' },
+      { value: 'micro_bnc',         label: 'Micro-BNC — profession libérale (abat. 34 %)' },
+      { value: 'micro_ba',          label: 'Micro-BA — bénéfice agricole (abat. 87 %)' },
+    ],
+    hint: 'Régime micro uniquement. Au régime réel (liasse 2031/2035) : faites établir le résultat par un expert-comptable, puis reportez le bénéfice.' },
+  { key: 'tns_recettes', label: 'Recettes / CA brut annuel (€)', type: 'number', ph: '0', requires: 'tns',
+    dependsOn: { key: 'tns_type', check: v => !!v },
+    hint: 'Chiffre d\'affaires encaissé. Le bénéfice imposable = recettes − abattement forfaitaire, ajouté au revenu du foyer.' },
+  { key: 'tns_vl', label: 'Versement libératoire de l\'IR ?', type: 'select', opts: ['Non', 'Oui'], requires: 'tns',
+    dependsOn: { key: 'tns_type', check: v => !!v },
+    hint: 'Option auto-entrepreneur : l\'IR est payé au fil de l\'eau (1 à 2,2 % du CA). Si choisie, ce revenu n\'est pas réintégré au barème progressif.' },
+];
+
 const REV_FIELDS = [
   ...pluginFields(['salaires', 'pensions-rentes'], EXCLUDE_REV),
   { key: 'frais_r', label: 'Frais réels (€)', type: 'number', ph: 'vide = forfait 10%',
     hint: 'Laissez vide pour utiliser l\'abattement forfaitaire 10 %. Renseignez uniquement si vos frais réels sont supérieurs — utilisez l\'onglet « Frais réels » du simulateur pour les calculer puis reporter ici.' },
+  ...TNS_FIELDS,
 ];
 
 // CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
@@ -255,6 +275,7 @@ const SECTION_REV_SOLO = {
       dependsOn: { key: 'divid', check: v => parseFloat(v || 0) > 0 },
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
+    ...TNS_FIELDS,
   ],
 };
 
@@ -465,7 +486,11 @@ function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
           className={base}
         >
           <option value="">— Choisir —</option>
-          {f.opts.map(o => <option key={o} value={o}>{o}</option>)}
+          {f.opts.map(o => {
+            const val = typeof o === 'object' ? o.value : o;
+            const lab = typeof o === 'object' ? o.label : o;
+            return <option key={val} value={val}>{lab}</option>;
+          })}
         </select>
       ) : (
         <input

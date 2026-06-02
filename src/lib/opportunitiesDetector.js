@@ -149,6 +149,24 @@ export function detectOpportunities(parsedProfile) {
     });
   }
 
+  // Levier TNS (PHASE 2) : bénéfice micro déclaré → arbitrage micro vs réel
+  // + PER individuel déductible du bénéfice. Routage expert-comptable pour le réel.
+  const _beneficeTns = parsedProfile.beneficeTnsImposable || 0;
+  const _recettesTns = (parsedProfile.recettesTnsD1 || 0) + (parsedProfile.recettesTnsD2 || 0);
+  if (_beneficeTns > 0 || _recettesTns > 0) {
+    opps.push({
+      id: 'levier_tns_micro_reel',
+      type: 'info',
+      urgence: 'a_etudier',
+      titre: '💡 Indépendant : micro vs réel + PER déductible',
+      description: 'Au régime micro, l\'abattement forfaitaire remplace vos charges réelles. Si vos charges (local, matériel, sous-traitance) dépassent l\'abattement, le régime réel est plus avantageux. Par ailleurs, un PER individuel est déductible de votre bénéfice (plafond 10 % du bénéfice imposable).',
+      impact: 'Variable selon vos charges réelles et votre TMI.',
+      impactEuros: 0,
+      action: 'Comparer abattement micro vs charges réelles. Pour le régime réel (liasse 2031 BIC / 2035 BNC), faites établir le résultat par un expert-comptable.',
+      questionChat: 'Je suis indépendant au régime micro. Comment savoir si je gagnerais à passer au régime réel, et quel montant de PER individuel puis-je déduire de mon bénéfice cette année ?',
+    });
+  }
+
   // Épargne liquide mal rémunérée : total > 10 000 €
   // Plan de réallocation détaillé étape par étape avec gain annuel estimé.
   if (livretTotal > 10_000) {

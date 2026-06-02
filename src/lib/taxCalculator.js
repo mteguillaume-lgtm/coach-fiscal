@@ -18,6 +18,7 @@ import fonciersRaw       from '../data/paperasse/fiscaliste/data/regimes-foncier
 import hsSuppRaw         from '../data/paperasse/fiscaliste/data/heures-supplementaires-ppv.json';
 import apprentissageRaw  from '../data/paperasse/fiscaliste/data/apprentissage.json';
 import baremeKmRaw       from '../data/paperasse/fiscaliste/data/bareme-kilometrique-2025.json';
+import microTnsRaw       from '../data/paperasse/fiscaliste/data/micro-tns.json';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -108,6 +109,14 @@ export const PLAFOND_LICENCIEMENT_MAX = 5 * perRaw._meta.pass_2025;
 
 export const BAREME_KILOMETRIQUE     = baremeKmRaw.bareme_voitures_thermiques.tranches;
 export const MAJORATION_ELECTRIQUE_KM = baremeKmRaw.bareme_voitures_thermiques.majoration_electrique.taux;
+
+// ─── Régimes micro TNS — BIC / BNC / BA (depuis le JSON) ──────────────────────
+
+export const MICRO_TNS              = microTnsRaw;
+export const MICRO_TNS_REGIMES      = microTnsRaw.regimes;
+export const MICRO_TNS_ABATT_MIN    = microTnsRaw.abattement_minimum_euros;
+// Identifiants de régime acceptés par calcMicroTns / le générateur / le parser.
+export const MICRO_TNS_TYPES        = Object.keys(microTnsRaw.regimes); // micro_bic_vente, micro_bic_service, micro_bnc, micro_ba
 
 /**
  * Calcule les frais kilométriques (voiture thermique ou électrique).
@@ -376,6 +385,66 @@ export function calcDeductionsRevenu({ pensionVersee = 0, pensionBenef = '', pen
     : Math.max(0, pensionVersee);
   const fraisAccueilDeduc = Math.min(Math.max(0, fraisAccueil), accueil.plafond_par_personne * Math.max(1, fraisAccueilNb || 1));
   return { total: _round(pensionDeduc + fraisAccueilDeduc), pensionDeduc: _round(pensionDeduc), fraisAccueilDeduc: _round(fraisAccueilDeduc) };
+}
+
+/**
+ * Bénéfice imposable d'une activité au régime micro (BIC / BNC / BA).
+ * Source : micro-tns.json. Bénéfice = recettes − abattement forfaitaire
+ * (plancher 305 €), plafonné à la hauteur des recettes.
+ *
+ * @param {object} o
+ * @param {string} o.type      - clé de regimes : 'micro_bic_vente' | 'micro_bic_service' | 'micro_bnc' | 'micro_ba'
+ * @param {number} o.recettes  - chiffre d'affaires / recettes brutes
+ * @returns {{ type:string, label:string, recettes:number, abattement:number, abattementEuros:number,
+ *            beneficeImposable:number, seuil:number, depassementSeuil:boolean, regimeReelObligatoire:boolean }|null}
+ */
+export function calcMicroTns({ type, recettes = 0 } = {}) {
+  const regime = MICRO_TNS_REGIMES[type];
+  if (!regime) return null;
+  const rec = Math.max(0, recettes || 0);
+  // Abattement forfaitaire avec plancher légal de 305 €, jamais > recettes.
+  const abattementEuros = rec > 0 ? Math.min(rec, Math.max(_round(rec * regime.abattement), MICRO_TNS_ABATT_MIN)) : 0;
+  const beneficeImposable = _round(rec - abattementEuros);
+  const depassementSeuil = rec > regime.seuil_recettes_brutes;
+  return {
+    type,
+    label: regime.label,
+    recettes: rec,
+    abattement: regime.abattement,
+    abattementEuros,
+    beneficeImposable,
+    seuil: regime.seuil_recettes_brutes,
+    depassementSeuil,
+    regimeReelObligatoire: depassementSeuil,
+  };
+}
+
+/**
+ * Estimation INDICATIVE des cotisations sociales micro-social (URSSAF) +
+ * éventuel versement libératoire de l'IR, en % du chiffre d'affaires brut.
+ * Source : micro-tns.json (estimation, ne remplace pas le décompte URSSAF).
+ *
+ * @param {object} o
+ * @param {string}  o.type                  - clé de regimes (le micro_ba n'a pas de micro-social → 0)
+ * @param {number}  o.recettes              - CA brut
+ * @param {boolean} o.versementLiberatoire  - option VL de l'IR
+ * @returns {{ cotisations:number, tauxCotisations:number, versementLiberatoire:number,
+ *            tauxVL:number, totalPrelevements:number, estimation:true }}
+ */
+export function estimCotisationsMicro({ type, recettes = 0, versementLiberatoire = false } = {}) {
+  const rec = Math.max(0, recettes || 0);
+  const tauxCot = MICRO_TNS.cotisations_micro_social.taux[type] || 0;
+  const tauxVL  = versementLiberatoire ? (MICRO_TNS.versement_liberatoire.taux[type] || 0) : 0;
+  const cotisations = _round(rec * tauxCot);
+  const vl          = _round(rec * tauxVL);
+  return {
+    cotisations,
+    tauxCotisations: tauxCot,
+    versementLiberatoire: vl,
+    tauxVL,
+    totalPrelevements: cotisations + vl,
+    estimation: true,
+  };
 }
 
 /**

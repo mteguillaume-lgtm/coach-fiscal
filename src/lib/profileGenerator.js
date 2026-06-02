@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -100,6 +100,54 @@ function calcFoncier(brut) {
   return { brut, net, regime: isMicro ? 'micro-foncier (abat. 30%)' : 'régime réel', ps };
 }
 
+// Revenus indépendants au régime micro (BIC / BNC / BA).
+// Bénéfice imposable = recettes − abattement forfaitaire ; ajouté au RNI SAUF si
+// versement libératoire de l'IR (revenu alors taxé séparément, hors barème).
+// Cotisations URSSAF : estimation indicative (micro-tns.json). Régime réel ou
+// dépassement de seuil → flag de routage expert-comptable.
+// `declarants` = [{ decl, who }] (un seul en solo, deux en couple).
+function _tnsBlock(declarants) {
+  const lignes = [];
+  let deltaRni = 0;   // bénéfice réintégré au barème (hors VL)
+  let vlTotal  = 0;   // versement libératoire IR total
+  let reelFlag = false;
+
+  for (const { decl, who } of declarants) {
+    const type     = decl?.tns_type || '';
+    const recettes = parseFloat(decl?.tns_recettes || 0);
+    if (!type || !MICRO_TNS_REGIMES[type] || !(recettes > 0)) continue;
+
+    const vl    = decl?.tns_vl === 'Oui';
+    const micro = calcMicroTns({ type, recettes });
+    const cot   = estimCotisationsMicro({ type, recettes, versementLiberatoire: vl });
+    const reg   = MICRO_TNS_REGIMES[type];
+    const caseR = reg.cases_recettes?.[who] || '';
+
+    if (!vl) deltaRni += micro.beneficeImposable;
+    vlTotal += cot.versementLiberatoire;
+    if (micro.regimeReelObligatoire) reelFlag = true;
+
+    lignes.push(`Activité ${who} : ${reg.label}${caseR ? ` (${caseR})` : ''}`);
+    lignes.push(`Recettes brutes ${who} : ${fmtN(recettes)}`);
+    lignes.push(`Abattement forfaitaire ${Math.round(reg.abattement * 100)} % ${who} : ${fmtN(micro.abattementEuros)}`);
+    lignes.push(`Bénéfice imposable ${who} : ${fmtN(micro.beneficeImposable)}`);
+    lignes.push(`Versement libératoire IR ${who} : ${vl ? `Oui (${fmtN(cot.versementLiberatoire)})` : 'Non'}`);
+    lignes.push(`Cotisations sociales estimées ${who} (${(cot.tauxCotisations * 100).toLocaleString('fr-FR')} %) : ${fmtN(cot.cotisations)}`);
+    if (micro.depassementSeuil) {
+      lignes.push(`⚠️ Recettes ${who} > seuil micro (${fmtN(reg.seuil_recettes_brutes)}) → régime réel (liasse) : voir expert-comptable`);
+    }
+  }
+
+  if (!lignes.length) return { deltaRni: 0, vlTotal: 0, reelFlag: false, section: '' };
+
+  const section = `
+== REVENUS INDÉPENDANTS (TNS) ==
+${lignes.join('\n')}
+Bénéfice TNS imposable foyer (hors VL) : ${fmtN(deltaRni)}
+Versement libératoire IR foyer (total) : ${fmtN(vlTotal)}`;
+  return { deltaRni, vlTotal, reelFlag, section };
+}
+
 // Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO et abondement.
 // Délègue à calcPlafondPer (source unique de vérité dans taxCalculator.js) pour le calcul de dispo.
 function fmtPlafondPer(netImp, pero, abondPEEPERCO = 0) {
@@ -127,7 +175,8 @@ function _buildSolo(d, docSums) {
   const rni      = abattement10(net1AJ);
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
   const dedInfo  = _deductionsRevenu(d);
-  const rniTotal = Math.max(0, rni + foncier.net + dedInfo.deltaRni);
+  const tns      = _tnsBlock([{ decl: d, who: 'D1' }]);
+  const rniTotal = Math.max(0, rni + foncier.net + dedInfo.deltaRni + tns.deltaRni);
   const fam      = _famille(d, false);
   const parts    = fam.parts;
   const pero     = parseFloat(d.pero_d1 || 0);
@@ -183,9 +232,9 @@ Revenus crypto : ${fmt(d.crypto)}
 ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
 ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
-
+${tns.section}
 == DONNÉES POUR CALCUL IR ==
-RNI total (salaires + foncier net) : ${fmtN(rniTotal)}
+RNI total (salaires + foncier net + TNS) : ${fmtN(rniTotal)}
 Parts fiscales : ${parts}
 PAS prélevé 2025 : ${pas > 0 ? fmtN(pas) : 'Non renseigné'}
 ${parseFloat(d.acompte_8hw || 0) > 0 ? `Acompte IR D1 (8HW) : ${fmtN(parseFloat(d.acompte_8hw))}` : ''}
@@ -290,7 +339,8 @@ function _buildCouple(d, d1, d2, docSums) {
   const fam      = _famille(d, true);
   const parts    = fam.parts;
   const dedInfo  = _deductionsRevenu(d);
-  const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni);
+  const tns      = _tnsBlock([{ decl: d1, who: 'D1' }, { decl: d2, who: 'D2' }]);
+  const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni + tns.deltaRni);
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
   const pasD2    = parseFloat(d2.pas_tot || 0);
@@ -362,7 +412,7 @@ Revenus locatifs 2025 : ${fmt(d.rev_loc)}
 ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
 ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
-
+${tns.section}
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniSalD1)}
 ${rniRenteD1 > 0 ? `Rente 1BS D1 (après abat. 10% pension) : ${fmtN(rniRenteD1)}` : ''}
