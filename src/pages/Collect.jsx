@@ -1325,6 +1325,14 @@ export default function Collect() {
     return { filled, total, pct: Math.round(filled / total * 100) };
   })();
 
+  // Prêt à générer : il suffit de la situation familiale + au moins un revenu.
+  // Tout le reste est optionnel (affine le conseil) → on ne décourage pas l'utilisateur.
+  const essentialsReady = (() => {
+    const has = v => v != null && v !== '';
+    if (!isCouple) return has(formData.statut) && has(formData.net_imp);
+    return has(formData.statut) && (has(d1Data.net_imp) || has(d2Data.net_imp));
+  })();
+
   const handleGenerate = () => {
     dispatch({ type: 'SET_FORM_DATA', payload: formData });
     dispatch({ type: 'SET_D1_DATA',   payload: d1Data });
@@ -1625,27 +1633,46 @@ export default function Collect() {
         </div>
       )}
 
-      {/* Progress bar */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="flex justify-between mb-2">
-              <span className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-wider">Profil complété</span>
-              <span className={`text-xs font-mono font-bold ${pct === 100 ? 'text-teal-600' : 'text-purple-500'}`}>
-                {pct}%
-              </span>
+      {/* État de préparation — centré sur l'essentiel, pas sur l'exhaustivité */}
+      <div className={[
+        'rounded-2xl border shadow-sm p-4 transition-colors',
+        essentialsReady ? 'border-teal-200 bg-teal-50/50' : 'border-gray-100 bg-white',
+      ].join(' ')}>
+        {essentialsReady ? (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-gradient text-white flex items-center justify-center shrink-0">
+              <CheckCircle size={17} />
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-teal-500 to-purple-500 transition-all duration-500"
-                style={{ width: `${pct}%` }}
-              />
+            <div className="flex-1">
+              <p className="text-sm font-bold text-teal-800">Prêt à générer votre profil</p>
+              <p className="text-xs text-teal-600 leading-snug">
+                L'essentiel est renseigné. Les autres champs sont optionnels — ils affinent le conseil ({pct}% complété).
+              </p>
             </div>
           </div>
-          <div className="text-right shrink-0">
-            <div className="text-lg font-bold text-gray-800 font-mono">{totalF}</div>
-            <div className="text-xs text-gray-400 font-mono">/{totalAll}</div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-500 flex items-center justify-center shrink-0">
+              <User size={16} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-gray-800">2 infos suffisent pour démarrer</p>
+              <p className="text-xs text-gray-500 leading-snug">
+                Renseignez votre <span className="font-semibold text-teal-600">situation familiale</span> et votre
+                <span className="font-semibold text-teal-600"> revenu net imposable</span> — le calcul se lance dès maintenant, le reste est optionnel.
+              </p>
+            </div>
           </div>
+        )}
+        {/* Détail discret pour qui veut tout compléter */}
+        <div className="mt-3 flex items-center gap-3">
+          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${essentialsReady ? 'bg-teal-500' : 'bg-gradient-to-r from-teal-500 to-purple-500'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-xs font-mono text-gray-400 shrink-0">{totalF}/{totalAll}</span>
         </div>
       </div>
 
@@ -1750,6 +1777,11 @@ export default function Collect() {
       >
         <Sparkles size={16} /> Générer mon profil fiscal →
       </Button>
+      {!essentialsReady && (
+        <p className="-mt-2 text-center text-xs text-gray-400">
+          Astuce : renseignez au moins votre situation et votre revenu pour un résultat fiable.
+        </p>
+      )}
 
       <div className="flex justify-start -mt-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/anonymize')}>
