@@ -259,6 +259,38 @@ const PV_FIELDS = [
     hint: 'Laissez vide pour appliquer le forfait 15 % (si détention ≥ 5 ans). Non cumulable avec les travaux déjà déduits des revenus fonciers.' },
 ];
 
+// IFI — Impôt sur la Fortune Immobilière (PHASE 5). Impôt distinct, dû si patrimoine
+// immobilier net ≥ 1,3 M€ au 1er janvier. Champs foyer.
+const IFI_FIELDS = [
+  { key: 'ifi_patrimoine_brut', label: 'IFI — patrimoine immobilier brut (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    hint: 'Valeur vénale au 1er janvier de tous vos biens immobiliers (RP, locatifs, SCI, parts de SCPI…). L\'IFI n\'est dû que si le net dépasse 1 300 000 €.' },
+  { key: 'ifi_valeur_rp', label: 'IFI — valeur de la résidence principale (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'ifi_patrimoine_brut', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Un abattement de 30 % s\'applique sur la valeur de la résidence principale.' },
+  { key: 'ifi_passif', label: 'IFI — passif déductible (€)', type: 'number', ph: '0', requires: ['immobilier', 'investissementsLocatifs'], advanced: true,
+    dependsOn: { key: 'ifi_patrimoine_brut', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Capital restant dû des emprunts immobiliers au 1er janvier, dettes de travaux, taxe foncière, IFI N-1.' },
+];
+
+// Défiscalisation — dispositifs ouvrant réduction d'impôt (PHASE 5). Champs foyer.
+// Mode versement (taux × min(versement, plafond)) ; Pinel = report (engagement antérieur, fermé).
+const DEFISC_FIELDS = [
+  { key: 'defisc_fcpi_versement', label: 'FCPI — versement de l\'année (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Réduction 18 %, plafond 12 000 € (24 000 € couple). Soumis au plafond global des niches (10 000 €).' },
+  { key: 'defisc_fip_versement', label: 'FIP — versement de l\'année (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Réduction 18 %, plafond 12 000 € (24 000 € couple). FIP Corse/Outre-mer : 30 %.' },
+  { key: 'defisc_ir_pme_madelin_versement', label: 'IR-PME (Madelin) — versement (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Souscription au capital de PME. Réduction 18 % (parfois 25 %), plafond 50 000 € (100 000 € couple).' },
+  { key: 'defisc_sofica_versement', label: 'SOFICA — versement (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Réduction 30 % (jusqu\'à 48 %). Plafond majoré 18 000 € (avec outre-mer).' },
+  { key: 'defisc_malraux_versement', label: 'Malraux — travaux de l\'année (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Réduction 22 % ou 30 % des travaux. HORS plafond global des niches.' },
+  { key: 'defisc_pinel_reduction', label: 'Pinel/Denormandie — réduction annuelle restante (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Dispositif FERMÉ aux acquisitions depuis le 31/12/2024. Reportez la réduction annuelle d\'un engagement antérieur. Soumis au plafond global.' },
+  { key: 'defisc_girardin_reduction', label: 'Girardin outre-mer — réduction de l\'année (€)', type: 'number', ph: '0', requires: 'creditsImpot', advanced: true,
+    hint: 'Montage one-shot complexe (→ CGP). Bénéficie du plafond majoré 18 000 €.' },
+];
+
 // CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
 // compteur fiscal). Le courtier étranger déclenche le flag 3916.
 const CTO_FIELDS = [
@@ -435,6 +467,7 @@ const SECTION_DED_SOLO = {
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true, requires: 'pensionsAlimentaires' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
     ...REDUC_CREDIT_FIELDS,
+    ...DEFISC_FIELDS,
     { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire',
       groupStart: {
         title: 'Plafonds PER reportés des années précédentes',
@@ -478,6 +511,7 @@ const SECTION_DED = {
     { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true, requires: 'pensionsAlimentaires' },
     { key: 'syndicat',     label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
     ...REDUC_CREDIT_FIELDS,
+    ...DEFISC_FIELDS,
     { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire',
       groupStart: {
         title: 'Plafonds PER reportés des années précédentes',
@@ -518,6 +552,7 @@ const SECTION_IMMO = {
     { key: 'locatif',           label: 'Bien locatif ?',                  type: 'select', opts: ['Non', 'Oui — micro', 'Oui — réel'] },
     { key: 'rev_loc',           label: 'Revenus locatifs 2025 (€)',       type: 'number', ph: '0',
       dependsOn: { key: 'locatif', check: v => v && v !== 'Non' } },
+    ...IFI_FIELDS,
   ],
 };
 

@@ -23,6 +23,9 @@
     "decote": {
       "plage": "Entre 1 300 000 € et 1 400 000 €",
       "formule": "17 500 € − (1.25% × valeur_patrimoine_net)",
+      "montant_fixe": 17500,
+      "taux": 0.0125,
+      "plafond_application": 1400000,
       "description": "Mécanisme de lissage à l'entrée du barème"
     }
   },

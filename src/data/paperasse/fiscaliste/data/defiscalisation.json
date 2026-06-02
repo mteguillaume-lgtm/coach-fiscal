@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "revenus": 2025,
+    "declaration": 2026,
+    "as_of": "2026-06",
+    "sources": [
+      "BOI-IR-RICI (réductions et crédits d'impôt)",
+      "art. 199 novovicies CGI (Pinel/Denormandie)",
+      "art. 199 terdecies-0 A CGI (FCPI/FIP, IR-PME Madelin)",
+      "art. 199 unvicies CGI (SOFICA)",
+      "art. 199 tervicies CGI (Malraux)",
+      "art. 199 sexvicies CGI (Censi-Bouvard)",
+      "art. 200-0 A CGI (plafonnement global des niches)",
+      "Vérifié le 2026-06 sur impots.gouv.fr / bofip.impots.gouv.fr"
+    ]
+  },
+
+  "plafond_categories": {
+    "global_10k": "Soumis au plafond global de 10 000 € (art. 200-0 A)",
+    "specifique_18k": "Bénéficie du plafond majoré à 18 000 € (SOFICA + investissements outre-mer / Girardin)",
+    "hors_plafond": "Exclu du plafonnement global"
+  },
+
+  "dispositifs": {
+    "fcpi": {
+      "libelle": "FCPI — souscription de parts de fonds commun de placement dans l'innovation",
+      "case": "7GQ",
+      "mode": "versement",
+      "taux": 0.18,
+      "plafond_versement_celibataire": 12000,
+      "plafond_versement_couple": 24000,
+      "categorie_plafond": "global_10k",
+      "statut": "actif",
+      "reference": "art. 199 terdecies-0 A CGI",
+      "note": "Réduction 18 % des versements, plafond 12 000 € (24 000 € couple). Conservation des parts 5 ans minimum."
+    },
+    "fip": {
+      "libelle": "FIP — souscription de parts de fonds d'investissement de proximité",
+      "case": "7FQ",
+      "mode": "versement",
+      "taux": 0.18,
+      "plafond_versement_celibataire": 12000,
+      "plafond_versement_couple": 24000,
+      "categorie_plafond": "global_10k",
+      "statut": "actif",
+      "reference": "art. 199 terdecies-0 A CGI",
+      "note": "Réduction 18 % des versements, plafond 12 000 € (24 000 € couple). FIP Corse et FIP Outre-mer : taux majoré 30 %."
+    },
+    "ir_pme_madelin": {
+      "libelle": "IR-PME (Madelin) — souscription au capital de PME",
+      "case": "7CF",
+      "mode": "versement",
+      "taux": 0.18,
+      "taux_majore_possible": 0.25,
+      "plafond_versement_celibataire": 50000,
+      "plafond_versement_couple": 100000,
+      "categorie_plafond": "global_10k",
+      "statut": "actif",
+      "reference": "art. 199 terdecies-0 A CGI",
+      "note": "Réduction 18 % des versements (taux majoré 25 % régulièrement reconduit par décret pour certaines périodes — à vérifier l'année concernée). Plafond 50 000 € (100 000 € couple). Cases 7CF/7CH."
+    },
+    "sofica": {
+      "libelle": "SOFICA — financement de l'industrie cinématographique et audiovisuelle",
+      "case": "7GN",
+      "mode": "versement",
+      "taux": 0.30,
+      "taux_majore_possible": 0.48,
+      "plafond_versement_pct_revenu": 0.25,
+      "plafond_versement_absolu": 18000,
+      "categorie_plafond": "specifique_18k",
+      "statut": "actif",
+      "reference": "art. 199 unvicies CGI",
+      "note": "Réduction 30 % (36 % ou 48 % sous conditions). Versements retenus dans la double limite de 25 % du revenu net global ET 18 000 €. Bénéficie du plafond global majoré à 18 000 €."
+    },
+    "malraux": {
+      "libelle": "Malraux — travaux de restauration immobilière en secteur protégé",
+      "case": "7NA",
+      "mode": "versement",
+      "taux": 0.22,
+      "taux_majore_possible": 0.30,
+      "plafond_versement_pluriannuel": 400000,
+      "plafond_versement_annuel": 100000,
+      "categorie_plafond": "hors_plafond",
+      "statut": "actif",
+      "reference": "art. 199 tervicies CGI",
+      "note": "Réduction 22 % (secteur dégradé / NPNRU) ou 30 % (site patrimonial remarquable couvert par un PSMV) des travaux, plafond 400 000 € sur 4 ans (100 000 €/an). HORS plafond global des niches depuis 2013."
+    },
+    "pinel": {
+      "libelle": "Pinel — investissement locatif neuf",
+      "case": "7QA",
+      "mode": "report",
+      "categorie_plafond": "global_10k",
+      "statut": "ferme_nouvelles_acquisitions",
+      "date_fermeture": "2024-12-31",
+      "reference": "art. 199 novovicies CGI",
+      "note": "FERMÉ aux nouvelles acquisitions depuis le 31/12/2024. Seules les réductions des engagements antérieurs continuent (report annuel). Taux dernier millésime 2024 : 9/12/14 % (6/9/12 ans), Pinel+ 12/18/21 %. Plafond 300 000 € et 5 500 €/m². Projection pluriannuelle → CGP."
+    },
+    "denormandie": {
+      "libelle": "Denormandie — investissement locatif ancien avec travaux",
+      "case": "7QA",
+      "mode": "report",
+      "categorie_plafond": "global_10k",
+      "statut": "ferme_nouvelles_acquisitions",
+      "date_fermeture": "2024-12-31",
+      "reference": "art. 199 novovicies CGI",
+      "note": "Variante du Pinel (centres-villes anciens dégradés). Même extinction au 31/12/2024 pour les acquisitions ; réductions antérieures en report."
+    },
+    "censi_bouvard": {
+      "libelle": "Censi-Bouvard — résidences services meublées",
+      "case": "7II",
+      "mode": "report",
+      "categorie_plafond": "global_10k",
+      "statut": "ferme_nouvelles_acquisitions",
+      "date_fermeture": "2022-12-31",
+      "reference": "art. 199 sexvicies CGI",
+      "note": "FERMÉ depuis le 31/12/2022. Seules les réductions des engagements antérieurs continuent (report sur 9 ans, 11 % du prix). Bascule possible vers LMNP réel à la fin."
+    },
+    "girardin": {
+      "libelle": "Girardin — investissement productif / logement social outre-mer",
+      "case": "7UM",
+      "mode": "report",
+      "categorie_plafond": "specifique_18k",
+      "statut": "actif",
+      "reference": "art. 199 undecies B / 199 undecies C CGI",
+      "note": "Dispositif one-shot complexe (montages, risque de requalification). Bénéficie du plafond majoré 18 000 €. Calcul et sécurisation → CGP / monteur spécialisé."
+    }
+  }
+}

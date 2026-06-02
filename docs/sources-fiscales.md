@@ -104,6 +104,39 @@ est notée pour usage ultérieur.
 > démembrement / SCI à l'IS / remploi première cession (→ notaire). La PV immo est
 > traitée en **estimation** car prélevée à la source par le notaire, hors solde annuel.
 
+## PHASE 5 — Patrimoine (IFI) & défiscalisation (revenus 2025)
+
+| Donnée | Valeur | Fichier Paperasse | Source officielle | Vérifié le |
+|--------|--------|-------------------|-------------------|-----------|
+| IFI — seuil d'assujettissement | 1 300 000 € (patrimoine immo net au 1er janvier) | `ifi-bareme.json` → `ifi.seuil_assujettissement` | art. 964 CGI ; BOI-PAT-IFI | 2026-06-02 |
+| IFI — barème | 6 tranches, appliqué dès 800 000 € (0 / 0,5 / 0,7 / 1 / 1,25 / 1,5 %) | `ifi-bareme.json` → `ifi.tranches` | art. 977 CGI | 2026-06-02 |
+| IFI — décote de lissage | 17 500 € − 1,25 % × assiette, entre 1,3 et 1,4 M€ | `ifi-bareme.json` → `ifi.decote` (montant_fixe/taux/plafond_application) | art. 977 CGI | 2026-06-02 |
+| IFI — abattement résidence principale | 30 % de la valeur vénale | `ifi-bareme.json` → `abattements_exonerations.residence_principale` | art. 973 CGI | 2026-06-02 |
+| IFI — passif déductible | emprunts (CRD au 1er janvier), travaux, impôts afférents | `ifi-bareme.json` → `passif_deductible` | art. 974 CGI | 2026-06-02 |
+| IFI — plafonnement 75 % / biens pro | signalé, non calculé → CGP | `ifi-bareme.json` → `plafonnement` / `abattements_exonerations` | art. 979 / 975 CGI | 2026-06-02 |
+| Plafonnement niches — base / majoré | 10 000 € ; 18 000 € pour SOFICA + outre-mer (deux étages) | `niches-fiscales.json` → `plafonnement_global` | art. 200-0 A CGI | 2026-06-02 |
+| FCPI / FIP | 18 % des versements, plafond 12 000 € (24 000 € couple) | `defiscalisation.json` → `dispositifs.fcpi/fip` | art. 199 terdecies-0 A CGI | 2026-06-02 |
+| IR-PME (Madelin) | 18 % (parfois 25 %), plafond 50 000 € (100 000 € couple) | `defiscalisation.json` → `dispositifs.ir_pme_madelin` | art. 199 terdecies-0 A CGI | 2026-06-02 |
+| SOFICA | 30 % (jusqu'à 48 %), double limite 25 % du revenu / 18 000 € | `defiscalisation.json` → `dispositifs.sofica` | art. 199 unvicies CGI | 2026-06-02 |
+| Malraux | 22 % ou 30 % des travaux, plafond 400 000 €/4 ans, HORS plafond global | `defiscalisation.json` → `dispositifs.malraux` | art. 199 tervicies CGI | 2026-06-02 |
+| Pinel / Denormandie | FERMÉ aux acquisitions depuis le 31/12/2024 (report) | `defiscalisation.json` → `dispositifs.pinel/denormandie` | art. 199 novovicies CGI | 2026-06-02 |
+| Censi-Bouvard | FERMÉ depuis le 31/12/2022 (report 9 ans, 11 %) | `defiscalisation.json` → `dispositifs.censi_bouvard` | art. 199 sexvicies CGI | 2026-06-02 |
+
+> **Manque comblé en PHASE 5** : (1) la **décote IFI** n'était présente qu'en texte
+> (« 17 500 € − 1,25 % × valeur ») — ajout des champs numériques `montant_fixe` /
+> `taux` / `plafond_application` dans `ifi-bareme.json`. (2) Les **taux et plafonds
+> des dispositifs de défiscalisation** (FCPI/FIP/SOFICA/Malraux/Madelin/Pinel) ne
+> figuraient dans AUCUN `.json` (seulement qualitativement dans les `.md`) — création
+> de `defiscalisation.json` (taux, plafonds de versement, n° de case, catégorie de
+> plafond, statut actif/fermé, dates de fermeture, sources). (3) Le **plafond
+> spécifique 18 000 €** (SOFICA/outre-mer) est désormais modélisé en deux étages
+> (`plafonnementNichesDeuxEtages`).
+>
+> **Hors périmètre (routage)** : plafonnement IFI à 75 % des revenus, exonération
+> des biens professionnels / forêts / bail rural, montages Girardin, projections
+> Pinel pluriannuelles, démembrement → CGP / notaire. L'IFI est un **impôt distinct**
+> (avis séparé) non additionné au total dû IR.
+
 ## Rituel annuel de bascule d'année (procédure — à NE PAS exécuter ici)
 
 Chaque janvier, après publication de la Loi de finances :

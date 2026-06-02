@@ -152,18 +152,19 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Emploi salarié à domicile | 7DB/7DF | ✅ | 1 — crédit 50 %, plafond 12 000 €+ |
 | Garde enfants < 6 ans hors domicile | 7GA-7GG | ✅ | 1 — crédit 50 %, plafond 3 500 €/enfant |
 | Scolarité collège/lycée/sup | 7EA-7EG | ✅ | 1 — réduction 61/153/183 € |
-| Investissement Pinel | 7QA-7QZ | ❌ | C2 |
-| Investissement Denormandie | 7QY/7QZ | ❌ | C2 |
-| Loi Malraux | 7NA-7ND | ❌ | C2 |
-| FCPI/FIP | 7GQ-7FQ | ❌ | D |
-| SOFICA | 7GN | ❌ | D |
-| IR-PME Madelin / souscription au capital | 7CF/7CH | ❌ | D |
-| Censi-Bouvard | 7II/7IJ | ❌ | C2 |
+| Investissement Pinel | 7QA-7QZ | ✅ | PHASE 5 (report ; fermé acquisitions 31/12/2024 + flag) |
+| Investissement Denormandie | 7QY/7QZ | ✅ | PHASE 5 (report ; fermé 31/12/2024) |
+| Loi Malraux | 7NA-7ND | ✅ | PHASE 5 (22/30 %, hors plafond global) |
+| FCPI/FIP | 7GQ-7FQ | ✅ | PHASE 5 (18 %, plafond versement 12 000/24 000 €) |
+| SOFICA | 7GN | ✅ | PHASE 5 (30 %, plafond majoré 18 000 €) |
+| IR-PME Madelin / souscription au capital | 7CF/7CH | ✅ | PHASE 5 (18 %, plafond 50 000/100 000 €) |
+| Censi-Bouvard | 7II/7IJ | ✅ | PHASE 5 (report ; fermé 31/12/2022) |
+| Girardin outre-mer | 7UM | 🟡 | PHASE 5 (report saisi, plafond 18 000 € → CGP) |
 | MaPrimeRénov (déclaratif info) | — | ❌ | D |
 | CITE résiduel | — | 🚫 | — |
 | Intérêts emprunt étudiant | 7UK | ❌ | D |
 | Plafonnement global niches 10 000€ | — | ✅ | 1 — `plafonnementNiches` câblé ; dons/scolarité hors plafond, crédits remboursables au solde |
-| Plafonnement spécifique 18 000€ (outre-mer/SOFICA) | — | 🟡 | 0 — moteur prêt, entrées en D |
+| Plafonnement spécifique 18 000€ (outre-mer/SOFICA) | — | ✅ | PHASE 5 — `plafonnementNichesDeuxEtages` (base 10k + part SOFICA/OM jusqu'à 18k) |
 
 ## Situations familiales
 
@@ -204,10 +205,13 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Livrets réglementés (A/LDDS/LEP) | ✅ | Initial |
 | PEL antériorité fiscale | ✅ | Initial |
 | Crypto wallets multi-plateformes | 🟡 | B |
-| IFI > 1,3 M€ formulaire 2042-IFI | ❌ | F |
-| Décote IFI résidence principale 30% | ❌ | F |
-| Dettes déductibles IFI | ❌ | F |
-| SCI à l'IFI quote-part | ❌ | F |
+| IFI > 1,3 M€ formulaire 2042-IFI | ✅ | PHASE 5 — `calcIFI` (barème dès 800k€, décote 1,3-1,4M€) |
+| Abattement IFI résidence principale 30% | ✅ | PHASE 5 |
+| Dettes/passif déductibles IFI | ✅ | PHASE 5 (emprunts, travaux, impôts afférents) |
+| Décote IFI 1,3–1,4 M€ (lissage) | ✅ | PHASE 5 |
+| Plafonnement IFI à 75 % des revenus | 🟡 | PHASE 5 (signalé → CGP) |
+| Exonération biens professionnels | 🟡 | PHASE 5 (signalé → CGP) |
+| SCI à l'IFI quote-part | 🟡 | PHASE 5 (via patrimoine brut saisi) |
 | Démembrement nu-propriété (hors IFI) | ✅ | Initial |
 | Indivision successorale | 🟡 | Initial |
 | Donations antérieures suivi (rappel fiscal 15 ans) | ❌ | — V2 |

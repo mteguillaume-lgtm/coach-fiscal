@@ -1,7 +1,7 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto } from './taxCalculator';
+import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto, plafonnementNichesDeuxEtages } from './taxCalculator';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 
@@ -266,6 +266,57 @@ export function detectOpportunities(parsedProfile) {
       impactEuros: 0,
       action: 'Vérifier les conditions d\'exonération (résidence principale, première cession avec remploi) et l\'impact d\'un report de la vente pour franchir un palier d\'abattement. Le calcul définitif est établi par le notaire.',
       questionChat: 'Je vends un bien immobilier. Quelles exonérations puis-je obtenir (résidence principale, durée de détention) et comment réduire la plus-value imposable et l\'éventuelle surtaxe avant de signer chez le notaire ?',
+    });
+  }
+
+  // Levier plafonnement des niches (PHASE 5) : excédent de réductions perdu.
+  const _nicheGlobal     = parsedProfile.reductionsNichesSoumises || 0;
+  const _nicheSpecifique = parsedProfile.reductionsNichesSpecifiques || 0;
+  if (_nicheGlobal + _nicheSpecifique > 0) {
+    const plaf = plafonnementNichesDeuxEtages({ global: _nicheGlobal, specifique: _nicheSpecifique });
+    if (plaf.actif && plaf.exces > 0) {
+      opps.push({
+        id: 'levier_plafonnement_niches',
+        type: 'alerte',
+        urgence: 'avant_declaration',
+        titre: '⚠️ Plafonnement des niches fiscales dépassé',
+        description: `Vos réductions soumises au plafonnement global atteignent ${fmt(_nicheGlobal + _nicheSpecifique)} €, au-delà du plafond effectif de ${fmt(plaf.plafondEffectif)} € (10 000 € de base, 18 000 € avec SOFICA/outre-mer). L'excédent n'est ni reportable ni remboursable.`,
+        impact: `Avantage fiscal PERDU : ${fmt(plaf.exces)} €.`,
+        impactEuros: -plaf.exces,
+        action: 'Étaler les investissements défiscalisants sur plusieurs années ou privilégier les dispositifs hors plafond (Malraux, déficit foncier) / la déduction PER.',
+        questionChat: `Mes réductions d'impôt dépassent le plafond global des niches (excédent ${fmt(plaf.exces)} € perdu). Comment réorganiser mes investissements (étalement, dispositifs hors plafond, PER) pour ne plus perdre cet avantage ?`,
+      });
+    }
+  }
+
+  // Levier IFI (PHASE 5) : foyer assujetti → optimisation assiette + alerte plafonnement 75 %.
+  const _ifiDu = parsedProfile.ifiDu || 0;
+  if (_ifiDu > 0) {
+    opps.push({
+      id: 'levier_ifi',
+      type: 'info',
+      urgence: 'a_etudier',
+      titre: '🏛️ IFI : optimisation de l\'assiette et plafonnement',
+      description: `Votre patrimoine immobilier net (${fmt(parsedProfile.ifiAssiette || 0)} €) dépasse le seuil de 1,3 M€ : IFI estimé ${fmt(_ifiDu)} €. L'assiette bénéficie de l'abattement 30 % sur la résidence principale et de la déduction du passif (emprunts au 1er janvier).`,
+      impact: `IFI estimé : ${fmt(_ifiDu)} € (avis distinct de l'IR).`,
+      impactEuros: 0,
+      action: 'Vérifier le passif déductible, l\'exonération des biens professionnels (outil de travail) et le plafonnement IFI à 75 % des revenus. Démembrement / dons / nue-propriété → CGP et notaire.',
+      questionChat: 'Je suis redevable de l\'IFI. Comment réduire légalement mon assiette (passif déductible, biens professionnels, démembrement) et le plafonnement à 75 % des revenus joue-t-il dans mon cas ?',
+    });
+  }
+
+  // Alerte Pinel/Denormandie/Censi-Bouvard fermé : réduction en report mais dispositif clos.
+  if (parsedProfile.defiscFerme) {
+    opps.push({
+      id: 'levier_defisc_ferme',
+      type: 'info',
+      urgence: 'a_etudier',
+      titre: 'ℹ️ Dispositif de défiscalisation fermé aux nouvelles acquisitions',
+      description: 'L\'un de vos dispositifs (Pinel/Denormandie depuis le 31/12/2024, Censi-Bouvard depuis le 31/12/2022) est fermé aux nouvelles acquisitions. Seules les réductions des engagements antérieurs continuent à courir (report annuel jusqu\'au terme de l\'engagement).',
+      impact: 'Aucune nouvelle souscription possible ; anticiper la fin de la réduction.',
+      impactEuros: 0,
+      action: 'Anticiper la sortie : à l\'échéance Pinel, arbitrer entre conservation, revente ou passage en location nue/meublée. Pour Censi-Bouvard, bascule possible en LMNP réel.',
+      questionChat: 'Mon dispositif Pinel/Censi-Bouvard arrive à son terme. Quelles options (revente, conservation, bascule LMNP) et quel impact fiscal à la sortie ?',
     });
   }
 

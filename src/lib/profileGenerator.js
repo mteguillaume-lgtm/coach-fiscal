@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo, calcIFI, calcReductionDefisc, DEFISC_DISPOSITIFS, plafonnementNichesDeuxEtages } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -364,6 +364,91 @@ Plus-values mobilières/crypto — base PS foyer : ${fmtN(capitalPsBase)}`;
   return { capitalIR, capitalPsBase, section, baremeFlag };
 }
 
+// Patrimoine & défiscalisation (PHASE 5). IFI = impôt distinct (avis séparé) : assiette
+// nette = patrimoine immo brut − abattement 30 % RP − passif. Non ajouté au total dû IR.
+// `ifiDu`/`ifiAssiette` réintégrés au profil via lignes machine.
+function _patrimoineBlock(d) {
+  const brut   = parseFloat(d.ifi_patrimoine_brut || 0);
+  const valeRP = parseFloat(d.ifi_valeur_rp || 0);
+  const passif = parseFloat(d.ifi_passif || 0);
+  if (brut <= 0) return { ifiDu: 0, ifiAssiette: 0, section: '', assujetti: false };
+
+  const r = calcIFI({ patrimoineImmoBrut: brut, valeurRP: valeRP, passif });
+  const lignes = [];
+  lignes.push(`Patrimoine immobilier brut : ${fmtN(r.patrimoineImmoBrut)}`);
+  if (r.abattementRP > 0) lignes.push(`Abattement 30 % résidence principale : ${fmtN(r.abattementRP)}`);
+  if (r.passif > 0)       lignes.push(`Passif déductible (emprunts, travaux, impôts afférents) : ${fmtN(r.passif)}`);
+  lignes.push(`Assiette nette IFI : ${fmtN(r.assietteNette)} (seuil d'assujettissement ${fmtN(r.seuil)})`);
+  if (!r.assujetti) {
+    lignes.push(`Non assujetti à l'IFI (assiette < seuil ${fmtN(r.seuil)})`);
+  } else {
+    lignes.push(`IFI brut (barème dès 800 000 €) : ${fmtN(r.ifiBrut)}`);
+    if (r.decote > 0) lignes.push(`Décote de lissage (1,3–1,4 M€) : −${fmtN(r.decote)}`);
+    lignes.push(`ℹ️ Plafonnement IFI à 75 % des revenus et exonération des biens professionnels non calculés → CGP recommandé`);
+  }
+  const section = `
+== PATRIMOINE — IFI ==
+${lignes.join('\n')}
+IFI assiette nette foyer : ${fmtN(r.assietteNette)}
+IFI dû foyer : ${fmtN(r.ifi)}`;
+  return { ifiDu: r.ifi, ifiAssiette: r.assietteNette, section, assujetti: r.assujetti };
+}
+
+// Dispositifs de défiscalisation (PHASE 5). Réductions d'impôt soumises au plafonnement
+// global à deux étages (10 000 € / 18 000 € SOFICA-OM) ou hors plafond (Malraux).
+// Mode « versement » → taux × min(versement, plafond) ; mode « report » (Pinel/Censi-Bouvard
+// fermés, Girardin) → réduction annuelle saisie. Émet 3 totaux machine + flag dispositif fermé.
+function _defiscBlock(d, isCouple = false) {
+  const lignes = [];
+  let sumGlobal = 0;
+  let sumSpecifique = 0;
+  let sumHorsPlafond = 0;
+  let fermeFlag = false;
+
+  for (const [key, disp] of Object.entries(DEFISC_DISPOSITIFS)) {
+    let reduction;
+    let detail;
+    if (disp.mode === 'versement') {
+      const versement = parseFloat(d[`defisc_${key}_versement`] || 0);
+      if (versement <= 0) continue;
+      const r = calcReductionDefisc({ dispositif: key, versement, isCouple });
+      reduction = r.reduction;
+      detail = `versement ${fmtN(r.versement)}${r.versementRetenu < r.versement ? ` (retenu ${fmtN(r.versementRetenu)}, plafond)` : ''} × ${Math.round(r.taux * 100)} %`;
+    } else {
+      // mode report : réduction annuelle déjà engagée, saisie directement.
+      reduction = parseFloat(d[`defisc_${key}_reduction`] || 0);
+      if (reduction <= 0) continue;
+      detail = 'réduction annuelle (engagement antérieur)';
+    }
+
+    const ferme = String(disp.statut || '').startsWith('ferme');
+    if (ferme) fermeFlag = true;
+    lignes.push(`${disp.libelle} (${disp.case}) : ${fmtN(reduction)} — ${detail}${ferme ? ` ⚠️ dispositif fermé aux nouvelles acquisitions depuis le ${disp.date_fermeture}` : ''}`);
+
+    if (disp.categorie_plafond === 'specifique_18k')      sumSpecifique  += reduction;
+    else if (disp.categorie_plafond === 'hors_plafond')   sumHorsPlafond += reduction;
+    else                                                  sumGlobal      += reduction;
+  }
+
+  if (sumGlobal === 0 && sumSpecifique === 0 && sumHorsPlafond === 0) {
+    return { section: '', sumGlobal: 0, sumSpecifique: 0, sumHorsPlafond: 0, fermeFlag: false };
+  }
+
+  const plaf = plafonnementNichesDeuxEtages({ global: sumGlobal, specifique: sumSpecifique });
+  if (plaf.actif) {
+    lignes.push(`⚠️ Plafonnement global des niches dépassé : retenu ${fmtN(plaf.avantageRetenu)} (plafond ${fmtN(plaf.plafondEffectif)}), excédent PERDU ${fmtN(plaf.exces)}`);
+  }
+
+  const section = `
+== DÉFISCALISATION ==
+${lignes.join('\n')}
+Dispositif défiscalisation fermé (report) : ${fermeFlag ? 'Oui' : 'Non'}
+Réductions défisc soumises plafond 10 000 € foyer : ${fmtN(sumGlobal)}
+Réductions défisc spécifiques plafond 18 000 € foyer : ${fmtN(sumSpecifique)}
+Réductions défisc hors plafond foyer : ${fmtN(sumHorsPlafond)}`;
+  return { section, sumGlobal, sumSpecifique, sumHorsPlafond, fermeFlag };
+}
+
 // Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO et abondement.
 // Délègue à calcPlafondPer (source unique de vérité dans taxCalculator.js) pour le calcul de dispo.
 function fmtPlafondPer(netImp, pero, abondPEEPERCO = 0) {
@@ -397,6 +482,8 @@ function _buildSolo(d, docSums) {
   const fam      = _famille(d, false);
   const parts    = fam.parts;
   const cap      = _capitalGainsBlock(d, [{ decl: d }], rniTotal, parts, false);
+  const patrimoine = _patrimoineBlock(d);
+  const defisc     = _defiscBlock(d, false);
   const pero     = parseFloat(d.pero_d1 || 0);
   const pas      = parseFloat(d.pas_tot || 0);
   const abondD1  = parseFloat(d.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D1
@@ -453,6 +540,8 @@ Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
 ${immo.section}
 ${cap.section}
+${defisc.section}
+${patrimoine.section}
 == DONNÉES POUR CALCUL IR ==
 RNI total (salaires + foncier net + TNS + immobilier) : ${fmtN(rniTotal)}
 Parts fiscales : ${parts}
@@ -563,6 +652,8 @@ function _buildCouple(d, d1, d2, docSums) {
   const immo     = _immoBlock(d, rniD1 + rniD2 + tns.deltaRni);
   const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni + tns.deltaRni + immo.deltaRni);
   const cap      = _capitalGainsBlock(d, [{ decl: d1 }, { decl: d2 }], rniFoyer, parts, true);
+  const patrimoine = _patrimoineBlock(d);
+  const defisc     = _defiscBlock(d, true);
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
   const pasD2    = parseFloat(d2.pas_tot || 0);
@@ -637,6 +728,8 @@ Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
 ${immo.section}
 ${cap.section}
+${defisc.section}
+${patrimoine.section}
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniSalD1)}
 ${rniRenteD1 > 0 ? `Rente 1BS D1 (après abat. 10% pension) : ${fmtN(rniRenteD1)}` : ''}

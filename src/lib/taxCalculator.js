@@ -21,6 +21,8 @@ import baremeKmRaw       from '../data/paperasse/fiscaliste/data/bareme-kilometr
 import microTnsRaw       from '../data/paperasse/fiscaliste/data/micro-tns.json';
 import pvMobRaw          from '../data/paperasse/fiscaliste/data/plus-values-mobilieres-crypto.json';
 import pvImmoRaw         from '../data/paperasse/fiscaliste/data/plus-values-immo-abattements.json';
+import ifiRaw            from '../data/paperasse/fiscaliste/data/ifi-bareme.json';
+import defiscRaw         from '../data/paperasse/fiscaliste/data/defiscalisation.json';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -157,6 +159,19 @@ export const PV_IMMO_TRAVAUX_DETENTION_MIN = pvImmoRaw.prix_acquisition_majore.t
 export const PV_IMMO_SEUIL_PETIT_PRIX  = pvImmoRaw.exonerations.seuil_petit_prix;
 export const PV_IMMO_SURTAXE_SEUIL     = pvImmoRaw.surtaxe_pv_importantes.seuil_declenchement;
 export const PV_IMMO_SURTAXE_BAREME    = pvImmoRaw.surtaxe_pv_importantes.bareme;
+
+// ─── IFI & défiscalisation — PHASE 5 (depuis les JSON) ───────────────────────
+
+export const IFI_SEUIL_ASSUJETTISSEMENT = ifiRaw.ifi.seuil_assujettissement;   // 1 300 000 €
+export const IFI_BAREME_DEPART          = ifiRaw.ifi.bareme_commence_a;         // 800 000 €
+export const IFI_TRANCHES               = ifiRaw.ifi.tranches;
+export const IFI_DECOTE                 = ifiRaw.ifi.decote;                     // plage 1,3–1,4 M€
+export const IFI_ABATTEMENT_RP          = ifiRaw.abattements_exonerations.residence_principale; // 0,30
+export const IFI_PLAFONNEMENT           = ifiRaw.plafonnement;
+
+export const DEFISC_DISPOSITIFS         = defiscRaw.dispositifs;
+export const PLAFOND_NICHES_MAJORE      = nichesRaw.plafonnement_global.plafond_majore_sofica_om
+                                       ?? nichesRaw.plafonnement_global.plafond_investissements_outre_mer; // 18 000 €
 
 /**
  * Calcule les frais kilométriques (voiture thermique ou électrique).
@@ -858,6 +873,118 @@ export function calcPvImmo({
   };
 }
 
+// ─── IFI & défiscalisation — PHASE 5 ─────────────────────────────────────────
+
+/** Barème progressif IFI appliqué à l'assiette nette (à partir de 800 000 €). */
+function _baremeIFI(assiette) {
+  let ifi = 0;
+  for (const t of IFI_TRANCHES) {
+    if (t.au_dela != null) {
+      if (assiette > t.au_dela) ifi += (assiette - t.au_dela) * t.taux;
+    } else if (assiette > t.de) {
+      ifi += (Math.min(assiette, t.a) - t.de) * t.taux;
+    }
+  }
+  return ifi;
+}
+
+/**
+ * Impôt sur la Fortune Immobilière (IFI) — art. 964 et s. CGI / BOI-PAT-IFI.
+ * Source : ifi-bareme.json. Impôt DISTINCT de l'IR (avis séparé), non ajouté au
+ * total dû IR. Assiette nette = patrimoine immobilier brut − abattement 30 % RP
+ * − passif déductible. Assujetti si assiette ≥ 1 300 000 € ; barème appliqué dès
+ * 800 000 € ; décote de lissage entre 1,3 et 1,4 M€.
+ * Le plafonnement à 75 % des revenus et les exonérations « biens professionnels »
+ * sont signalés mais NON calculés → routage CGP (cf. detector).
+ *
+ * @param {object} o
+ * @param {number} o.patrimoineImmoBrut - valeur vénale brute du patrimoine immobilier taxable
+ * @param {number} [o.valeurRP=0]       - valeur de la résidence principale (abattement 30 %)
+ * @param {number} [o.passif=0]         - passif déductible (CRD emprunts, travaux, impôts afférents)
+ */
+export function calcIFI({ patrimoineImmoBrut = 0, valeurRP = 0, passif = 0 } = {}) {
+  const brut         = Math.max(0, patrimoineImmoBrut || 0);
+  const abattementRP = _round(Math.max(0, valeurRP || 0) * IFI_ABATTEMENT_RP);
+  const passifDed    = Math.max(0, passif || 0);
+  const assietteNette = Math.max(0, brut - abattementRP - passifDed);
+  const assujetti     = assietteNette >= IFI_SEUIL_ASSUJETTISSEMENT;
+  if (!assujetti) {
+    return {
+      assujetti: false, patrimoineImmoBrut: brut, abattementRP, passif: passifDed,
+      assietteNette, seuil: IFI_SEUIL_ASSUJETTISSEMENT, ifiBrut: 0, decote: 0, ifi: 0,
+    };
+  }
+  const ifiBrut = _round(_baremeIFI(assietteNette));
+  // Décote de lissage entre le seuil et le plafond d'application (1,3–1,4 M€).
+  const decote = assietteNette <= IFI_DECOTE.plafond_application
+    ? Math.max(0, Math.min(ifiBrut, _round(IFI_DECOTE.montant_fixe - IFI_DECOTE.taux * assietteNette)))
+    : 0;
+  const ifi = Math.max(0, ifiBrut - decote);
+  return {
+    assujetti: true, patrimoineImmoBrut: brut, abattementRP, passif: passifDed,
+    assietteNette, seuil: IFI_SEUIL_ASSUJETTISSEMENT, ifiBrut, decote, ifi,
+  };
+}
+
+/**
+ * Réduction d'impôt d'un dispositif de défiscalisation à mode « versement ».
+ * Source : defiscalisation.json → dispositifs. Réduction = taux × min(versement,
+ * plafond) ; le plafond dépend de la situation (célibataire/couple) si applicable.
+ * Les dispositifs en mode « report » (Pinel/Denormandie/Censi-Bouvard fermés,
+ * Girardin) ne sont PAS calculés ici (réduction saisie / routage).
+ *
+ * @param {object} o
+ * @param {string}  o.dispositif        - clé dans DEFISC_DISPOSITIFS (fcpi, fip, sofica…)
+ * @param {number}  o.versement         - montant investi / souscrit dans l'année
+ * @param {boolean} [o.isCouple=false]  - sélectionne le plafond de versement couple
+ * @param {number}  [o.tauxMajore]      - applique le taux majoré documenté (ex. FIP Corse 30 %)
+ */
+export function calcReductionDefisc({ dispositif, versement = 0, isCouple = false, tauxMajore = null } = {}) {
+  const d = DEFISC_DISPOSITIFS[dispositif];
+  if (!d) return null;
+  const vers = Math.max(0, versement || 0);
+  const plafond = isCouple
+    ? (d.plafond_versement_couple ?? d.plafond_versement_celibataire ?? d.plafond_versement_annuel ?? d.plafond_versement_absolu ?? Infinity)
+    : (d.plafond_versement_celibataire ?? d.plafond_versement_annuel ?? d.plafond_versement_absolu ?? Infinity);
+  const versementRetenu = Math.min(vers, plafond);
+  const taux = (tauxMajore && d.taux_majore_possible) ? d.taux_majore_possible : d.taux;
+  const reduction = (d.mode === 'versement' && taux)
+    ? _round(versementRetenu * taux)
+    : 0;
+  return {
+    dispositif, libelle: d.libelle, case: d.case, mode: d.mode,
+    statut: d.statut, ferme: String(d.statut || '').startsWith('ferme'),
+    categoriePlafond: d.categorie_plafond,
+    versement: vers, versementRetenu, plafond, taux,
+    reduction,
+  };
+}
+
+/**
+ * Plafonnement global des niches à deux étages (art. 200-0 A CGI).
+ * Source : niches-fiscales.json → plafonnement_global. Plafond de base 10 000 €
+ * sur l'ensemble ; la part SOFICA + outre-mer (Girardin) bénéficie du plafond
+ * majoré 18 000 € — la part non-spécifique restant plafonnée à 10 000 €.
+ *
+ * @param {object} o
+ * @param {number} o.global      - somme des réductions de catégorie « global_10k »
+ * @param {number} o.specifique  - somme des réductions SOFICA / outre-mer (« specifique_18k »)
+ * @returns {{ partGlobale:number, partSpecifique:number, avantageRetenu:number, exces:number, plafondEffectif:number, actif:boolean }}
+ */
+export function plafonnementNichesDeuxEtages({ global = 0, specifique = 0 } = {}) {
+  const g = Math.max(0, global || 0);
+  const s = Math.max(0, specifique || 0);
+  const partGlobale     = Math.min(g, PLAFOND_NICHES_METROPOLE);
+  const partSpecifique  = Math.min(s, PLAFOND_NICHES_MAJORE - partGlobale);
+  const avantageRetenu  = partGlobale + partSpecifique;
+  const exces           = Math.max(0, (g + s) - avantageRetenu);
+  return {
+    partGlobale, partSpecifique, avantageRetenu, exces,
+    plafondEffectif: s > 0 ? PLAFOND_NICHES_MAJORE : PLAFOND_NICHES_METROPOLE,
+    actif: (g + s) > avantageRetenu,
+  };
+}
+
 // ─── CEHR — Contribution Exceptionnelle Hauts Revenus ────────────────────────
 
 /**
@@ -1214,7 +1341,8 @@ export function computeFoyerSummary(profile) {
   // impôt dû. On poursuit le calcul si une base de capital/PS est présente.
   const hasCapitalBase = (profile.pvCapitalIR || 0) > 0
                       || (profile.pvCapitalPsBase || 0) > 0
-                      || (profile.immoPsBase || 0) > 0;
+                      || (profile.immoPsBase || 0) > 0
+                      || (profile.ifiDu || 0) > 0;   // IFI seul (RNI barème nul mais patrimoine taxable)
   if (!rniFoyer && !hasCapitalBase) return null;
 
   const partsBase = isCouple ? 2 : 1;
@@ -1235,8 +1363,12 @@ export function computeFoyerSummary(profile) {
   const reductionScolarite = calcReductionScolarite({
     college: profile.scolCollege || 0, lycee: profile.scolLycee || 0, sup: profile.scolSup || 0,
   });
-  // Avantages SOUMIS au plafond global (Pinel, FCPI… → phases ≥ 5).
-  const niches = plafonnementNiches(profile.reductionsNichesSoumises || 0, !!profile.nichesOutreMer);
+  // Avantages SOUMIS au plafond global (PHASE 5 : Pinel/FCPI/SOFICA/Madelin…).
+  // Plafonnement à deux étages : base 10 000 € + part SOFICA/outre-mer jusqu'à 18 000 €.
+  const niches = plafonnementNichesDeuxEtages({
+    global:     profile.reductionsNichesSoumises    || 0,
+    specifique: profile.reductionsNichesSpecifiques || 0,
+  });
   const reductionsHorsPlafond = reductionDons + reductionScolarite + (profile.reductionsHorsPlafond || 0);
   const reductionsRetenues    = niches.avantageRetenu + reductionsHorsPlafond;
   // Réductions : ne rendent pas l'impôt négatif. Crédits (remboursables) : gérés au solde.
@@ -1316,8 +1448,10 @@ export function computeFoyerSummary(profile) {
     reductionScolarite,
     reductionsRetenues,
     plafonnementNichesActif: niches.actif,
-    nichesPlafond: niches.plafond,
+    nichesPlafond: niches.plafondEffectif,
     nichesExces: niches.exces,
+    nichesPartGlobale: niches.partGlobale,
+    nichesPartSpecifique: niches.partSpecifique,
     cehr,
     irNet,
     psFoncier,
@@ -1327,6 +1461,9 @@ export function computeFoyerSummary(profile) {
     pvCapitalIR,
     psCapital,
     pvCapitalPsBase: profile.pvCapitalPsBase || 0,
+    // PHASE 5 : IFI — impôt distinct (avis séparé), NON inclus dans totalDu IR.
+    ifi: profile.ifiDu || 0,
+    ifiAssiette: profile.ifiAssiette || 0,
     totalDu,
     pasTotal,
     acomptesIR,
