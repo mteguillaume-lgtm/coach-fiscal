@@ -23,6 +23,7 @@ import pvMobRaw          from '../data/paperasse/fiscaliste/data/plus-values-mob
 import pvImmoRaw         from '../data/paperasse/fiscaliste/data/plus-values-immo-abattements.json';
 import ifiRaw            from '../data/paperasse/fiscaliste/data/ifi-bareme.json';
 import defiscRaw         from '../data/paperasse/fiscaliste/data/defiscalisation.json';
+import intlRaw           from '../data/paperasse/fiscaliste/data/fiscalite-internationale.json';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -172,6 +173,12 @@ export const IFI_PLAFONNEMENT           = ifiRaw.plafonnement;
 export const DEFISC_DISPOSITIFS         = defiscRaw.dispositifs;
 export const PLAFOND_NICHES_MAJORE      = nichesRaw.plafonnement_global.plafond_majore_sofica_om
                                        ?? nichesRaw.plafonnement_global.plafond_investissements_outre_mer; // 18 000 €
+
+// ─── Fiscalité internationale — PHASE 6 (depuis le JSON) ─────────────────────
+
+export const INTL_METHODES        = intlRaw.methodes_elimination_double_imposition;
+export const INTL_CASES           = intlRaw.cases_revenus_etrangers;
+export const INTL_ROUTAGE         = intlRaw.regimes_routage_avocat_fiscaliste;
 
 /**
  * Calcule les frais kilométriques (voiture thermique ou électrique).
@@ -985,6 +992,51 @@ export function plafonnementNichesDeuxEtages({ global = 0, specifique = 0 } = {}
   };
 }
 
+// ─── Fiscalité internationale — PHASE 6 ──────────────────────────────────────
+
+/**
+ * Méthode du taux effectif (exemption avec progressivité) — convention bilatérale.
+ * Source : fiscalite-internationale.json → methodes...taux_effectif (case 8TI).
+ * Le revenu étranger est EXONÉRÉ mais retenu pour déterminer le taux moyen :
+ *   IR dû = IR(revenu mondial) × (revenus français / revenu mondial).
+ * Utilise calcIR (barème seul) ; l'intégration QF/décote vit dans computeFoyerSummary.
+ *
+ * @param {object} o
+ * @param {number} o.revenusFrancais           - RNI de source française
+ * @param {number} o.revenusEtrangersExoneres  - revenus étrangers exonérés (8TI), retenus pour le taux
+ * @param {number} [o.parts=1]
+ * @param {boolean} [o.isCouple=false]
+ */
+export function calcTauxEffectif({ revenusFrancais = 0, revenusEtrangersExoneres = 0, parts = 1, isCouple = false } = {}) {
+  const fr    = Math.max(0, revenusFrancais || 0);
+  const etr   = Math.max(0, revenusEtrangersExoneres || 0);
+  const monde = fr + etr;
+  if (etr <= 0 || monde <= 0) {
+    const ir = calcIR(fr, parts, isCouple);
+    return { revenusFrancais: fr, revenusEtrangersExoneres: etr, revenuMondial: monde, irMondial: ir, coef: 1, irFrancais: ir, tauxMoyen: fr > 0 ? ir / fr : 0 };
+  }
+  const irMondial  = calcIR(monde, parts, isCouple);
+  const coef       = fr / monde;
+  const irFrancais = _round(irMondial * coef);
+  return { revenusFrancais: fr, revenusEtrangersExoneres: etr, revenuMondial: monde, irMondial, coef, irFrancais, tauxMoyen: monde > 0 ? irMondial / monde : 0 };
+}
+
+/**
+ * Crédit d'impôt étranger (méthode de l'imputation) — case 8TK.
+ * Source : fiscalite-internationale.json → methodes...imputation_credit.
+ * Le revenu étranger est imposé en France (déjà inclus dans le RNI) ; le crédit
+ * d'impôt est plafonné à la quote-part d'impôt français afférente à ce revenu.
+ *
+ * @param {object} o
+ * @param {number} o.montant8TK            - crédit d'impôt étranger déclaré (8TK)
+ * @param {number} [o.quotePartIRFrancais] - plafond = IR français afférent au revenu étranger
+ */
+export function calcCreditImpotEtranger({ montant8TK = 0, quotePartIRFrancais = Infinity } = {}) {
+  const montant = Math.max(0, montant8TK || 0);
+  const plafond = Math.max(0, quotePartIRFrancais);
+  return { montant8TK: montant, plafond, credit: _round(Math.min(montant, plafond)) };
+}
+
 // ─── CEHR — Contribution Exceptionnelle Hauts Revenus ────────────────────────
 
 /**
@@ -1351,11 +1403,18 @@ export function computeFoyerSummary(profile) {
     nbDemiPartsL:          profile.nbDemiPartsL || 0,
     nbDemiPartsInvalidite: profile.nbDemiPartsInvalidite || 0,
   };
-  const qf            = plafonnementQF(rniFoyer, parts, partsBase, QF_PLAFONDS, qfOpts);
+  // PHASE 6 : méthode du taux effectif — le revenu étranger exonéré (8TI) gonfle
+  // la base servant au barème, puis l'IR est proraté revenus français / mondial.
+  const revEtrTauxEffectif = profile.revEtrTauxEffectif || 0;
+  const rniBareme          = rniFoyer + revEtrTauxEffectif;
+  const tauxEffectifCoef   = revEtrTauxEffectif > 0 && rniBareme > 0 ? rniFoyer / rniBareme : 1;
+
+  const qf            = plafonnementQF(rniBareme, parts, partsBase, QF_PLAFONDS, qfOpts);
   const irBrutVal     = qf.irSelon;
   const irPlafonneVal = qf.irPlafonne;
   const decoteVal     = applyDecote(irPlafonneVal, isCouple);
-  const irApresDecote = Math.max(0, irPlafonneVal - decoteVal);
+  // IR mondial (barème + QF + décote) proraté à la part française (taux effectif).
+  const irApresDecote = _round(Math.max(0, irPlafonneVal - decoteVal) * tauxEffectifCoef);
 
   // Étape réductions/crédits avec plafonnement global des niches (art. 200-0 A CGI).
   // Réductions grand public (PHASE 1) — HORS plafond global : dons, scolarité.
@@ -1372,7 +1431,19 @@ export function computeFoyerSummary(profile) {
   const reductionsHorsPlafond = reductionDons + reductionScolarite + (profile.reductionsHorsPlafond || 0);
   const reductionsRetenues    = niches.avantageRetenu + reductionsHorsPlafond;
   // Réductions : ne rendent pas l'impôt négatif. Crédits (remboursables) : gérés au solde.
-  const irNet = Math.max(0, irApresDecote - reductionsRetenues);
+  const irNetAvantCreditEtranger = Math.max(0, irApresDecote - reductionsRetenues);
+
+  // PHASE 6 : crédit d'impôt étranger (8TK, méthode de l'imputation) — plafonné à la
+  // quote-part d'IR français afférente au revenu de source étrangère imposé en France.
+  const revEtrImputation = profile.revEtrImputation || 0;
+  const montant8TK       = profile.creditImpotEtranger8TK || 0;
+  const quotePartIREtranger = (revEtrImputation > 0 && rniFoyer > 0)
+    ? Math.round(irNetAvantCreditEtranger * Math.min(1, revEtrImputation / rniFoyer))
+    : irNetAvantCreditEtranger;
+  const creditImpotEtranger = montant8TK > 0
+    ? calcCreditImpotEtranger({ montant8TK, quotePartIRFrancais: quotePartIREtranger }).credit
+    : 0;
+  const irNet = Math.max(0, irNetAvantCreditEtranger - creditImpotEtranger);
 
   // Crédits d'impôt remboursables grand public : emploi à domicile, garde < 6 ans,
   // cotisations syndicales (art. 199 sexdecies / quater B / 200 quater B CGI).
@@ -1431,7 +1502,7 @@ export function computeFoyerSummary(profile) {
   // solde positif = complément à payer, négatif = remboursement
   const solde            = totalDu - pasTotal;            // headline (avant crédits remb.)
   const soldeApresCredits = solde - creditsRemboursables; // solde réel après crédits remboursables
-  const tmi   = getTMI(rniFoyer, parts);
+  const tmi   = getTMI(rniBareme, parts);   // PHASE 6 : TMI sur la base mondiale (taux effectif)
 
   return {
     rniFoyer,
@@ -1464,6 +1535,10 @@ export function computeFoyerSummary(profile) {
     // PHASE 5 : IFI — impôt distinct (avis séparé), NON inclus dans totalDu IR.
     ifi: profile.ifiDu || 0,
     ifiAssiette: profile.ifiAssiette || 0,
+    // PHASE 6 : international — taux effectif (IR proraté) + crédit d'impôt étranger 8TK.
+    revEtrTauxEffectif,
+    tauxEffectifCoef,
+    creditImpotEtranger,
     totalDu,
     pasTotal,
     acomptesIR,

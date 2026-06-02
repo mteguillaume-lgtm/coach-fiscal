@@ -31,7 +31,7 @@ describe('architecture — unicité des IDs', () => {
   it('aucun id en double parmi les 21 plugins', () => {
     const ids = registry.getAll().map(p => p.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids.length).toBe(22); // 21 actifs + 1 stub
+    expect(ids.length).toBe(22); // 22 actifs + 0 stub
   });
 });
 
@@ -43,17 +43,17 @@ describe('architecture — plugins actifs (v1.0.0)', () => {
     'salaires', 'pensions-rentes', 'foncier-micro', 'mobiliers', 'chomage-france-travail',
     'apprentissage', 'heures-supp', 'licenciement', 'ppv',
   ];
-  // Plugins actifs (PHASE 1-5) dont la collecte est gérée par Collect.jsx (fields: []).
+  // Plugins actifs (PHASE 1-6) dont la collecte est gérée par Collect.jsx (fields: []).
   const ACTIVE_NO_FIELDS_IDS = [
     'dividendes', 'reductions-credits', 'pensions-alimentaires', 'bic-bnc-ba',
     'foncier-reel', 'lmnp-micro', 'lmnp-reel',
     'plus-values-mobilieres', 'plus-values-immo', 'crypto-avance',
-    'ifi', 'defiscalisation',
+    'ifi', 'defiscalisation', 'revenus-etrangers',
   ];
 
-  it('exactement 21 plugins actifs (version 1.0.0)', () => {
+  it('exactement 22 plugins actifs (version 1.0.0)', () => {
     const active = registry.getAll().filter(p => p.version === '1.0.0');
-    expect(active.length).toBe(21);
+    expect(active.length).toBe(22);
   });
 
   it('plugins PHASE 1 sans champs propres : parser fonctionnel', () => {
@@ -86,9 +86,9 @@ describe('architecture — plugins actifs (v1.0.0)', () => {
 // ─── Stubs (version 0.0.1) ───────────────────────────────────────────────────
 
 describe('architecture — stubs (v0.0.1)', () => {
-  it('exactement 1 stub (version 0.0.1)', () => {
+  it('plus aucun stub (version 0.0.1) — toutes les phases 0-6 livrées', () => {
     const stubs = registry.getAll().filter(p => p.version === '0.0.1');
-    expect(stubs.length).toBe(1);
+    expect(stubs.length).toBe(0);
   });
 
   it('stubs : parser() retourne un objet (pas null, pas undefined)', () => {

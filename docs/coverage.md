@@ -122,11 +122,15 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
 | Cas | Cases | État | Sprint cible |
 |---|---|---|---|
-| Salaires étrangers convention fiscale | 1AF/1BF ou 8TI | 🚫 V2 | — |
-| Pensions étrangères | 1AL/1BL | 🚫 V2 | — |
-| Revenus fonciers étrangers | 4BL | 🚫 V2 | — |
-| Crédit d'impôt étranger | 8TK | 🚫 V2 | — |
-| Frontaliers Suisse/Belgique/Luxembourg | 1AF/1BF | 🚫 V2 | — |
+| Méthode du taux effectif (exemption avec progressivité) | 8TI | ✅ | PHASE 6 — `calcTauxEffectif`, IR mondial proraté |
+| Crédit d'impôt étranger (imputation) | 8TK | ✅ | PHASE 6 — `calcCreditImpotEtranger`, plafonné quote-part FR |
+| Salaires étrangers convention fiscale | 1AF/1BF/1AG/1BG | ✅ | PHASE 6 (via taux effectif / crédit selon convention) |
+| Pensions étrangères | 1AL/1BL | ✅ | PHASE 6 (via taux effectif / crédit) |
+| Frontaliers Suisse/Belgique/Luxembourg | 1AF/1BF ou 8TI | ✅ | PHASE 6 (méthode selon accord frontalier) |
+| Revenus fonciers étrangers | 4BL | 🟡 | PHASE 6 (via 8TI/8TK saisi ; cas complexes → avocat fiscaliste) |
+| Non-résident — taux minimum 20/30% | — | 🟡 | PHASE 6 (détection + routage avocat fiscaliste) |
+| Impatriés (art. 155 B) | — | 🟡 | PHASE 6 (détection + routage) |
+| Exit tax (art. 167 bis) | — | 🟡 | PHASE 6 (détection + routage) |
 
 ## Charges déductibles du revenu
 
@@ -220,14 +224,14 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
 | Cas | État | Sprint cible |
 |---|---|---|
-| Non-résident fiscal | 🚫 V2 | — |
+| Non-résident fiscal | 🟡 | PHASE 6 — détection + routage avocat fiscaliste |
 | Résident depuis < 1 an | 🚫 V2 | — |
 | Déménagement mi-année | ❌ | — V2 |
 | Décès du conjoint dans l'année | ❌ | E |
 | Naissance/adoption | ❌ | E |
 | Compte à l'étranger 3916/3916bis | ✅ | Initial |
 | Trust à l'étranger | 🚫 V2 | — |
-| Régime impatriés (art. 155 B CGI) | 🚫 V2 | — |
+| Régime impatriés (art. 155 B CGI) | 🟡 | PHASE 6 — détection + routage avocat fiscaliste |
 
 ---
 

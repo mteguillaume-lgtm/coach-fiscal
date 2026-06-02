@@ -1,0 +1,75 @@
+{
+  "_meta": {
+    "revenus": 2025,
+    "declaration": 2026,
+    "as_of": "2026-06",
+    "sources": [
+      "BOI-INT (conventions fiscales internationales)",
+      "art. 4 A / 4 B CGI (domicile fiscal, mondialité)",
+      "art. 197 A CGI (taux minimum d'imposition des non-résidents)",
+      "art. 155 B CGI (régime des impatriés)",
+      "art. 167 bis CGI (exit tax sur plus-values latentes)",
+      "art. 164 A CGI (non-résidents)",
+      "Formulaire 2047 (revenus encaissés à l'étranger) + notice",
+      "Vérifié le 2026-06 sur impots.gouv.fr / bofip.impots.gouv.fr"
+    ]
+  },
+
+  "principe": {
+    "mondialite": "Un résident fiscal français (art. 4 B CGI) est imposable sur l'ensemble de ses revenus mondiaux. La convention bilatérale entre la France et le pays de source détermine la méthode d'élimination de la double imposition.",
+    "formulaire": "2047 — déclaration des revenus encaissés à l'étranger (annexe à la 2042), report ensuite sur les cases dédiées de la 2042."
+  },
+
+  "methodes_elimination_double_imposition": {
+    "taux_effectif": {
+      "description": "Exemption avec progressivité. Le revenu étranger est EXONÉRÉ en France mais retenu pour déterminer le taux moyen d'imposition appliqué aux seuls revenus de source française.",
+      "case": "8TI",
+      "formule": "IR dû = IR(revenu mondial) × (revenus français nets / revenu mondial net)",
+      "mode_calcul": "calculable",
+      "note": "Méthode fréquente pour les salaires de source étrangère couverts par une convention (frontaliers selon accords, missions à l'étranger)."
+    },
+    "imputation_credit": {
+      "description": "Le revenu étranger est imposé en France (inclus au barème), un crédit d'impôt vient neutraliser la double imposition.",
+      "variantes": {
+        "credit_egal_impot_francais": "Crédit égal à l'impôt français correspondant au revenu (neutralise totalement) — fréquent pour salaires/pensions selon convention.",
+        "credit_egal_impot_etranger": "Crédit égal à l'impôt effectivement payé à l'étranger, plafonné à l'impôt français correspondant (case 8TK)."
+      },
+      "case": "8TK",
+      "mode_calcul": "calculable",
+      "plafond_credit": "Le crédit d'impôt étranger est plafonné à la quote-part d'impôt français afférente au revenu de source étrangère."
+    }
+  },
+
+  "cases_revenus_etrangers": {
+    "salaires_credit_egal_impot_francais": "1AF/1BF",
+    "salaires_credit_egal_impot_etranger": "1AG/1BG",
+    "pensions_etrangeres": "1AL/1BL",
+    "revenus_fonciers_etrangers": "4BL",
+    "revenus_exoneres_taux_effectif": "8TI",
+    "credit_impot_etranger": "8TK",
+    "revenus_etrangers_imposables_france": "8TI/8TK via 2047"
+  },
+
+  "regimes_routage_avocat_fiscaliste": {
+    "description": "Régimes trop convention-dépendants ou risqués pour un calcul automatique — détection + routage vers un avocat fiscaliste / fiscalité internationale.",
+    "non_residents": {
+      "reference": "art. 164 A / 197 A CGI",
+      "taux_minimum": "Taux minimum d'imposition de 20 % (jusqu'à un seuil annuel) puis 30 % au-delà, sauf preuve d'un taux moyen mondial inférieur. Seuil indexé chaque année — à vérifier.",
+      "routage": true
+    },
+    "impatries": {
+      "reference": "art. 155 B CGI",
+      "description": "Exonération partielle (prime d'impatriation, part étrangère de la rémunération) pendant 8 ans maximum, sous conditions strictes.",
+      "routage": true
+    },
+    "exit_tax": {
+      "reference": "art. 167 bis CGI",
+      "description": "Imposition des plus-values latentes sur titres lors du transfert du domicile hors de France (seuils de patrimoine/participation).",
+      "routage": true
+    },
+    "fonciers_etrangers_complexes": {
+      "description": "Revenus fonciers étrangers, expatriation partielle, doubles résidences : application convention au cas par cas.",
+      "routage": true
+    }
+  }
+}

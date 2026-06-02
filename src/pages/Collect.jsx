@@ -291,6 +291,26 @@ const DEFISC_FIELDS = [
     hint: 'Montage one-shot complexe (→ CGP). Bénéficie du plafond majoré 18 000 €.' },
 ];
 
+// Fiscalité internationale (PHASE 6). Champs foyer. Taux effectif (8TI) + crédit 8TK
+// calculés ; non-résident / impatrié / exit tax → détection + routage avocat fiscaliste.
+const INTL_FIELDS = [
+  { key: 'intl_statut_residence', label: 'Statut de résidence fiscale', type: 'select', advanced: true,
+    opts: [
+      { value: 'resident', label: 'Résident fiscal français' },
+      { value: 'non_resident', label: 'Non-résident fiscal' },
+      { value: 'impatrie', label: 'Impatrié (art. 155 B)' },
+    ],
+    hint: 'Non-résident / impatrié : régimes conventionnels complexes → orientation vers un avocat fiscaliste.' },
+  { key: 'intl_rev_etrangers_exoneres', label: 'Revenus étrangers exonérés — taux effectif (8TI) (€)', type: 'number', ph: '0', advanced: true,
+    hint: 'Revenus de source étrangère exonérés par convention mais retenus pour calculer le taux moyen d\'imposition de vos revenus français.' },
+  { key: 'intl_rev_etrangers_imputation', label: 'Revenus étrangers imposés en France (€)', type: 'number', ph: '0', advanced: true,
+    hint: 'Revenus étrangers imposables en France (méthode de l\'imputation), déjà compris dans vos revenus déclarés. Sert à plafonner le crédit d\'impôt 8TK.' },
+  { key: 'intl_credit_8tk', label: 'Crédit d\'impôt étranger (8TK) (€)', type: 'number', ph: '0', advanced: true,
+    hint: 'Impôt payé à l\'étranger ouvrant droit à un crédit d\'impôt en France (plafonné à l\'impôt français correspondant).' },
+  { key: 'intl_exit_tax', label: 'Transfert de domicile hors de France (exit tax) ?', type: 'select', opts: ['Non', 'Oui'], advanced: true,
+    hint: 'Exit tax (art. 167 bis) sur les plus-values latentes au départ : mécanisme complexe → avocat fiscaliste.' },
+];
+
 // CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
 // compteur fiscal). Le courtier étranger déclenche le flag 3916.
 const CTO_FIELDS = [
@@ -390,6 +410,7 @@ const SECTION_REV_SOLO = {
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
     ...PV_FIELDS,
+    ...INTL_FIELDS,
     ...TNS_FIELDS,
   ],
 };
@@ -497,6 +518,7 @@ const SECTION_REV_FOYER = {
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
     ...PV_FIELDS,
+    ...INTL_FIELDS,
   ],
 };
 

@@ -449,6 +449,40 @@ Réductions défisc hors plafond foyer : ${fmtN(sumHorsPlafond)}`;
   return { section, sumGlobal, sumSpecifique, sumHorsPlafond, fermeFlag };
 }
 
+// Fiscalité internationale (PHASE 6). Calcul des deux mécanismes courants — taux
+// effectif (8TI, exonération avec progressivité) et crédit d'impôt étranger (8TK,
+// imputation) — réalisé dans computeFoyerSummary ; ce bloc émet les valeurs saisies
+// + le routage avocat fiscaliste pour les régimes complexes (non-résident/impatrié/exit tax).
+function _internationalBlock(d) {
+  const methode   = d.intl_methode || '';
+  const revExo    = parseFloat(d.intl_rev_etrangers_exoneres || 0);
+  const revImput  = parseFloat(d.intl_rev_etrangers_imputation || 0);
+  const credit8TK = parseFloat(d.intl_credit_8tk || 0);
+  const statut    = d.intl_statut_residence || 'resident';
+  const exitTax   = d.intl_exit_tax === 'Oui';
+
+  const hasIntl = revExo > 0 || credit8TK > 0 || revImput > 0 || (statut && statut !== 'resident') || exitTax;
+  if (!hasIntl) return { section: '', routage: false };
+
+  const lignes = [];
+  let routage = false;
+  if (revExo > 0)    lignes.push(`Méthode du taux effectif (8TI) : revenus étrangers exonérés ${fmtN(revExo)} retenus pour le taux moyen${methode === 'taux_effectif' ? '' : ''}`);
+  if (credit8TK > 0) lignes.push(`Crédit d'impôt étranger (8TK) : ${fmtN(credit8TK)}${revImput > 0 ? ` sur revenus étrangers imposés en France ${fmtN(revImput)}` : ''} (plafonné à l'IR français correspondant)`);
+  if (statut === 'non_resident') { routage = true; lignes.push(`⚠️ Non-résident fiscal : taux minimum 20 %/30 % (art. 197 A CGI) et règles conventionnelles → avocat fiscaliste recommandé`); }
+  if (statut === 'impatrie')     { routage = true; lignes.push(`⚠️ Régime d'impatriation (art. 155 B CGI) : exonération partielle (8 ans max, conditions strictes) → avocat fiscaliste recommandé`); }
+  if (exitTax)                   { routage = true; lignes.push(`⚠️ Exit tax (art. 167 bis CGI) : imposition des plus-values latentes au transfert du domicile hors de France → avocat fiscaliste recommandé`); }
+
+  const section = `
+== FISCALITÉ INTERNATIONALE ==
+${lignes.join('\n')}
+ℹ️ Conventions fiscales bilatérales : vérifier la convention France–pays de source (formulaire 2047). Cas complexes (expatriation partielle, fonciers étrangers, double résidence) → avocat fiscaliste spécialisé.
+Revenus étrangers exonérés (taux effectif) foyer : ${fmtN(revExo)}
+Revenus étrangers imposés en France (imputation) foyer : ${fmtN(revImput)}
+Crédit d'impôt étranger 8TK foyer : ${fmtN(credit8TK)}
+Routage international avocat fiscaliste : ${routage ? 'Oui' : 'Non'}`;
+  return { section, routage };
+}
+
 // Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO et abondement.
 // Délègue à calcPlafondPer (source unique de vérité dans taxCalculator.js) pour le calcul de dispo.
 function fmtPlafondPer(netImp, pero, abondPEEPERCO = 0) {
@@ -484,6 +518,7 @@ function _buildSolo(d, docSums) {
   const cap      = _capitalGainsBlock(d, [{ decl: d }], rniTotal, parts, false);
   const patrimoine = _patrimoineBlock(d);
   const defisc     = _defiscBlock(d, false);
+  const intl       = _internationalBlock(d);
   const pero     = parseFloat(d.pero_d1 || 0);
   const pas      = parseFloat(d.pas_tot || 0);
   const abondD1  = parseFloat(d.abond_pee || 0);  // INC-01 : abondement PEE/PERCO D1
@@ -542,6 +577,7 @@ ${immo.section}
 ${cap.section}
 ${defisc.section}
 ${patrimoine.section}
+${intl.section}
 == DONNÉES POUR CALCUL IR ==
 RNI total (salaires + foncier net + TNS + immobilier) : ${fmtN(rniTotal)}
 Parts fiscales : ${parts}
@@ -654,6 +690,7 @@ function _buildCouple(d, d1, d2, docSums) {
   const cap      = _capitalGainsBlock(d, [{ decl: d1 }, { decl: d2 }], rniFoyer, parts, true);
   const patrimoine = _patrimoineBlock(d);
   const defisc     = _defiscBlock(d, true);
+  const intl       = _internationalBlock(d);
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
   const pasD2    = parseFloat(d2.pas_tot || 0);
@@ -730,6 +767,7 @@ ${immo.section}
 ${cap.section}
 ${defisc.section}
 ${patrimoine.section}
+${intl.section}
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniSalD1)}
 ${rniRenteD1 > 0 ? `Rente 1BS D1 (après abat. 10% pension) : ${fmtN(rniRenteD1)}` : ''}

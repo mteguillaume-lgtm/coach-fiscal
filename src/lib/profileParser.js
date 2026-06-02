@@ -397,6 +397,7 @@ export function emptyProfile() {
     syndicatCotisation: 0, scolCollege: 0, scolLycee: 0, scolSup: 0,
     reductionsHorsPlafond: 0, reductionsNichesSoumises: 0, reductionsNichesSpecifiques: 0,
     ifiDu: 0, ifiAssiette: 0, defiscFerme: false,
+    revEtrTauxEffectif: 0, revEtrImputation: 0, creditImpotEtranger8TK: 0, intlRoutage: false,
     acompte8HW: 0, acompte8IW: 0, acompte8HX: 0, acompte8IX: 0,
     ijCpamD1: 0, ijCpamOrgD1: '', ijCpamD2: 0, ijCpamOrgD2: '',
     rente1BsD1: 0, pasRente1BsD1: 0, orgRente1BsD1: '', recurrentRente1BsD1: null,

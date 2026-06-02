@@ -320,6 +320,38 @@ export function detectOpportunities(parsedProfile) {
     });
   }
 
+  // Levier international (PHASE 6) : taux effectif / crédit d'impôt étranger appliqués.
+  const _revEtrTE = parsedProfile.revEtrTauxEffectif || 0;
+  const _credit8TK = parsedProfile.creditImpotEtranger8TK || 0;
+  if (_revEtrTE > 0 || _credit8TK > 0) {
+    opps.push({
+      id: 'levier_international',
+      type: 'info',
+      urgence: 'avant_declaration',
+      titre: '🌍 Revenus étrangers : méthode conventionnelle appliquée',
+      description: `Vos revenus de source étrangère sont traités selon la convention bilatérale : ${_revEtrTE > 0 ? `taux effectif (revenu exonéré ${fmt(_revEtrTE)} € retenu pour le taux moyen)` : ''}${_revEtrTE > 0 && _credit8TK > 0 ? ' ; ' : ''}${_credit8TK > 0 ? `crédit d'impôt étranger ${fmt(_credit8TK)} € (8TK, plafonné à l'impôt français correspondant)` : ''}.`,
+      impact: 'Déclaration via le formulaire 2047. Vérifier la convention France–pays de source.',
+      impactEuros: 0,
+      action: 'Reporter les revenus étrangers sur la 2047 puis les cases dédiées de la 2042 (8TI taux effectif / 8TK crédit d\'impôt). Conserver les justificatifs d\'impôt payé à l\'étranger.',
+      questionChat: 'J\'ai des revenus de source étrangère. Peux-tu m\'expliquer comment les déclarer (2047, cases 8TI/8TK), quelle méthode s\'applique selon la convention, et vérifier mon calcul de taux effectif ?',
+    });
+  }
+
+  // Alerte routage international (PHASE 6) : non-résident / impatrié / exit tax → avocat fiscaliste.
+  if (parsedProfile.intlRoutage) {
+    opps.push({
+      id: 'levier_routage_international',
+      type: 'alerte',
+      urgence: 'a_etudier',
+      titre: '⚠️ Situation internationale complexe → avocat fiscaliste',
+      description: 'Votre situation (non-résident, impatrié ou transfert de domicile/exit tax) relève de règles conventionnelles complexes : taux minimum des non-résidents (art. 197 A), exonération d\'impatriation (art. 155 B) ou imposition des plus-values latentes (exit tax, art. 167 bis). Ces régimes ne sont pas automatisés.',
+      impact: 'Enjeux potentiellement importants — un calcul approximatif serait risqué.',
+      impactEuros: 0,
+      action: 'Consulter un avocat fiscaliste spécialisé en fiscalité internationale pour sécuriser votre déclaration et optimiser votre situation conventionnelle.',
+      questionChat: 'Ma situation est internationale (non-résident / impatrié / exit tax). Quels sont les points de vigilance et pourquoi un avocat fiscaliste est-il recommandé ?',
+    });
+  }
+
   // Épargne liquide mal rémunérée : total > 10 000 €
   // Plan de réallocation détaillé étape par étape avec gain annuel estimé.
   if (livretTotal > 10_000) {

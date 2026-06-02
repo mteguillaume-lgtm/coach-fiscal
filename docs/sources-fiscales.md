@@ -137,6 +137,31 @@ est notée pour usage ultérieur.
 > Pinel pluriannuelles, démembrement → CGP / notaire. L'IFI est un **impôt distinct**
 > (avis séparé) non additionné au total dû IR.
 
+## PHASE 6 — Fiscalité internationale (revenus 2025)
+
+| Donnée | Valeur | Fichier Paperasse | Source officielle | Vérifié le |
+|--------|--------|-------------------|-------------------|-----------|
+| Mondialité du résident | imposition des revenus mondiaux (convention bilatérale → méthode d'élimination) | `fiscalite-internationale.json` → `principe` | art. 4 A / 4 B CGI | 2026-06-02 |
+| Taux effectif (exemption avec progressivité) | IR(revenu mondial) × revenus FR / revenu mondial — case 8TI | `fiscalite-internationale.json` → `methodes...taux_effectif` | BOI-INT ; conventions | 2026-06-02 |
+| Crédit d'impôt étranger (imputation) | crédit plafonné à la quote-part d'IR français — case 8TK | `fiscalite-internationale.json` → `methodes...imputation_credit` | BOI-INT ; conventions | 2026-06-02 |
+| Cases revenus étrangers | 1AF/1BF, 1AG/1BG, 1AL/1BL, 4BL, 8TI, 8TK (via 2047) | `fiscalite-internationale.json` → `cases_revenus_etrangers` | Notice 2047 | 2026-06-02 |
+| Non-résidents — taux minimum | 20 % / 30 % (art. 197 A) — **détecté, non calculé** → avocat fiscaliste | `fiscalite-internationale.json` → `regimes_routage...non_residents` | art. 164 A / 197 A CGI | 2026-06-02 |
+| Impatriés | exonération partielle 8 ans (art. 155 B) — **routage** | `fiscalite-internationale.json` → `regimes_routage...impatries` | art. 155 B CGI | 2026-06-02 |
+| Exit tax | plus-values latentes au transfert de domicile (art. 167 bis) — **routage** | `fiscalite-internationale.json` → `regimes_routage...exit_tax` | art. 167 bis CGI | 2026-06-02 |
+
+> **Manque comblé en PHASE 6** : aucune donnée internationale structurée n'existait
+> en JSON (seulement qualitative dans `references/cas-speciaux.md`). Création de
+> `fiscalite-internationale.json` (méthodes + formules + n° de cases + déclencheurs
+> de routage + sources). Conformément au roadmap, seuls les **deux mécanismes
+> mécaniques** sont calculés (taux effectif `calcTauxEffectif` ; crédit d'impôt
+> étranger `calcCreditImpotEtranger`, intégrés à `computeFoyerSummary` sans second
+> moteur — réutilisation de `plafonnementQF`/`calcIR`/`applyDecote`).
+>
+> **Hors périmètre (détection + routage avocat fiscaliste)** : non-résidents (taux
+> minimum 20/30 %, seuil annuel indexé non figé), impatriés (155 B), exit tax (167 bis),
+> fonciers étrangers complexes, expatriation partielle, double résidence. Le détecteur
+> émet une alerte `levier_routage_international` dans ces cas.
+
 ## Rituel annuel de bascule d'année (procédure — à NE PAS exécuter ici)
 
 Chaque janvier, après publication de la Loi de finances :
