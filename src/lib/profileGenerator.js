@@ -1,6 +1,40 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
+
+// Déductions du revenu global (pension alimentaire versée, frais d'accueil) +
+// pension reçue (imposable). Renvoie les montants et le bloc texte (lisible parser).
+function _deductionsRevenu(d) {
+  const ded = calcDeductionsRevenu({
+    pensionVersee:  parseFloat(d.pension || 0),
+    pensionBenef:   d.pension_benef || '',
+    pensionNb:      parseInt(d.pension_nb || 1),
+    fraisAccueil:   parseFloat(d.frais_accueil || 0),
+    fraisAccueilNb: parseInt(d.frais_accueil_nb || 1),
+  });
+  const pensionRecue = parseFloat(d.pension_recue || 0) || 0;
+  const lines = [];
+  if (ded.pensionDeduc > 0) {
+    lines.push(`Pension alimentaire versée (déductible) : ${fmtN(ded.pensionDeduc)}${d.pension_benef ? ` → ${d.pension_benef}` : ''}`);
+  }
+  if (ded.fraisAccueilDeduc > 0) lines.push(`Frais d'accueil personne âgée (6EU) : ${fmtN(ded.fraisAccueilDeduc)}`);
+  if (ded.total > 0)             lines.push(`Déductions du revenu (total) : ${fmtN(ded.total)}`);
+  if (pensionRecue > 0)          lines.push(`Pension alimentaire reçue (1AO) : ${fmtN(pensionRecue)}`);
+  return { total: ded.total, pensionRecue, deltaRni: pensionRecue - ded.total, lines: lines.join('\n') };
+}
+
+// Frais de scolarité : nombre d'enfants scolarisés par cycle (réduction forfaitaire).
+function _scolariteLine(d) {
+  const c = parseInt(d.scol_college || 0) || 0;
+  const l = parseInt(d.scol_lycee || 0) || 0;
+  const s = parseInt(d.scol_sup || 0) || 0;
+  if (!c && !l && !s) return '';
+  const parts = [];
+  if (c) parts.push(`collège ${c}`);
+  if (l) parts.push(`lycée ${l}`);
+  if (s) parts.push(`supérieur ${s}`);
+  return `\nFrais de scolarité (enfants scolarisés) : ${parts.join(', ')}`;
+}
 
 // CTO : ligne courtier optionnelle. Si courtier étranger → marqueur 3916
 // (réutilise la détection courtier_etranger de checklistGenerator.js).
@@ -92,7 +126,8 @@ function _buildSolo(d, docSums) {
   const net1AJ   = parseFloat(d.net_imp  || 0);
   const rni      = abattement10(net1AJ);
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
-  const rniTotal = rni + foncier.net;
+  const dedInfo  = _deductionsRevenu(d);
+  const rniTotal = Math.max(0, rni + foncier.net + dedInfo.deltaRni);
   const fam      = _famille(d, false);
   const parts    = fam.parts;
   const pero     = parseFloat(d.pero_d1 || 0);
@@ -143,7 +178,7 @@ Revenus fonciers bruts : ${fmtN(foncier.brut)}
 Régime foncier : ${foncier.regime}
 Revenus fonciers nets imposables : ${fmtN(foncier.net)}
 Prélèvements sociaux fonciers (17,2%) : ${fmtN(foncier.ps)}` : 'Revenus fonciers : Néant'}
-Dividendes/intérêts : ${fmt(d.divid)}
+Dividendes/intérêts : ${fmt(d.divid)}${parseFloat(d.div_2dc || 0) > 0 ? `\nDividendes bruts (case 2DC) : ${fmtN(parseFloat(d.div_2dc))}` : ''}
 Revenus crypto : ${fmt(d.crypto)}
 ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
 ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
@@ -178,13 +213,13 @@ PEE (valorisation) : ${fmtOui(d.pee)}${d.pee_verse && d.pee_verse !== '0' ? `\nP
 Crypto (valeur wallet) : ${fmtOui(d.crypto_wallet)}${d.crypto_plateforme ? `\nCrypto plateforme : ${d.crypto_plateforme}` : ''}${d.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d.crypto_pv ? `\nCrypto plus-value nette : ${Number(d.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 
 == DÉDUCTIONS ==
-Dons associations : ${fmt(d.dons)}
+Dons associations : ${fmt(d.dons)}${parseFloat(d.dons_aide || 0) > 0 ? `\nDons aide aux personnes (75%) : ${fmtN(parseFloat(d.dons_aide))}` : ''}
 Frais garde enfants : ${fmt(d.garde)}
 Emploi à domicile : ${fmt(d.domicile)}
 Rénov. énergétique / MaPrimeRénov : ${fmt(d.travaux)}
 PERO — cotisations 2025 : ${d.pero_d1 && d.pero_d1 !== '0' ? Number(d.pero_d1).toLocaleString('fr-FR') + ' € → case 6QS/6QT/6QU (déjà inclus dans 1AJ)' : 'Néant'}
-Pension alimentaire versée : ${fmt(d.pension)}
-Cotisations syndicales : ${d.syndicat && d.syndicat !== '0' ? Number(d.syndicat).toLocaleString('fr-FR') + ' € → crédit d\'impôt 66%' : 'Néant'}
+${dedInfo.lines || 'Pension alimentaire versée : Néant'}
+Cotisations syndicales : ${d.syndicat && d.syndicat !== '0' ? Number(d.syndicat).toLocaleString('fr-FR') + ' € → crédit d\'impôt 66%' : 'Néant'}${_scolariteLine(d)}
 
 == CAPACITÉ D'ÉPARGNE ==
 ${d.charges_fixes ? `Charges fixes mensuelles : ${Number(d.charges_fixes).toLocaleString('fr-FR')} €/mois` : 'Charges fixes : Non renseignées'}
@@ -254,7 +289,8 @@ function _buildCouple(d, d1, d2, docSums) {
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
   const fam      = _famille(d, true);
   const parts    = fam.parts;
-  const rniFoyer = rniD1 + rniD2 + foncier.net;
+  const dedInfo  = _deductionsRevenu(d);
+  const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni);
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
   const pasD2    = parseFloat(d2.pas_tot || 0);
@@ -320,7 +356,7 @@ ${foncier.brut > 0 ? `Revenus fonciers bruts : ${fmtN(foncier.brut)}
 Régime foncier : ${foncier.regime}
 Revenus fonciers nets imposables : ${fmtN(foncier.net)}
 Prélèvements sociaux fonciers (17,2%) : ${fmtN(foncier.ps)}` : 'Revenus fonciers : Néant'}
-Dividendes/intérêts : ${fmt(d.divid)}
+Dividendes/intérêts : ${fmt(d.divid)}${parseFloat(d.div_2dc || 0) > 0 ? `\nDividendes bruts (case 2DC) : ${fmtN(parseFloat(d.div_2dc))}` : ''}
 Revenus crypto : ${fmt(d.crypto)}
 Revenus locatifs 2025 : ${fmt(d.rev_loc)}
 ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : ${fmtN(parseFloat(d.int_mob_2tr))}
@@ -390,14 +426,14 @@ Assurance-vie : ${fmtOui(d2.av)}${d2.av_date ? `\nAV date souscription : ${d2.av
 Crypto (valeur wallet) : ${fmtOui(d2.crypto_wallet)}${d2.crypto_plateforme ? `\nCrypto plateforme : ${d2.crypto_plateforme}` : ''}${d2.crypto_cessions === 'Oui' ? '\nCrypto cessions 2025 : Oui' : ''}${d2.crypto_montant_cede ? `\nCrypto montant cédé : ${Number(d2.crypto_montant_cede).toLocaleString('fr-FR')} €` : ''}${d2.crypto_pv ? `\nCrypto plus-value nette : ${Number(d2.crypto_pv).toLocaleString('fr-FR')} €` : ''}
 
 == DÉDUCTIONS DU FOYER ==
-Dons associations : ${fmt(d.dons)}
+Dons associations : ${fmt(d.dons)}${parseFloat(d.dons_aide || 0) > 0 ? `\nDons aide aux personnes (75%) : ${fmtN(parseFloat(d.dons_aide))}` : ''}
 Frais garde enfants : ${fmt(d.garde)}
 Emploi à domicile : ${fmt(d.domicile)}
 Rénov. énergétique / MaPrimeRénov : ${fmt(d.travaux)}
 PERO D1 — cotisations 2025 : ${peroD1 > 0 ? fmtN(peroD1) + ' → case 6QS/6QT/6QU (déjà inclus dans 1AJ)' : 'Néant'}
 PERO D2 — cotisations 2025 : ${peroD2 > 0 ? fmtN(peroD2) + ' → case 6QS/6QT/6QU (déjà inclus dans 1AJ)' : 'Néant'}
-Pension alimentaire versée : ${fmt(d.pension)}
-Cotisations syndicales : ${d.syndicat && d.syndicat !== '0' ? Number(d.syndicat).toLocaleString('fr-FR') + ' € → crédit d\'impôt 66%' : 'Néant'}
+${dedInfo.lines || 'Pension alimentaire versée : Néant'}
+Cotisations syndicales : ${d.syndicat && d.syndicat !== '0' ? Number(d.syndicat).toLocaleString('fr-FR') + ' € → crédit d\'impôt 66%' : 'Néant'}${_scolariteLine(d)}
 
 == CAPACITÉ D'ÉPARGNE ==
 ${d.charges_fixes ? `Charges communes mensuelles : ${Number(d.charges_fixes).toLocaleString('fr-FR')} €/mois` : 'Charges communes : Non renseignées'}

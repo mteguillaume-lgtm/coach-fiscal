@@ -1,7 +1,7 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR, computePerOptimumCascade } from './taxCalculator';
+import { calcIR, computePerOptimumCascade, arbitragePfuBareme } from './taxCalculator';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 
@@ -112,6 +112,45 @@ export function detectOpportunities(parsedProfile) {
           : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € → PEA/AV (rendement PER résiduel 11 %).` : ''} Quel PER choisir ?`,
       });
     }
+  }
+
+  // Arbitrage PFU 30 % vs option barème sur les revenus du capital (CTO).
+  const _div2DC = parsedProfile.dividendes2DC || 0;
+  const _int2TR = parsedProfile.intMob2TR || 0;
+  if (_div2DC + _int2TR > 0) {
+    const arb = arbitragePfuBareme({
+      dividendes: _div2DC, interets: _int2TR,
+      rniFoyer: rniFoyer || 0, parts: parts || (isCouple ? 2 : 1), isCouple,
+    });
+    if (arb.recommande === 'bareme' && arb.economie >= 50) {
+      opps.push({
+        id: 'arbitrage_pfu_bareme',
+        type: 'gain',
+        urgence: 'avant_declaration',
+        titre: '💡 Option barème avantageuse sur vos revenus du capital',
+        description: `Vos dividendes/intérêts (${fmt(_div2DC + _int2TR)} €) seraient moins taxés au barème (${fmt(arb.bareme)} €) qu'au PFU 30 % (${fmt(arb.pfu)} €) — grâce à l'abattement 40 % sur dividendes et à la CSG déductible (6,8 %).`,
+        impact: `Économie estimée : ${fmt(arb.economie)} € en optant pour le barème (case 2OP)`,
+        impactEuros: arb.economie,
+        action: 'Cocher la case 2OP (imposition au barème) lors de la déclaration — attention : l\'option est GLOBALE pour tous les revenus du capital de l\'année et irrévocable.',
+        questionChat: `Mes revenus du capital (dividendes ${fmt(_div2DC)} €, intérêts ${fmt(_int2TR)} €) : l'option barème (2OP) semble plus avantageuse que le PFU 30 % (économie ~${fmt(arb.economie)} €). Peux-tu confirmer l'arbitrage compte tenu de mon TMI et m'expliquer l'effet de la CSG déductible l'année suivante ?`,
+      });
+    }
+  }
+
+  // Levier dons : réduction 66 % (75 % aide aux personnes) non exploitée.
+  const _donsDeclares = (parsedProfile.donsGeneral || 0) + (parsedProfile.donsAidePersonnes || 0);
+  if (_donsDeclares === 0 && irNetEstime > 500) {
+    opps.push({
+      id: 'levier_dons',
+      type: 'gain',
+      urgence: 'avant_decembre',
+      titre: '💡 Dons : réduction d\'impôt 66 % à 75 %',
+      description: 'Aucun don déclaré. Les dons aux associations ouvrent droit à une réduction d\'impôt de 66 % (75 % pour l\'aide aux personnes en difficulté, jusqu\'à 1 000 €). Hors plafond global des niches (10 000 €).',
+      impact: 'Ex. : 300 € de dons → 198 € de réduction (ou 225 € à 75 %)',
+      impactEuros: 198,
+      action: 'Conserver les reçus fiscaux et reporter en 7UD (75 %) / 7UF (66 %). Dons effectués avant le 31/12.',
+      questionChat: 'Je souhaite optimiser mes dons. Quelle différence entre les cases 7UD (75 %) et 7UF (66 %), quels organismes ouvrent droit à 75 %, et jusqu\'à quel plafond puis-je donner en gardant l\'avantage fiscal ?',
+    });
   }
 
   // Épargne liquide mal rémunérée : total > 10 000 €

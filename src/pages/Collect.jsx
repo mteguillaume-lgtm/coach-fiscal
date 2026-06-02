@@ -170,6 +170,24 @@ const CTO_FIELDS = [
     hint: 'Courtier établi à l\'étranger (Interactive Brokers, Trading 212, Degiro, Saxo…) → déclaration obligatoire du compte via le formulaire 3916.' },
 ];
 
+// PHASE 1 — charges déductibles & réductions/crédits grand public (section Déductions).
+const REDUC_CREDIT_FIELDS = [
+  { key: 'dons_aide',     label: 'Dons aide aux personnes — 75% (€)', type: 'number', ph: '0', advanced: true, requires: 'creditsImpot',
+    hint: 'Restos du Cœur, Secours Populaire… : réduction 75 % jusqu\'à 1 000 €, puis 66 % au-delà.' },
+  { key: 'pension_benef', label: 'Pension alimentaire — bénéficiaire', type: 'select', opts: ['Enfant majeur', 'Ascendant', 'Ex-conjoint / autre'], advanced: true,
+    requires: 'pensionsAlimentaires', dependsOn: { key: 'pension', check: v => parseFloat(v || 0) > 0 } },
+  { key: 'pension_nb',    label: 'Pension alimentaire — nb de bénéficiaires', type: 'number', ph: '1', advanced: true,
+    requires: 'pensionsAlimentaires', dependsOn: { key: 'pension', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Plafond enfant majeur : 6 855 €/enfant (revenus 2025).' },
+  { key: 'pension_recue', label: 'Pension alimentaire reçue — imposable (€)', type: 'number', ph: '0', advanced: true,
+    hint: 'Pension alimentaire que vous percevez (case 1AO) : imposable, ajoutée à votre revenu.' },
+  { key: 'frais_accueil', label: 'Frais d\'accueil personne âgée > 75 ans (€)', type: 'number', ph: '0', advanced: true,
+    hint: 'Déduction forfaitaire dans la limite de 4 075 €/personne accueillie (case 6EU).' },
+  { key: 'scol_college',  label: 'Enfants scolarisés — collège',     type: 'number', ph: '0', advanced: true, hint: 'Réduction forfaitaire 61 €/enfant.' },
+  { key: 'scol_lycee',    label: 'Enfants scolarisés — lycée',       type: 'number', ph: '0', advanced: true, hint: 'Réduction forfaitaire 153 €/enfant.' },
+  { key: 'scol_sup',      label: 'Enfants scolarisés — supérieur',   type: 'number', ph: '0', advanced: true, hint: 'Réduction forfaitaire 183 €/enfant.' },
+];
+
 const EP_INDIV_FIELDS = [
   { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
   { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
@@ -234,6 +252,9 @@ const SECTION_REV_SOLO = {
     ...pluginFields(['foncier-micro'],  EXCLUDE_REV).map(f => ({ ...f, requires: 'foncier' })),
     ...pluginFields(['mobiliers'],      EXCLUDE_REV).map(f => ({ ...f, requires: 'capitauxMobiliers' })),
     { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers' },
+    { key: 'div_2dc', label: 'Dividendes bruts — case 2DC (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers',
+      dependsOn: { key: 'divid', check: v => parseFloat(v || 0) > 0 },
+      hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
   ],
 };
@@ -310,6 +331,7 @@ const SECTION_DED_SOLO = {
     { key: 'pero_d1',  label: 'PERO — cotisations 2025 (€)',            type: 'number', ph: '0', advanced: true, requires: 'epargneSalariale', hint: 'Déjà déduit de votre 1AJ — renseignez uniquement pour calculer votre plafond PER disponible N+1.' },
     { key: 'pension',  label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true, requires: 'pensionsAlimentaires' },
     { key: 'syndicat', label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
+    ...REDUC_CREDIT_FIELDS,
     { key: 'per_n1',   label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire',
       groupStart: {
         title: 'Plafonds PER reportés des années précédentes',
@@ -333,6 +355,9 @@ const SECTION_REV_FOYER = {
     ...pluginFields(['foncier-micro']).map(f => ({ ...f, requires: 'foncier' })),
     ...pluginFields(['mobiliers']).map(f => ({ ...f, requires: 'capitauxMobiliers' })),
     { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers' },
+    { key: 'div_2dc', label: 'Dividendes bruts — case 2DC (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers',
+      dependsOn: { key: 'divid', check: v => parseFloat(v || 0) > 0 },
+      hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
   ],
 };
@@ -347,6 +372,7 @@ const SECTION_DED = {
     { key: 'pero_d2',      label: 'PERO D2 — cotisations 2025 (€)',         type: 'number', ph: '0', advanced: true, requires: 'epargneSalariale', hint: 'Déjà déduit du 1AJ — renseignez uniquement pour calculer le plafond PER D2 disponible N+1.' },
     { key: 'pension',      label: 'Pension alimentaire versée (€)',         type: 'number', ph: '0', advanced: true, requires: 'pensionsAlimentaires' },
     { key: 'syndicat',     label: 'Cotisations syndicales (€)',             type: 'number', ph: '0', advanced: true },
+    ...REDUC_CREDIT_FIELDS,
     { key: 'per_n1',       label: 'PER reportable N-1 (€)',                 type: 'number', ph: '0', advanced: true, requires: 'perVolontaire',
       groupStart: {
         title: 'Plafonds PER reportés des années précédentes',

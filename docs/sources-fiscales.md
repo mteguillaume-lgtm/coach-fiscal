@@ -26,6 +26,21 @@ vérification, pour le point de contrôle annuel.
 | CEHR — seuils & taux | 3 % / 4 % (250k-500k / >500k solo ; 500k-1M / >1M couple) | `bareme-ir-2025.json` → `cehr` | art. 223 sexies CGI | 2026-06-01 |
 | Prélèvements sociaux capital | 17,2 % | `pfu-prelevements-sociaux.json` | art. 235 ter CGI | (existant) |
 
+## PHASE 1 — Charges déductibles & réductions/crédits (revenus 2025)
+
+| Donnée | Valeur | Fichier Paperasse | Source officielle | Vérifié le |
+|--------|--------|-------------------|-------------------|-----------|
+| Pension alim. enfant majeur — forfait | 4 075 €/enfant (×2 si chargé de famille) | `charges-deductibles.json` | art. 156-II CGI ; economie.gouv.fr | 2026-06-01 |
+| Pension alim. enfant majeur — plafond réel | 6 855 €/enfant (×2 si chargé de famille) | `charges-deductibles.json` | Brochure IR 2026 ; economie.gouv.fr | 2026-06-01 |
+| Pension alim. ascendant | montant réel justifié (sans plafond) | `charges-deductibles.json` | art. 156-II-2° CGI | 2026-06-01 |
+| Frais d'accueil personne âgée > 75 ans (6EU) | 4 075 €/personne | `charges-deductibles.json` | art. 156-II-2° ter CGI ; Brochure IR 2026 | 2026-06-01 |
+| Emploi à domicile (7DB/7DF) | crédit 50 %, plafond 12 000 € + 1 500 €/pers. (max 15 000 ; 18 000 1re année ; 20 000 invalidité) | `niches-fiscales.json` | art. 199 sexdecies CGI | 2026-06-01 |
+| Garde enfant < 6 ans (7GA-7GG) | crédit 50 %, plafond 3 500 €/enfant (1 750 € alternée) | `niches-fiscales.json` | art. 200 quater B CGI | 2026-06-01 |
+| Frais de scolarité (7EA-7EF) | réduction 61 / 153 / 183 € (collège / lycée / sup) | `niches-fiscales.json` | art. 199 quater F CGI | 2026-06-01 |
+| Dons (7UD / 7UF) | 75 % jusqu'à 1 000 €, puis 66 % (plafond 20 % du revenu imposable) | `niches-fiscales.json` | art. 200 CGI | 2026-06-01 |
+| Cotisations syndicales (7AC/7AE/7AG) | crédit 66 %, plafond 1 % du revenu brut | `niches-fiscales.json` | art. 199 quater C CGI | 2026-06-01 |
+| PFU / option barème dividendes | abattement 40 % + CSG déductible 6,8 % | `pfu-prelevements-sociaux.json` | art. 200 A CGI ; gcp.md | (existant) |
+
 ### Valeurs enrichies en PHASE 0
 
 Les plafonds **case T (4 262 €)**, **case L (1 079 €)** et **invalidité

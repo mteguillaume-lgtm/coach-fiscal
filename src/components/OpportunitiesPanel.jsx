@@ -11,9 +11,10 @@ const TYPE_CFG = {
 };
 
 const URGENCE_CFG = {
-  immediate:      { label: 'Urgent — À faire maintenant', color: 'text-danger-400'  },
-  avant_decembre: { label: 'À faire avant le 31/12',      color: 'text-warning-400' },
-  long_terme:     { label: 'Long terme',                  color: 'text-ink-200'     },
+  immediate:         { label: 'Urgent — À faire maintenant',          color: 'text-danger-400'  },
+  avant_decembre:    { label: 'À faire avant le 31/12',               color: 'text-warning-400' },
+  avant_declaration: { label: 'À l\'occasion de la déclaration',      color: 'text-warning-400' },
+  long_terme:        { label: 'Long terme',                           color: 'text-ink-200'     },
 };
 
 // ─── Carte opportunité ────────────────────────────────────────────────────────

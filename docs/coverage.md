@@ -1,6 +1,7 @@
 # Couverture des cas fiscaux — coach-fiscal
 
-Dernière MAJ : 2026-06-01 — **PHASE 0 (socle)** : CTO + moteur IR complet (plafonnement QF case T/L/invalidité, step niches, CEHR) + situation familiale dérivée (calcParts)
+Dernière MAJ : 2026-06-02 — **PHASE 1** : charges déductibles (pensions alim., frais accueil) + réductions/crédits grand public (dons, emploi domicile, garde, scolarité, syndicales) + dividendes CTO & arbitrage PFU/barème + leviers détecteur
+PHASE 0 (socle) : CTO + moteur IR complet (plafonnement QF case T/L/invalidité, step niches, CEHR) + situation familiale dérivée (calcParts)
 Historique : Sprint A — PR A1 (multi-employeurs) + PR A2 (chômage) + PR A3 (apprentissage) + PR A4 (heures supp) + PR A5 (frais réels) + PR A6 (licenciement + PPV)
 
 Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
@@ -32,7 +33,7 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Rente viagère de réversion | 1AS/1BS | ✅ | PR2 |
 | Pension d'invalidité | 1AS/1BS | 🟡 | A |
 | Rentes viagères à titre onéreux (PER capital) | 1AW/1BW | ❌ | B |
-| Pensions alimentaires reçues | 1AO/1BO | ❌ | E |
+| Pensions alimentaires reçues | 1AO/1BO | ✅ | 1 — ajoutées au RNI |
 
 ## Revenus de capitaux mobiliers
 
@@ -41,9 +42,9 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Intérêts livret bancaire fiscalisé | 2TR | ✅ | PR3 |
 | PFU 12,8% déjà prélevé | 2CK | ✅ | PR3 |
 | CSG déductible (option barème) | 2BH | ✅ | PR3 |
-| Dividendes actions françaises | 2DC | ❌ | B |
-| Dividendes avec abattement 40% (option barème) | 2DC + 2OP | ❌ | B |
-| Option globale barème vs PFU simulateur | 2OP | ❌ | B |
+| Dividendes actions françaises | 2DC | ✅ | 1 |
+| Dividendes avec abattement 40% (option barème) | 2DC + 2OP | ✅ | 1 — arbitragePfuBareme |
+| Option globale barème vs PFU simulateur | 2OP | ✅ | 1 — levier détecteur chiffré |
 | Coupons obligations | 2TR | 🟡 | B |
 | Produits d'AV < 8 ans rachat | 2CH | ❌ | B |
 | Produits d'AV > 8 ans rachat avec abattement | 2CH/2BH | ❌ | B |
@@ -129,21 +130,21 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Abondement PERCO employeur | 6QU | 🟡 | Initial |
 | Plafond PER mutualisé couple | — | ✅ | Initial |
 | Plafonds PER N-3 reportables | — | ❌ | B |
-| Pension alimentaire versée enfant majeur | 6EL/6EM | ❌ | E |
-| Pension alimentaire versée ascendant | 6GU/6GI | ❌ | E |
+| Pension alimentaire versée enfant majeur | 6EL/6EM | ✅ | 1 — plafond 6 855 €/enfant, déduit du RNI |
+| Pension alimentaire versée ascendant | 6GU/6GI | ✅ | 1 — montant réel déduit du RNI |
 | CSG déductible sur revenus du patrimoine | 6DE | 🟡 | B |
-| Frais d'accueil personne âgée | 6EU | ❌ | E |
+| Frais d'accueil personne âgée | 6EU | ✅ | 1 — plafond 4 075 €/personne |
 
 ## Réductions et crédits d'impôt
 
 | Cas | Cases | État | Sprint cible |
 |---|---|---|---|
-| Dons associations 66% | 7UF | ❌ | D |
-| Dons organismes aide aux personnes 75% | 7UD | ❌ | D |
-| Cotisations syndicales 66% | 7AC/7AE/7AG | ❌ | D |
-| Emploi salarié à domicile | 7DB/7DF | ❌ | D |
-| Garde enfants < 6 ans hors domicile | 7GA-7GG | ❌ | D |
-| Scolarité collège/lycée/sup | 7EA-7EG | ❌ | D |
+| Dons associations 66% | 7UF | ✅ | 1 |
+| Dons organismes aide aux personnes 75% | 7UD | ✅ | 1 — 75 % jusqu'à 1 000 € puis 66 % |
+| Cotisations syndicales 66% | 7AC/7AE/7AG | ✅ | 1 — plafond 1 % revenu brut |
+| Emploi salarié à domicile | 7DB/7DF | ✅ | 1 — crédit 50 %, plafond 12 000 €+ |
+| Garde enfants < 6 ans hors domicile | 7GA-7GG | ✅ | 1 — crédit 50 %, plafond 3 500 €/enfant |
+| Scolarité collège/lycée/sup | 7EA-7EG | ✅ | 1 — réduction 61/153/183 € |
 | Investissement Pinel | 7QA-7QZ | ❌ | C2 |
 | Investissement Denormandie | 7QY/7QZ | ❌ | C2 |
 | Loi Malraux | 7NA-7ND | ❌ | C2 |
@@ -154,7 +155,7 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | MaPrimeRénov (déclaratif info) | — | ❌ | D |
 | CITE résiduel | — | 🚫 | — |
 | Intérêts emprunt étudiant | 7UK | ❌ | D |
-| Plafonnement global niches 10 000€ | — | 🟡 | 0 — moteur prêt (`plafonnementNiches`), entrées en D |
+| Plafonnement global niches 10 000€ | — | ✅ | 1 — `plafonnementNiches` câblé ; dons/scolarité hors plafond, crédits remboursables au solde |
 | Plafonnement spécifique 18 000€ (outre-mer/SOFICA) | — | 🟡 | 0 — moteur prêt, entrées en D |
 
 ## Situations familiales
@@ -223,9 +224,9 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 
 | État | Nombre de cas |
 |---|---|
-| ✅ Couvert | ~41 |
-| 🟡 Partiel | ~13 |
-| ❌ Non couvert (V1) | ~65 |
+| ✅ Couvert | ~55 |
+| 🟡 Partiel | ~12 |
+| ❌ Non couvert (V1) | ~52 |
 | 🚫 Hors scope V1 | ~15 |
 
 **Objectif fin V1 (Sprint F terminé)** : 100+ cas en ✅, < 10 en 🟡.

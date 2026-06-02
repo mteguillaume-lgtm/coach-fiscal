@@ -3,8 +3,8 @@ import { registry } from '../registry.js';
 import { PLUGIN_REQUIRED_FIELDS } from '../types.js';
 
 describe('registry — découverte automatique', () => {
-  it('découvre exactement 20 plugins (9 actifs + 11 stubs)', () => {
-    expect(registry.getAll().length).toBe(20);
+  it('découvre exactement 21 plugins (12 actifs + 9 stubs)', () => {
+    expect(registry.getAll().length).toBe(21);
   });
 
   it('auto-discovery : tous les plugins ont un id non vide', () => {

@@ -13,6 +13,7 @@
 import perRaw            from '../data/paperasse/fiscaliste/data/per-plafonds.json';
 import pfuRaw            from '../data/paperasse/fiscaliste/data/pfu-prelevements-sociaux.json';
 import nichesRaw         from '../data/paperasse/fiscaliste/data/niches-fiscales.json';
+import chargesRaw        from '../data/paperasse/fiscaliste/data/charges-deductibles.json';
 import fonciersRaw       from '../data/paperasse/fiscaliste/data/regimes-fonciers-lmnp.json';
 import hsSuppRaw         from '../data/paperasse/fiscaliste/data/heures-supplementaires-ppv.json';
 import apprentissageRaw  from '../data/paperasse/fiscaliste/data/apprentissage.json';
@@ -291,6 +292,131 @@ export function plafonnementNiches(avantagesSoumis, outreMer = false) {
     avantageRetenu,
     exces: Math.max(0, av - plafond),   // excédent perdu (non reportable)
     actif: av > plafond,
+  };
+}
+
+// ─── Réductions & crédits d'impôt grand public (PHASE 1) ─────────────────────
+// Tous les paramètres sont lus dans niches-fiscales.json → bareme_reductions_credits_2025.
+export const REDUC_CREDITS = nichesRaw.bareme_reductions_credits_2025;
+export const CHARGES_DEDUCTIBLES = chargesRaw;
+
+const _round = (v) => Math.round(v || 0);
+
+/** Crédit d'impôt emploi à domicile (7DB/7DF) — 50 %, art. 199 sexdecies CGI. */
+export function calcCreditEmploiDomicile(depense, nbPersonnesACharge = 0, opts = {}) {
+  const c = REDUC_CREDITS.emploi_a_domicile;
+  if (!depense || depense <= 0) return 0;
+  const maxCap = opts.invalidite ? c.plafond_invalidite
+               : opts.premiereAnnee ? c.plafond_premiere_annee
+               : c.plafond_majore_max;
+  const plafond = Math.min(c.plafond_base + c.majoration_par_personne_a_charge * (nbPersonnesACharge || 0), maxCap);
+  return _round(Math.min(depense, plafond) * c.taux);
+}
+
+/** Crédit d'impôt garde d'enfant < 6 ans hors domicile (7GA-7GG) — 50 %. */
+export function calcCreditGarde(depenseTotale, nbEnfants = 0, nbEnfantsAlternes = 0) {
+  const c = REDUC_CREDITS.garde_enfant_exterieur;
+  if (!depenseTotale || depenseTotale <= 0) return 0;
+  const plafond = c.plafond_depenses_par_enfant * (nbEnfants || 0)
+                + c.plafond_residence_alternee_par_enfant * (nbEnfantsAlternes || 0);
+  if (plafond <= 0) return 0;
+  return _round(Math.min(depenseTotale, plafond) * c.taux);
+}
+
+/**
+ * Réduction d'impôt forfaitaire frais de scolarité (7EA-7EF), art. 199 quater F.
+ * @param {{college?:number, lycee?:number, sup?:number, collegeAlt?:number, lyceeAlt?:number, supAlt?:number}} counts
+ */
+export function calcReductionScolarite(counts = {}) {
+  const m = REDUC_CREDITS.frais_scolarite.montants;
+  const ma = REDUC_CREDITS.frais_scolarite.montants_residence_alternee;
+  return _round(
+    (counts.college || 0) * m.college + (counts.lycee || 0) * m.lycee + (counts.sup || 0) * m.enseignement_superieur
+    + (counts.collegeAlt || 0) * ma.college + (counts.lyceeAlt || 0) * ma.lycee + (counts.supAlt || 0) * ma.enseignement_superieur,
+  );
+}
+
+/**
+ * Réduction d'impôt dons (7UD à 75 %, 7UF à 66 %), art. 200 CGI.
+ * @param {number} donsAidePersonnes - dons aux organismes d'aide (7UD)
+ * @param {number} donsGeneral       - autres dons d'intérêt général (7UF)
+ * @param {number} revenuImposable   - pour le plafond 20 % de l'assiette 66 %
+ */
+export function calcReductionDons(donsAidePersonnes = 0, donsGeneral = 0, revenuImposable = 0) {
+  const d = REDUC_CREDITS.dons;
+  const aide = Math.max(0, donsAidePersonnes);
+  const assiette75 = Math.min(aide, d.plafond_assiette_75pct);
+  const reste66    = Math.max(0, aide - d.plafond_assiette_75pct) + Math.max(0, donsGeneral);
+  const plafond66  = (revenuImposable || 0) * d.plafond_assiette_66pct_pct_revenu;
+  const assiette66 = plafond66 > 0 ? Math.min(reste66, plafond66) : reste66;
+  return _round(assiette75 * d.taux_aide_personnes_75pct + assiette66 * d.taux_general_66pct);
+}
+
+/** Crédit d'impôt cotisations syndicales (7AC/7AE/7AG) — 66 %, plafond 1 % du revenu brut. */
+export function calcCreditSyndicales(cotisation, revenuBrut = 0) {
+  const c = REDUC_CREDITS.cotisations_syndicales;
+  if (!cotisation || cotisation <= 0) return 0;
+  const plafond = (revenuBrut || 0) * c.plafond_pct_revenu_brut;
+  const base = plafond > 0 ? Math.min(cotisation, plafond) : cotisation;
+  return _round(base * c.taux);
+}
+
+/**
+ * Déductions du revenu global (pension alimentaire versée, frais d'accueil) —
+ * art. 156-II CGI. Réduisent le RNI AVANT calcul de l'IR.
+ * @returns {{ total:number, pensionDeduc:number, fraisAccueilDeduc:number }}
+ */
+export function calcDeductionsRevenu({ pensionVersee = 0, pensionBenef = '', pensionNb = 1, fraisAccueil = 0, fraisAccueilNb = 1 } = {}) {
+  const enfMaj = CHARGES_DEDUCTIBLES.pension_alimentaire_enfant_majeur;
+  const accueil = CHARGES_DEDUCTIBLES.frais_accueil_personne_agee;
+  const nb = Math.max(1, pensionNb || 1);
+  // Pension enfant majeur : plafonnée par enfant ; ascendant/ex-conjoint : montant réel.
+  const pensionDeduc = /enfant/i.test(pensionBenef)
+    ? Math.min(Math.max(0, pensionVersee), enfMaj.plafond_reel_par_enfant * nb)
+    : Math.max(0, pensionVersee);
+  const fraisAccueilDeduc = Math.min(Math.max(0, fraisAccueil), accueil.plafond_par_personne * Math.max(1, fraisAccueilNb || 1));
+  return { total: _round(pensionDeduc + fraisAccueilDeduc), pensionDeduc: _round(pensionDeduc), fraisAccueilDeduc: _round(fraisAccueilDeduc) };
+}
+
+/**
+ * Arbitrage PFU 30 % vs option barème pour les revenus du capital (dividendes/intérêts).
+ * Source : pfu-prelevements-sociaux.json + gcp.md (levier « PFU vs barème »).
+ * Compare l'imposition globale (IR + PS) des deux options.
+ *
+ * @param {object} o
+ * @param {number} o.dividendes  - dividendes bruts (2DC)
+ * @param {number} o.interets    - intérêts bruts (2TR)
+ * @param {number} o.rniFoyer    - RNI hors revenus de capital
+ * @param {number} o.parts
+ * @param {boolean} o.isCouple
+ * @returns {{ pfu:number, bareme:number, recommande:'pfu'|'bareme', economie:number, detail:object }}
+ */
+export function arbitragePfuBareme({ dividendes = 0, interets = 0, rniFoyer = 0, parts = 1, isCouple = false }) {
+  const div = Math.max(0, dividendes);
+  const int = Math.max(0, interets);
+  const base = div + int;
+  const tauxPS = TAUX_PS_CAPITAL;
+
+  // Option PFU : 12,8 % IR + 17,2 % PS sur le brut.
+  const pfu = _round(base * (pfuRaw.pfu.detail_ir + tauxPS));
+
+  // Option barème : abattement 40 % sur dividendes, PS 17,2 % sur le brut,
+  // CSG déductible 6,8 % imputable l'année suivante (approximée comme une
+  // réduction d'assiette barème la même année pour l'arbitrage indicatif).
+  const abatt = pfuRaw.dividendes_option_bareme.abattement;
+  const csgDeductible = pfuRaw.prelevements_sociaux.dont_csg_deductible_si_bareme;
+  const baseBaremeImposable = div * (1 - abatt) + int;
+  const csgDeduc = _round(base * csgDeductible);
+  const irAvec = calcIR(rniFoyer + Math.max(0, baseBaremeImposable - csgDeduc), parts, isCouple);
+  const irSans = calcIR(rniFoyer, parts, isCouple);
+  const irMarginal = Math.max(0, irAvec - irSans);
+  const bareme = _round(irMarginal + base * tauxPS);
+
+  const recommande = bareme <= pfu ? 'bareme' : 'pfu';
+  return {
+    pfu, bareme, recommande,
+    economie: Math.abs(pfu - bareme),
+    detail: { base, baseBaremeImposable, csgDeduc, irMarginal, tauxPS },
   };
 }
 
@@ -660,13 +786,31 @@ export function computeFoyerSummary(profile) {
   const irApresDecote = Math.max(0, irPlafonneVal - decoteVal);
 
   // Étape réductions/crédits avec plafonnement global des niches (art. 200-0 A CGI).
-  // Les avantages SOUMIS au plafond sont fournis par le profil (phases ≥ 1) ;
-  // les avantages HORS plafond (dons, emploi à domicile…) s'imputent à part.
-  const niches        = plafonnementNiches(profile.reductionsNichesSoumises || 0, !!profile.nichesOutreMer);
-  const reductionsHorsPlafond = profile.reductionsHorsPlafond || 0;
+  // Réductions grand public (PHASE 1) — HORS plafond global : dons, scolarité.
+  const reductionDons      = calcReductionDons(profile.donsAidePersonnes || 0, profile.donsGeneral || 0, rniFoyer);
+  const reductionScolarite = calcReductionScolarite({
+    college: profile.scolCollege || 0, lycee: profile.scolLycee || 0, sup: profile.scolSup || 0,
+  });
+  // Avantages SOUMIS au plafond global (Pinel, FCPI… → phases ≥ 5).
+  const niches = plafonnementNiches(profile.reductionsNichesSoumises || 0, !!profile.nichesOutreMer);
+  const reductionsHorsPlafond = reductionDons + reductionScolarite + (profile.reductionsHorsPlafond || 0);
   const reductionsRetenues    = niches.avantageRetenu + reductionsHorsPlafond;
   // Réductions : ne rendent pas l'impôt négatif. Crédits (remboursables) : gérés au solde.
   const irNet = Math.max(0, irApresDecote - reductionsRetenues);
+
+  // Crédits d'impôt remboursables grand public : emploi à domicile, garde < 6 ans,
+  // cotisations syndicales (art. 199 sexdecies / quater B / 200 quater B CGI).
+  const nbPersonnesACharge   = (profile.nbEnfants || 0) + (profile.nbEnfantsAlternes || 0);
+  const creditEmploiDomicile = calcCreditEmploiDomicile(profile.emploiDomicileDepense || 0, nbPersonnesACharge);
+  const creditGarde          = calcCreditGarde(profile.gardeDepense || 0, profile.nbEnfants || 0, profile.nbEnfantsAlternes || 0);
+  const creditSyndicales     = calcCreditSyndicales(profile.syndicatCotisation || 0, rniFoyer);
+
+  // Arbitrage PFU 30 % vs option barème sur les revenus du capital (dividendes/intérêts CTO).
+  const arbitrageCapital = arbitragePfuBareme({
+    dividendes: profile.dividendes2DC || 0,
+    interets:   profile.intMob2TR || 0,
+    rniFoyer, parts, isCouple,
+  });
 
   // CEHR (art. 223 sexies CGI) — assise sur le RFR, s'ajoute à l'IR net.
   const cehr = calcCEHR(profile.rfr || rniFoyer, isCouple);
@@ -695,8 +839,12 @@ export function computeFoyerSummary(profile) {
   const acomptesPS   = (profile.acompte8HX || 0) + (profile.acompte8IX || 0);
   const creditsImpot = profile.intMob2CK || 0;
 
+  // Crédits remboursables : remboursés même si l'IR est nul → imputés au solde.
+  const creditsRemboursables = creditEmploiDomicile + creditGarde + creditSyndicales;
+
   // solde positif = complément à payer, négatif = remboursement
-  const solde = totalDu - pasTotal;
+  const solde            = totalDu - pasTotal;            // headline (avant crédits remb.)
+  const soldeApresCredits = solde - creditsRemboursables; // solde réel après crédits remboursables
   const tmi   = getTMI(rniFoyer, parts);
 
   return {
@@ -710,6 +858,8 @@ export function computeFoyerSummary(profile) {
     avantageQFMax: qf.avantageMax,
     decote: decoteVal,
     irApresDecote,
+    reductionDons,
+    reductionScolarite,
     reductionsRetenues,
     plafonnementNichesActif: niches.actif,
     nichesPlafond: niches.plafond,
@@ -722,7 +872,14 @@ export function computeFoyerSummary(profile) {
     acomptesIR,
     acomptesPS,
     creditsImpot,
+    creditEmploiDomicile,
+    creditGarde,
+    creditSyndicales,
+    creditsRemboursables,
+    deductionsRevenu: profile.deductionsRevenu || 0,
+    arbitrageCapital,
     solde,
+    soldeApresCredits,
     tmi,
     isCouple,
   };

@@ -76,5 +76,70 @@
       "remboursable_si_excedent": "Oui — remboursé si > impôt dû",
       "exemples": ["Emploi à domicile", "Garde d'enfant", "Cotisations syndicales"]
     }
+  },
+
+  "bareme_reductions_credits_2025": {
+    "_meta_sources": {
+      "references": [
+        "art. 199 quater C, 199 quater F, 199 sexdecies, 200, 200 quater B CGI",
+        "Brochure pratique IR 2026 (revenus 2025) — impots.gouv.fr",
+        "https://www.economie.gouv.fr/particuliers/aides-fiscales-impot-famille"
+      ],
+      "date_verification": "2026-06-01"
+    },
+    "emploi_a_domicile": {
+      "case": ["7DB", "7DF"],
+      "type": "credit",
+      "taux": 0.50,
+      "plafond_base": 12000,
+      "majoration_par_personne_a_charge": 1500,
+      "plafond_majore_max": 15000,
+      "plafond_premiere_annee": 18000,
+      "plafond_invalidite": 20000,
+      "note": "Crédit d'impôt 50 % (remboursable). Plafond 12 000 € + 1 500 €/enfant ou membre > 65 ans, dans la limite de 15 000 € (18 000 € la 1re année d'emploi direct ; 20 000 € si invalidité)."
+    },
+    "garde_enfant_exterieur": {
+      "case": ["7GA", "7GB", "7GC", "7GD", "7GE", "7GF", "7GG"],
+      "type": "credit",
+      "taux": 0.50,
+      "plafond_depenses_par_enfant": 3500,
+      "plafond_residence_alternee_par_enfant": 1750,
+      "age_limite_au_1er_janvier": 6,
+      "note": "Crédit d'impôt 50 % des frais de garde hors domicile (crèche, assistante maternelle) pour enfant < 6 ans au 1er janvier. Plafond 3 500 €/enfant (1 750 € en résidence alternée)."
+    },
+    "frais_scolarite": {
+      "case": ["7EA", "7EC", "7EF"],
+      "type": "reduction",
+      "hors_plafond_global": true,
+      "montants": {
+        "college": 61,
+        "lycee": 153,
+        "enseignement_superieur": 183
+      },
+      "montants_residence_alternee": {
+        "college": 31,
+        "lycee": 77,
+        "enseignement_superieur": 92
+      },
+      "note": "Réduction d'impôt forfaitaire par enfant scolarisé à charge (art. 199 quater F CGI). Montant divisé par deux en résidence alternée."
+    },
+    "dons": {
+      "case": ["7UD", "7UF"],
+      "type": "reduction",
+      "hors_plafond_global": true,
+      "taux_aide_personnes_75pct": 0.75,
+      "plafond_assiette_75pct": 1000,
+      "taux_general_66pct": 0.66,
+      "plafond_assiette_66pct_pct_revenu": 0.20,
+      "note": "Dons aux organismes d'aide aux personnes en difficulté : 75 % jusqu'à 1 000 € (case 7UD), puis 66 % au-delà. Autres dons d'intérêt général : 66 % dans la limite de 20 % du revenu imposable (case 7UF). Excédent reportable 5 ans."
+    },
+    "cotisations_syndicales": {
+      "case": ["7AC", "7AE", "7AG"],
+      "type": "credit",
+      "hors_plafond_global": true,
+      "taux": 0.66,
+      "plafond_pct_revenu_brut": 0.01,
+      "note": "Crédit d'impôt 66 % des cotisations syndicales, dans la limite de 1 % du revenu brut (salaires + pensions). Incompatible avec la déduction des frais réels (qui inclut déjà les cotisations)."
+    }
   }
 }

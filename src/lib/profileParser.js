@@ -104,7 +104,11 @@ function _rni(pd, profil, text) {
   // RNI foyer : on accepte la ligne texte SI elle est cohérente avec la somme des
   // composantes (écart < 100 €). Sinon, on recalcule — protège contre les profils
   // anciens qui n'incluent pas la rente dans "RNI FOYER TOTAL".
-  const rniFoyerSum  = rniD1 + rniD2 + (pd.foncierNet || 0);
+  // PHASE 1 : déductions du revenu (pension alim. + frais accueil) retranchées,
+  // pension alimentaire reçue ajoutée — pour rester aligné avec le RNI net émis.
+  const deductionsRevenu = pd.deductionsRevenu || 0;
+  const pensionAlimRecue = pd.pensionAlimRecue || 0;
+  const rniFoyerSum  = Math.max(0, rniD1 + rniD2 + (pd.foncierNet || 0) - deductionsRevenu + pensionAlimRecue);
   const rniFoyerText = n(text, /RNI FOYER TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /RNI total[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /Revenu net imposable total estimé\s*:\s*([\d\s,]+)\s*€/);
@@ -381,7 +385,12 @@ export function emptyProfile() {
     regimeFoncier: null,
     plafondPerD1: 0, plafondPerD2: 0, plafondPerTotal: 0, plafondsPrecedents: 0,
     perReportableN1: 0, perReportableN2: 0, perReportableN3: 0, perReportableTotal: 0,
-    intMob2TR: 0, intMob2CK: 0,
+    intMob2TR: 0, intMob2CK: 0, dividendes2DC: 0,
+    // PHASE 1 — charges déductibles & réductions/crédits
+    pensionAlimVersee: 0, fraisAccueil: 0, deductionsRevenu: 0, pensionAlimRecue: 0,
+    donsGeneral: 0, donsAidePersonnes: 0, gardeDepense: 0, emploiDomicileDepense: 0,
+    syndicatCotisation: 0, scolCollege: 0, scolLycee: 0, scolSup: 0,
+    reductionsHorsPlafond: 0, reductionsNichesSoumises: 0,
     acompte8HW: 0, acompte8IW: 0, acompte8HX: 0, acompte8IX: 0,
     ijCpamD1: 0, ijCpamOrgD1: '', ijCpamD2: 0, ijCpamOrgD2: '',
     rente1BsD1: 0, pasRente1BsD1: 0, orgRente1BsD1: '', recurrentRente1BsD1: null,

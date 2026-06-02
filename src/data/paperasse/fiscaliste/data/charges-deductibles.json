@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "revenus": 2025,
+    "declaration": 2026,
+    "sources": [
+      "art. 156-II CGI (charges déductibles du revenu global)",
+      "https://www.economie.gouv.fr/particuliers/impots-et-fiscalite/gerer-mon-impot-sur-le-revenu/impot-tout-savoir-sur-la-deduction-des-pensions-alimentaires",
+      "Brochure pratique IR 2026 (revenus 2025) — pages charges déductibles 215-226"
+    ],
+    "date_verification": "2026-06-01",
+    "note": "DÉDUCTIONS du revenu global (≠ réductions/crédits d'impôt). Elles diminuent le RNI AVANT calcul de l'IR, donc leur économie dépend de la TMI."
+  },
+
+  "pension_alimentaire_enfant_majeur": {
+    "case": ["6EL", "6EM"],
+    "mecanisme": "deduction_revenu",
+    "forfait_logement_nourriture": 4075,
+    "forfait_double_si_charge_famille": true,
+    "plafond_reel_par_enfant": 6855,
+    "plafond_reel_double_si_charge_famille": true,
+    "note": "Enfant majeur non rattaché. Forfait logement + nourriture 4 075 €/enfant sans justificatif ; au-delà, dépenses réelles justifiées dans la limite de 6 855 €/enfant. Plafonds doublés si l'enfant est marié/pacsé/chargé de famille et que vous subvenez seul à ses besoins."
+  },
+
+  "pension_alimentaire_ascendant": {
+    "case": ["6GU", "6GI"],
+    "mecanisme": "deduction_revenu",
+    "plafond": null,
+    "note": "Pension versée à un ascendant dans le besoin : déductible pour son montant réel justifié, sans plafond légal spécifique (doit rester proportionnée aux besoins de l'ascendant et aux ressources du contribuable). art. 156-II-2° CGI."
+  },
+
+  "frais_accueil_personne_agee": {
+    "case": ["6EU", "6EV"],
+    "mecanisme": "deduction_revenu",
+    "plafond_par_personne": 4075,
+    "condition_age": 75,
+    "note": "Accueil sous votre toit d'une personne > 75 ans (autre qu'un ascendant), dans le besoin. Déduction forfaitaire des avantages en nature dans la limite de 4 075 €/personne accueillie (même plafond que le forfait pension alimentaire). art. 156-II-2° ter CGI."
+  },
+
+  "pension_alimentaire_recue": {
+    "case": ["1AO", "1BO"],
+    "mecanisme": "revenu_imposable",
+    "note": "Pensions alimentaires REÇUES (enfant, ex-conjoint) : imposables, à ajouter au revenu du bénéficiaire. Symétrie avec la déduction chez le débiteur."
+  }
+}
