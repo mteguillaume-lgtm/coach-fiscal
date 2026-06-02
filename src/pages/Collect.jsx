@@ -69,7 +69,7 @@ function computeAvDate(_data, value) {
     : `⚠️ Antériorité ${age} ans — encore ${Math.ceil((8 - ageYears) * 12)} mois avant l'abattement 8 ans`;
 }
 
-function computeCryptoPv(data, _value) {
+function computeCryptoPv(data) {
   // Seuil 305 € = montant brut des cessions (pas la PV) — art. 150 VH bis CGI
   // Au-delà : 2086 obligatoire ET imposition sur toute la PV (pas seulement l'excédent)
   const cede = parseFloat(data.crypto_montant_cede || 0);
@@ -83,9 +83,11 @@ const TMI_RET_HINT = 'Estimez votre tranche d\'imposition à la retraite. 11% pa
 // ─── Plugin income UI metadata (ph / hint / dependsOn / opts / label overrides) ─
 
 const INCOME_UI = {
-  net_imp:              { label: 'Net imposable annuel (€)',           ph: '43 875' },
+  net_imp:              { label: 'Net imposable annuel (€)',           ph: '43 875', essential: true,
+    hint: 'Le chiffre clé du calcul. Sur votre fiche de paie de décembre : ligne « Net imposable » cumul annuel. Ou case 1AJ de votre avis d\'impôt.' },
   brut:                 { label: 'Brut imposable annuel (€)',          ph: '54 810' },
-  pas_tot:              { label: 'PAS prélevé 2025 (€)',               ph: '4 302'  },
+  pas_tot:              { label: 'PAS prélevé 2025 (€)',               ph: '4 302', essential: true,
+    hint: 'Total de l\'impôt déjà prélevé à la source sur l\'année (cumul « Impôt sur le revenu prélevé » de votre fiche de paie de décembre).' },
   taux_pas:             { label: 'Taux PAS (%)',                        ph: '11.80'  },
   ij_cpam:              { label: 'IJ CPAM dans net imposable (€)',      ph: '0',
     hint: "Indemnités journalières CPAM incluses dans 1AJ/1BJ. Déjà dans le net imposable — champ informatif uniquement." },
@@ -123,7 +125,7 @@ function pluginFields(ids, excludeKeys = []) {
 
 const SECTION_SIT = {
   id: 'sit', Icon: User, label: 'Situation du foyer', fields: [
-    { key: 'statut',  label: 'Situation familiale', type: 'select', opts: ['Célibataire', 'Marié(e)', 'Pacsé(e)', 'Divorcé(e)', 'Veuf/Veuve'] },
+    { key: 'statut',  label: 'Situation familiale', type: 'select', opts: ['Célibataire', 'Marié(e)', 'Pacsé(e)', 'Divorcé(e)', 'Veuf/Veuve'], essential: true },
     { key: 'enfants', label: 'Enfants à charge (résidence principale)', type: 'number', ph: '0' },
     { key: 'enfants_alternes', label: 'Enfants en résidence alternée', type: 'number', ph: '0',
       hint: 'Garde alternée : chaque enfant compte pour la moitié des majorations de parts (0,25 / 0,25 / 0,5).' },
@@ -598,30 +600,77 @@ function _moduleVisible(f, modules, expertMode) {
   return reqs.some(r => modules[r]);
 }
 
+// Champs numériques qui NE sont PAS des montants (âges, comptes, taux, durées…)
+// → on n'y applique pas le formatage monétaire (séparateurs de milliers + €).
+const NON_MONEY_KEY = /age|parts|enfants|retraite|duree|distance|frais_jours|frais_cv|taux|tmi|_nb$|pension_nb|invalidite_demiparts|scol_/i;
+const isMoneyField = (f) => f.type === 'number' && !NON_MONEY_KEY.test(f.key);
+
+// Détecte un champ Oui/Non (rendu en boutons segmentés plutôt qu'en menu déroulant).
+const isYesNo = (f) =>
+  f.type === 'select' && Array.isArray(f.opts) && f.opts.length === 2 &&
+  f.opts.every(o => o === 'Oui' || o === 'Non');
+
 function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
   if (!_fieldVisible(f, formData)) return null;
 
   const isAuto = !!(autoFKeys && autoFKeys[f.key]);
+  const money  = isMoneyField(f);
   const base = [
     'w-full rounded-xl border px-3 py-2.5 text-sm bg-white',
     'focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all',
     'font-sans placeholder:text-gray-300',
+    money ? 'text-right tabular-nums pr-7' : '',
     isAuto ? 'border-teal-300 focus:ring-teal-300/50' : 'border-gray-200 focus:ring-teal-300/50',
   ].join(' ');
 
   const computedInfo = f.compute ? f.compute(formData, value) : null;
+  const hintWarn = f.hint && f.hint.trimStart().startsWith('⚠️');
+
+  // Montant : on stocke des chiffres bruts (le générateur/parseur lit parseFloat),
+  // mais on AFFICHE un format français avec séparateurs de milliers.
+  const moneyDisplay = (() => {
+    if (!money || value === '' || value == null) return '';
+    const digits = String(value).replace(/[^\d]/g, '');
+    return digits ? Number(digits).toLocaleString('fr-FR') : '';
+  })();
 
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1.5">
-        {f.label}
+      <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1.5">
+        <span>{f.label}</span>
+        {f.essential && (
+          <span className="inline-flex items-center px-1.5 py-px rounded-full bg-teal-100 text-teal-700 text-[10px] font-semibold uppercase tracking-wide">
+            essentiel
+          </span>
+        )}
         {isAuto && (
-          <span className="ml-1.5 inline-flex items-center gap-0.5 text-teal-500 text-xs font-normal">
+          <span className="inline-flex items-center gap-0.5 text-teal-500 text-xs font-normal">
             <Sparkles size={10} /> auto
           </span>
         )}
       </label>
-      {f.type === 'select' ? (
+
+      {isYesNo(f) ? (
+        <div className="grid grid-cols-2 gap-2">
+          {['Oui', 'Non'].map(opt => {
+            const active = value === opt;
+            return (
+              <button
+                key={opt} type="button"
+                onClick={() => onChange(f.key, active ? '' : opt)}
+                className={[
+                  'py-2.5 rounded-xl border-2 text-sm font-semibold transition-all',
+                  active
+                    ? (opt === 'Oui' ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-gray-300 bg-gray-50 text-gray-600')
+                    : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300',
+                ].join(' ')}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      ) : f.type === 'select' ? (
         <select
           value={value || ''}
           onChange={e => onChange(f.key, e.target.value)}
@@ -634,17 +683,31 @@ function FieldRow({ f, value, onChange, autoFKeys, formData = {} }) {
             return <option key={val} value={val}>{lab}</option>;
           })}
         </select>
+      ) : money ? (
+        <div className="relative">
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder={f.ph}
+            value={moneyDisplay}
+            onChange={e => onChange(f.key, e.target.value.replace(/[^\d]/g, ''))}
+            className={base}
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">€</span>
+        </div>
       ) : (
         <input
           type={f.type}
+          inputMode={f.type === 'number' ? 'numeric' : undefined}
           placeholder={f.ph}
           value={value || ''}
           onChange={e => onChange(f.key, e.target.value)}
           className={base}
         />
       )}
+
       {f.hint && (
-        <p className="mt-1.5 text-xs text-amber-600 leading-snug">{f.hint}</p>
+        <p className={`mt-1.5 text-xs leading-snug ${hintWarn ? 'text-amber-600' : 'text-gray-400'}`}>{f.hint}</p>
       )}
       {computedInfo && (
         <p className={[
@@ -718,7 +781,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
 
       {open && (
         <div className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {baseFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
@@ -741,7 +804,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
               </button>
 
               {advancedOpen && (
-                <div className="mt-3 pt-3 border-t border-dashed border-gray-200 grid grid-cols-2 gap-3">
+                <div className="mt-3 pt-3 border-t border-dashed border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {advFields.map(f => (
                     <Fragment key={f.key}>
                       {f.groupStart && (
@@ -932,7 +995,7 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
           <p className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest mb-2 mt-1">
             Revenus 2025
           </p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {visRevFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
@@ -940,7 +1003,7 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
           <p className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest mb-2">
             Épargne individuelle
           </p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {visEpFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
@@ -948,7 +1011,7 @@ function DeclarantBlock({ num, data, onChange, autoFKeys, uploadTarget, activeAc
           <p className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest mb-2">
             Profil &amp; Retraite
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PROFIL_INDIV_FIELDS.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
             ))}
@@ -1052,7 +1115,7 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
           )}
 
           {/* ── Charges communes ── */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <FieldRow
               f={{ key: 'charges_fixes', label: isCouple ? 'Charges communes mensuelles (€)' : 'Charges fixes mensuelles (€)', type: 'number', ph: '2 500',
                    hint: isCouple ? 'Loyer / crédit RP, courses, abonnements partagés — divisé 50/50 entre D1 et D2.' : undefined }}
@@ -1067,7 +1130,7 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
 
           {/* ── Charges personnelles D1 / D2 (couple uniquement) ── */}
           {isCouple && (
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <FieldRow
                 f={{ key: 'charges_perso_d1', label: 'Charges perso D1 (€)', type: 'number', ph: '0',
                      hint: 'Transport, sport, loisirs, abonnements perso — propres à D1 uniquement.' }}
@@ -1079,7 +1142,7 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
             </div>
           )}
 
-          <div className={isCouple ? '' : 'grid grid-cols-2 gap-3 mb-3'}>
+          <div className={isCouple ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3'}>
             {!isCouple && <div />}
             <FieldRow
               f={{ key: 'objectif_patrimonial', label: 'Objectif patrimonial', type: 'select',
@@ -1611,7 +1674,11 @@ export default function Collect() {
 
       {/* Form sections */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-800 mb-3">Compléter / vérifier</h2>
+        <h2 className="text-sm font-semibold text-gray-800 mb-1">Compléter / vérifier</h2>
+        <p className="text-xs text-gray-400 mb-3 leading-snug">
+          Seuls les champs <span className="font-semibold text-teal-600">essentiels</span> sont nécessaires pour un premier calcul.
+          Tout le reste affine le conseil — remplissez ce que vous savez, laissez vide le reste.
+        </p>
 
         {/* Props partagés pour filtrage par module */}
         {(() => {

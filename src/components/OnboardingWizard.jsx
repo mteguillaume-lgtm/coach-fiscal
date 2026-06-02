@@ -32,15 +32,22 @@ const CREDITS = [
   { value: 'domicile',  label: 'Emploi à domicile',        desc: 'Aide ménagère, garde partagée' },
   { value: 'dons',      label: 'Dons aux associations',    desc: 'Case 7UD / 7UF' },
   { value: 'travaux',   label: 'Rénovation énergétique',   desc: 'MaPrimeRénov, CITE' },
+  { value: 'pension',   label: 'Pension alimentaire versée', desc: 'Enfant majeur, ascendant, ex-conjoint' },
 ];
 
-const TOTAL_STEPS = 7;
+const EPARGNE = [
+  { value: 'per',               label: 'PER (plan épargne retraite)', desc: 'Versements volontaires déductibles' },
+  { value: 'epargne_salariale', label: 'Épargne salariale',           desc: 'PEE, PERCO, intéressement, participation' },
+];
+
+const TOTAL_STEPS = 8;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function computeModules({ typeD1, typeD2, adults, placements, biens, credits }) {
+function computeModules({ typeD1, typeD2, adults, placements, biens, credits, epargne }) {
   const isSalarie = t => t === 'Salarié(e)' || t === 'Mixte';
   const isTns     = t => t === 'Indépendant(e)/TNS';
+  const ep = epargne || [];
   return {
     salaires:             isSalarie(typeD1) || (adults === 2 && isSalarie(typeD2)),
     tns:                  isTns(typeD1) || (adults === 2 && isTns(typeD2)),
@@ -49,9 +56,9 @@ function computeModules({ typeD1, typeD2, adults, placements, biens, credits }) 
     immobilier:           biens.includes('rp') || biens.includes('locatif') || biens.includes('indivision'),
     capitauxMobiliers:    placements.includes('dividendes') || placements.includes('pv'),
     crypto:               placements.includes('crypto'),
-    epargneSalariale:     false,
-    perVolontaire:        false,
-    pensionsAlimentaires: false,
+    epargneSalariale:     ep.includes('epargne_salariale'),
+    perVolontaire:        ep.includes('per'),
+    pensionsAlimentaires: credits.includes('pension'),
     creditsImpot:         credits.length > 0,
     investissementsLocatifs: biens.includes('locatif'),
   };
@@ -152,6 +159,7 @@ export default function OnboardingWizard({ onComplete, onSkip, initialMode = 'so
   const [placements, setPlacements]   = useState([]);
   const [biens, setBiens]             = useState([]);
   const [credits, setCredits]         = useState([]);
+  const [epargne, setEpargne]         = useState([]);
 
   function toggle(arr, setArr, val) {
     setArr(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
@@ -166,6 +174,7 @@ export default function OnboardingWizard({ onComplete, onSkip, initialMode = 'so
       : 'Quelle est la source de revenus de chaque déclarant ?',
     'Avez-vous des revenus de placements ?',
     'Avez-vous des biens immobiliers ?',
+    'Épargne et retraite ?',
     'Avez-vous des dépenses ouvrant droit à crédit d\'impôt ?',
   ];
 
@@ -178,7 +187,7 @@ export default function OnboardingWizard({ onComplete, onSkip, initialMode = 'so
 
   function handleNext() {
     if (step < TOTAL_STEPS - 1) { setStep(s => s + 1); return; }
-    const mods = computeModules({ typeD1, typeD2, adults, placements, biens, credits });
+    const mods = computeModules({ typeD1, typeD2, adults, placements, biens, credits, epargne });
     const parts = computeParts(adults, statut, enfants, gardeAlternee);
     const collected = {
       foyer: { statut, parts, enfants, enfantsGardeAlternee: gardeAlternee },
@@ -307,8 +316,23 @@ export default function OnboardingWizard({ onComplete, onSkip, initialMode = 'so
           </div>
         );
 
-      // Q7 — Crédits d'impôt
+      // Q7 — Épargne & retraite
       case 6:
+        return (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400 mb-3">Cochez tout ce qui s'applique — laissez vide si aucun</p>
+            {EPARGNE.map(({ value, label, desc }) => (
+              <MultiChip
+                key={value} label={label} desc={desc}
+                selected={epargne.includes(value)}
+                onClick={() => toggle(epargne, setEpargne, value)}
+              />
+            ))}
+          </div>
+        );
+
+      // Q8 — Crédits d'impôt & charges
+      case 7:
         return (
           <div className="space-y-2">
             <p className="text-xs text-gray-400 mb-3">Cochez tout ce qui s'applique — laissez vide si aucun</p>
