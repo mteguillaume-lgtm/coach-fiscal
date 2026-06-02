@@ -22,6 +22,7 @@ const COLLECT_PROFILE_DEFAULT = {
     pensionsAlimentaires: false,
     creditsImpot:         false,
     investissementsLocatifs: false,
+    international:         false,
   },
   onboardingDone: false,
   expertMode:     false,

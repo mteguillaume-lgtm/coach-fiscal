@@ -296,20 +296,20 @@ const DEFISC_FIELDS = [
 // Fiscalité internationale (PHASE 6). Champs foyer. Taux effectif (8TI) + crédit 8TK
 // calculés ; non-résident / impatrié / exit tax → détection + routage avocat fiscaliste.
 const INTL_FIELDS = [
-  { key: 'intl_statut_residence', label: 'Statut de résidence fiscale', type: 'select', advanced: true,
+  { key: 'intl_statut_residence', label: 'Statut de résidence fiscale', type: 'select', advanced: true, requires: 'international',
     opts: [
       { value: 'resident', label: 'Résident fiscal français' },
       { value: 'non_resident', label: 'Non-résident fiscal' },
       { value: 'impatrie', label: 'Impatrié (art. 155 B)' },
     ],
     hint: 'Non-résident / impatrié : régimes conventionnels complexes → orientation vers un avocat fiscaliste.' },
-  { key: 'intl_rev_etrangers_exoneres', label: 'Revenus étrangers exonérés — taux effectif (8TI) (€)', type: 'number', ph: '0', advanced: true,
+  { key: 'intl_rev_etrangers_exoneres', label: 'Revenus étrangers exonérés — taux effectif (8TI) (€)', type: 'number', ph: '0', advanced: true, requires: 'international',
     hint: 'Revenus de source étrangère exonérés par convention mais retenus pour calculer le taux moyen d\'imposition de vos revenus français.' },
-  { key: 'intl_rev_etrangers_imputation', label: 'Revenus étrangers imposés en France (€)', type: 'number', ph: '0', advanced: true,
+  { key: 'intl_rev_etrangers_imputation', label: 'Revenus étrangers imposés en France (€)', type: 'number', ph: '0', advanced: true, requires: 'international',
     hint: 'Revenus étrangers imposables en France (méthode de l\'imputation), déjà compris dans vos revenus déclarés. Sert à plafonner le crédit d\'impôt 8TK.' },
-  { key: 'intl_credit_8tk', label: 'Crédit d\'impôt étranger (8TK) (€)', type: 'number', ph: '0', advanced: true,
+  { key: 'intl_credit_8tk', label: 'Crédit d\'impôt étranger (8TK) (€)', type: 'number', ph: '0', advanced: true, requires: 'international',
     hint: 'Impôt payé à l\'étranger ouvrant droit à un crédit d\'impôt en France (plafonné à l\'impôt français correspondant).' },
-  { key: 'intl_exit_tax', label: 'Transfert de domicile hors de France (exit tax) ?', type: 'select', opts: ['Non', 'Oui'], advanced: true,
+  { key: 'intl_exit_tax', label: 'Transfert de domicile hors de France (exit tax) ?', type: 'select', opts: ['Non', 'Oui'], advanced: true, requires: 'international',
     hint: 'Exit tax (art. 167 bis) sur les plus-values latentes au départ : mécanisme complexe → avocat fiscaliste.' },
 ];
 
@@ -335,11 +335,11 @@ const REDUC_CREDIT_FIELDS = [
     hint: 'Plafond enfant majeur : 6 855 €/enfant (revenus 2025).' },
   { key: 'pension_recue', label: 'Pension alimentaire reçue — imposable (€)', type: 'number', ph: '0', advanced: true,
     hint: 'Pension alimentaire que vous percevez (case 1AO) : imposable, ajoutée à votre revenu.' },
-  { key: 'frais_accueil', label: 'Frais d\'accueil personne âgée > 75 ans (€)', type: 'number', ph: '0', advanced: true,
+  { key: 'frais_accueil', label: 'Frais d\'accueil personne âgée > 75 ans (€)', type: 'number', ph: '0', advanced: true, requires: 'creditsImpot',
     hint: 'Déduction forfaitaire dans la limite de 4 075 €/personne accueillie (case 6EU).' },
-  { key: 'scol_college',  label: 'Enfants scolarisés — collège',     type: 'number', ph: '0', advanced: true, hint: 'Réduction forfaitaire 61 €/enfant.' },
-  { key: 'scol_lycee',    label: 'Enfants scolarisés — lycée',       type: 'number', ph: '0', advanced: true, hint: 'Réduction forfaitaire 153 €/enfant.' },
-  { key: 'scol_sup',      label: 'Enfants scolarisés — supérieur',   type: 'number', ph: '0', advanced: true, hint: 'Réduction forfaitaire 183 €/enfant.' },
+  { key: 'scol_college',  label: 'Enfants scolarisés — collège',     type: 'number', ph: '0', advanced: true, requires: 'creditsImpot', hint: 'Réduction forfaitaire 61 €/enfant.' },
+  { key: 'scol_lycee',    label: 'Enfants scolarisés — lycée',       type: 'number', ph: '0', advanced: true, requires: 'creditsImpot', hint: 'Réduction forfaitaire 153 €/enfant.' },
+  { key: 'scol_sup',      label: 'Enfants scolarisés — supérieur',   type: 'number', ph: '0', advanced: true, requires: 'creditsImpot', hint: 'Réduction forfaitaire 183 €/enfant.' },
 ];
 
 const EP_INDIV_FIELDS = [
@@ -1725,7 +1725,7 @@ export default function Collect() {
                     num={2} data={d2Data} onChange={handleD2Change} autoFKeys={autoF2}
                     uploadTarget="d2" {...accProps} {...uploadProps} {...modProps}
                   />
-                  {(expertMode || modules.foncier || modules.capitauxMobiliers || modules.crypto) && (
+                  {(expertMode || modules.foncier || modules.capitauxMobiliers || modules.crypto || modules.international) && (
                     <AccSection section={SECTION_REV_FOYER} data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} {...modProps} />
                   )}
                   <AccSection section={SECTION_DED} data={formData} onChange={handleChange} autoFKeys={{}} {...accProps} {...modProps} />

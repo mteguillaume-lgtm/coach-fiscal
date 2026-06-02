@@ -19,6 +19,7 @@ const PLACEMENTS = [
   { value: 'crypto',     label: 'Cryptomonnaies',           desc: 'Bitcoin, Ethereum…' },
   { value: 'pv',         label: 'Plus-values mobilières',   desc: "Vente d'actions, ETF" },
   { value: 'loyers',     label: 'Loyers perçus',            desc: 'Location nue ou meublée' },
+  { value: 'etranger',   label: 'Revenus de source étrangère', desc: 'Salaire/pension/loyers hors de France, frontalier' },
 ];
 
 const BIENS = [
@@ -61,6 +62,7 @@ function computeModules({ typeD1, typeD2, adults, placements, biens, credits, ep
     pensionsAlimentaires: credits.includes('pension'),
     creditsImpot:         credits.length > 0,
     investissementsLocatifs: biens.includes('locatif'),
+    international:         placements.includes('etranger'),
   };
 }
 
