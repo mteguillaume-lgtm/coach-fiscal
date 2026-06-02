@@ -178,6 +178,40 @@ const REV_FIELDS = [
   ...TNS_FIELDS,
 ];
 
+// PHASE 3 — Immobilier locatif (foyer-level, émis par profileGenerator._immoBlock).
+// Foncier réel (location nue, 2044) + déficit foncier, LMNP micro-BIC (loi Le Meur),
+// LMNP réel (résultat saisi → expert-comptable), SCI à l'IR (transparence).
+const IMMO_FIELDS = [
+  { key: 'foncier_reel_recettes', label: 'Foncier réel — loyers bruts encaissés (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    hint: 'Location nue au régime réel (formulaire 2044). Si vos revenus fonciers bruts ≤ 15 000 €, le micro-foncier (champ ci-dessus) suffit.' },
+  { key: 'foncier_reel_charges', label: 'Foncier réel — charges déductibles hors intérêts (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    dependsOn: { key: 'foncier_reel_recettes', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Travaux d\'entretien/réparation/amélioration, taxe foncière (hors TEOM), assurances, frais de gestion, charges de copropriété non récupérables. PAS les travaux de construction/agrandissement.' },
+  { key: 'foncier_reel_interets', label: 'Foncier réel — intérêts d\'emprunt (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    dependsOn: { key: 'foncier_reel_recettes', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Intérêts d\'emprunt déductibles. Ils ne sont JAMAIS imputables sur le revenu global — uniquement sur les revenus fonciers.' },
+  { key: 'foncier_reno_energ', label: 'Travaux de rénovation énergétique globale ?', type: 'select', opts: ['Non', 'Oui'], requires: 'foncier', advanced: true,
+    dependsOn: { key: 'foncier_reel_recettes', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Si oui, le plafond d\'imputation du déficit foncier sur le revenu global passe de 10 700 € à 21 400 €.' },
+  { key: 'sci_ir_net', label: 'Quote-part SCI à l\'IR — revenu foncier net (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    hint: 'SCI à l\'IR (transparence) : votre quote-part de revenu foncier net au prorata des parts. Transmission / démembrement → voir un notaire.' },
+  { key: 'lmnp_type', label: 'Location meublée (LMNP) — régime micro', type: 'select', requires: 'foncier', advanced: true,
+    opts: [
+      { value: 'lmnp_longue_duree',          label: 'Meublé longue durée (abat. 50 %, ≤ 77 700 €)' },
+      { value: 'meuble_tourisme_classe',     label: 'Meublé de tourisme classé / chambre d\'hôtes (abat. 50 %)' },
+      { value: 'meuble_tourisme_non_classe', label: 'Meublé de tourisme non classé (abat. 30 %, ≤ 15 000 €)' },
+    ],
+    hint: 'Location meublée non professionnelle au micro-BIC. Réforme loi Le Meur (revenus 2025) : la distinction est désormais classé / non classé.' },
+  { key: 'lmnp_recettes', label: 'LMNP micro — recettes brutes (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    dependsOn: { key: 'lmnp_type', check: v => !!v },
+    hint: 'Loyers meublés encaissés. Bénéfice = recettes − abattement, ajouté au revenu (BIC) et soumis aux PS 17,2 %.' },
+  { key: 'lmnp_reel_net', label: 'LMNP réel — résultat BIC net déjà établi (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    hint: 'Régime réel (amortissements) : reportez le résultat net établi par votre expert-comptable. Un bénéfice est ajouté au revenu ; un déficit n\'est pas imputable sur le revenu global (reportable 10 ans sur les BIC meublés).' },
+  { key: 'lmnp_reel_recettes', label: 'LMNP réel — recettes meublées (€)', type: 'number', ph: '0', requires: 'foncier', advanced: true,
+    dependsOn: { key: 'lmnp_reel_net', check: v => parseFloat(v || 0) !== 0 },
+    hint: 'Recettes meublées au réel — sert uniquement à détecter une éventuelle bascule LMP (> 23 000 € ET > 50 % des revenus pro).' },
+];
+
 // CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
 // compteur fiscal). Le courtier étranger déclenche le flag 3916.
 const CTO_FIELDS = [
@@ -269,6 +303,7 @@ const SECTION_REV_SOLO = {
   id: 'rev', Icon: TrendingUp, label: 'Revenus 2025', fields: [
     ...pluginFields(['salaires', 'pensions-rentes'], EXCLUDE_REV),
     ...pluginFields(['foncier-micro'],  EXCLUDE_REV).map(f => ({ ...f, requires: 'foncier' })),
+    ...IMMO_FIELDS,
     ...pluginFields(['mobiliers'],      EXCLUDE_REV).map(f => ({ ...f, requires: 'capitauxMobiliers' })),
     { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers' },
     { key: 'div_2dc', label: 'Dividendes bruts — case 2DC (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers',
@@ -373,6 +408,7 @@ const SECTION_DED_SOLO = {
 const SECTION_REV_FOYER = {
   id: 'rev_foyer', Icon: TrendingUp, label: 'Revenus du foyer', fields: [
     ...pluginFields(['foncier-micro']).map(f => ({ ...f, requires: 'foncier' })),
+    ...IMMO_FIELDS,
     ...pluginFields(['mobiliers']).map(f => ({ ...f, requires: 'capitauxMobiliers' })),
     { key: 'divid',  label: 'Dividendes/intérêts (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers' },
     { key: 'div_2dc', label: 'Dividendes bruts — case 2DC (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers',

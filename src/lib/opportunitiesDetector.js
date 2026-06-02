@@ -167,6 +167,45 @@ export function detectOpportunities(parsedProfile) {
     });
   }
 
+  // Levier déficit foncier (PHASE 3) : foncier réel avec déficit imputé / report
+  // → optimisation de la concentration des travaux + arbitrage micro vs réel.
+  const _foncierDeficitImpute = parsedProfile.foncierDeficitImputeGlobal || 0;
+  const _foncierDeficitReporte = parsedProfile.foncierDeficitReporte || 0;
+  const _foncierReelNet = parsedProfile.foncierReelNet || 0;
+  if (_foncierDeficitImpute > 0 || _foncierDeficitReporte > 0 || _foncierReelNet > 0) {
+    opps.push({
+      id: 'levier_deficit_foncier',
+      type: 'info',
+      urgence: 'a_etudier',
+      titre: '🏠 Foncier réel : déficit foncier & travaux',
+      description: 'Au régime réel (location nue), vos charges et travaux d\'entretien/réparation/amélioration sont déductibles. Un déficit foncier s\'impute sur votre revenu global jusqu\'à 10 700 €/an (21 400 € pour une rénovation énergétique globale), l\'excédent étant reportable 10 ans sur vos revenus fonciers. Les intérêts d\'emprunt ne s\'imputent jamais sur le revenu global.',
+      impact: _foncierDeficitImpute > 0
+        ? `Déficit imputé sur le revenu global : ${fmt(_foncierDeficitImpute)} €${_foncierDeficitReporte > 0 ? ` · reportable : ${fmt(_foncierDeficitReporte)} €` : ''}.`
+        : 'Comparez micro-foncier (abattement 30 %) et régime réel selon vos charges réelles.',
+      impactEuros: 0,
+      action: 'Concentrer les gros travaux sur une même année pour maximiser le déficit imputable. Ne pas céder le bien dans les 3 ans suivant l\'imputation (sinon reprise).',
+      questionChat: 'J\'ai des revenus fonciers au régime réel. Comment optimiser mon déficit foncier (plafond 10 700 €, travaux, intérêts) et dois-je préférer le micro-foncier ou le réel cette année ?',
+    });
+  }
+
+  // Levier LMNP réel (PHASE 3) : meublé déclaré → amortissements (réel) souvent
+  // plus avantageux que le micro-BIC. Routage expert-comptable pour la liasse.
+  const _lmnpMicroBenefice = parsedProfile.lmnpMicroBenefice || 0;
+  const _lmnpReelNet = parsedProfile.lmnpReelNet || 0;
+  if (_lmnpMicroBenefice > 0 || _lmnpReelNet > 0 || parsedProfile.lmnpReelDeficit > 0) {
+    opps.push({
+      id: 'levier_lmnp_reel',
+      type: 'info',
+      urgence: 'a_etudier',
+      titre: '🛏️ LMNP : micro-BIC vs réel (amortissements)',
+      description: 'En location meublée, le régime réel permet d\'amortir le bien, le mobilier et les travaux : le résultat fiscal est souvent nul ou déficitaire pendant des années, contre un abattement micro-BIC de 50 % (ou 30 % pour le tourisme non classé depuis la loi Le Meur). Attention à la bascule LMP si vos recettes meublées dépassent 23 000 € ET 50 % de vos revenus professionnels.',
+      impact: 'Variable : l\'amortissement efface souvent l\'imposition des loyers meublés.',
+      impactEuros: 0,
+      action: 'Comparer abattement micro-BIC vs amortissements au réel. Pour le régime réel (liasse 2031/2033-A), faites établir le résultat par un expert-comptable.',
+      questionChat: 'Je loue en meublé (LMNP). Le régime réel avec amortissements serait-il plus avantageux que le micro-BIC, et quel est mon risque de bascule en LMP ?',
+    });
+  }
+
   // Épargne liquide mal rémunérée : total > 10 000 €
   // Plan de réallocation détaillé étape par étape avec gain annuel estimé.
   if (livretTotal > 10_000) {

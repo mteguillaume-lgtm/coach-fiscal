@@ -3,13 +3,23 @@
     "revenus": 2025,
     "declaration": 2026,
     "reforme_applicable": "Loi Le Meur (nov. 2024), applicable aux revenus 2025",
-    "source": "BOI-BIC-CHAMP-40"
+    "description": "Régimes des revenus immobiliers locatifs : revenus fonciers (location nue, micro ou réel + déficit foncier), LMNP/LMP en meublé (micro-BIC ou réel), SCI à l'IR (transparence). Sert au calcul du revenu net imposable réintégré au RNI du foyer. Les régimes réels meublés (liasse 2031/2033 avec amortissements) et la SCI à l'IS sont HORS scope de calcul → routage expert-comptable. Le taux de prélèvements sociaux applicable aux revenus fonciers et LMNP (17,2 %) n'est PAS dupliqué ici : voir pfu-prelevements-sociaux.json (TAUX_PS_CAPITAL).",
+    "sources": [
+      "impots.gouv.fr — Revenus fonciers : micro-foncier et régime réel (formulaire 2044)",
+      "impots.gouv.fr — Déficit foncier (imputation sur le revenu global, plafond 10 700 € / 21 400 €)",
+      "impots.gouv.fr / BOI-BIC-CHAMP-40 — Locations meublées : régime micro-BIC, réforme loi Le Meur (revenus 2025)",
+      "service-public.fr — Location meublée : LMNP / LMP, seuils de bascule (23 000 € et 50 %)",
+      "CGI art. 14 à 33 quater (fonciers), 156-I-3° (déficit foncier), 35-I-5° bis (LMNP), 155-IV (LMP), 8 (SCI transparence)"
+    ],
+    "source": "BOI-BIC-CHAMP-40",
+    "as_of": "2026-06"
   },
 
   "micro_foncier": {
     "description": "Régime simplifié pour revenus fonciers non meublés (location nue)",
     "seuil_recettes_brutes": 15000,
     "abattement": 0.30,
+    "case_brut": "4BE",
     "note": "Revenus fonciers bruts ≤ 15 000 € → micro-foncier éligible, abattement 30% automatique. Au-delà : régime réel obligatoire. Exclusions : SCI, monument historique, Pinel, Borloo, etc."
   },
 
@@ -23,52 +33,70 @@
       "Frais de gestion",
       "Charges de copropriété (fraction non récupérable)"
     ],
+    "cases": {
+      "revenu_net_4BA": "4BA",
+      "deficit_imputable_revenus_fonciers_4BB": "4BB",
+      "deficit_imputable_revenu_global_4BC": "4BC",
+      "deficits_anterieurs_reportes_4BD": "4BD"
+    },
     "deficit_foncier": {
       "imputation_revenu_global": 10700,
+      "imputation_revenu_global_renovation_energetique": 21400,
+      "report_annees": 10,
       "note_travaux_renovation_energetique": "Plafond temporairement doublé à 21 400 € pour travaux de rénovation énergétique globale (loi climat)",
       "imputation_revenus_fonciers": "Reportable 10 ans au-delà du plafond annuel",
-      "exception_interets": "Les intérêts d'emprunt NE sont JAMAIS imputables sur le revenu global, uniquement sur les revenus fonciers"
+      "exception_interets": "Les intérêts d'emprunt NE sont JAMAIS imputables sur le revenu global, uniquement sur les revenus fonciers. La fraction de déficit due aux intérêts reste donc reportable sur les seuls revenus fonciers."
     }
   },
 
   "micro_bic_lmnp": {
-    "description": "Régime micro pour locations meublées non professionnelles",
+    "description": "Régime micro pour locations meublées non professionnelles (BIC, pas revenus fonciers)",
     "reforme_le_meur": "Distinction désormais classé / non classé (et non résidence principale ou non). Applicable revenus 2025.",
+    "abattement_minimum_euros": 305,
 
     "lmnp_longue_duree": {
+      "label": "LMNP location meublée longue durée",
       "seuil": 77700,
       "abattement": 0.50,
-      "note": "Location meublée longue durée (bail >9 mois) — inchangé"
+      "cases_recettes": { "D1": "5ND", "D2": "5OD", "pac": "5PD" },
+      "note": "Location meublée longue durée (bail >9 mois) — seuil et abattement inchangés."
     },
 
     "meuble_tourisme_classe": {
+      "label": "LMNP meublé de tourisme classé / chambre d'hôtes",
       "seuil": 77700,
       "abattement": 0.50,
-      "note": "Meublés de tourisme classés (catégorie étoilée) — inchangé"
+      "cases_recettes": { "D1": "5NG", "D2": "5OG", "pac": "5PG" },
+      "note": "Meublés de tourisme classés (catégorie étoilée) et chambres d'hôtes. Abattement abaissé à 50 % (était 71 %) par la loi Le Meur."
     },
 
     "meuble_tourisme_non_classe": {
+      "label": "LMNP meublé de tourisme non classé",
       "seuil": 15000,
       "abattement": 0.30,
-      "note": "Seuil et abattement abaissés par la loi Le Meur. Au-delà de 15 000 € : régime réel obligatoire."
+      "cases_recettes": { "D1": "5ND", "D2": "5OD", "pac": "5PD" },
+      "note": "Seuil et abattement abaissés par la loi Le Meur (était 50 % / 77 700 €). Au-delà de 15 000 € : régime réel obligatoire. Déclaré sur la ligne micro-BIC meublé non professionnel comme la longue durée."
     }
   },
 
   "lmnp_reel": {
-    "description": "Permet l'amortissement du bien + mobilier + charges",
+    "description": "Régime réel meublé : permet l'amortissement du bien + mobilier + charges. Le résultat fiscal (liasse 2031/2033-A) est établi par un expert-comptable → HORS scope de calcul de l'outil. On accepte uniquement un résultat BIC net déjà établi, à réintégrer au RNI.",
+    "cases_resultat_net": { "D1": "5NA", "D2": "5OA", "pac": "5PA" },
     "amortissement": {
       "bien_immobilier": "Environ 2-3% par an sur 25-40 ans (hors terrain, terrain non amortissable)",
       "mobilier": "10-20% par an sur 5-10 ans",
       "gros_travaux": "Amortissables sur leur durée d'usage"
     },
     "resultat_fiscal": "Recettes − charges − amortissements. Souvent nul ou déficitaire.",
-    "deficit_lmnp": "NON imputable sur le revenu global (contrairement au LMP). Reportable sur les BIC des 10 années suivantes."
+    "deficit_lmnp": "NON imputable sur le revenu global (contrairement au LMP). Reportable sur les BIC des 10 années suivantes.",
+    "routage": "Calcul des amortissements et de la liasse 2031/2033-A → expert-comptable recommandé."
   },
 
   "lmp_vs_lmnp": {
     "description": "Bascule en LMP (Loueur Meublé Professionnel)",
     "seuils_cumulatifs": {
       "seuil_recettes": 23000,
+      "part_revenus_pro_min": 0.50,
       "condition_revenus": "ET recettes meublées > 50% des autres revenus professionnels du foyer (salaires, BNC, BIC, revenus dirigeants)",
       "note": "Les DEUX conditions doivent être remplies. Seuil 23 000 € non renouvelable — application dès dépassement."
     },
@@ -78,14 +106,17 @@
       "cotisations_sociales": "Cotisations TNS sur le bénéfice (SSI) — charge significative vs LMNP",
       "ifi": "Biens LMP exonérés d'IFI comme biens professionnels (sous conditions)"
     },
-    "bascule_involontaire": "Attention : passage LMP possible en cas de hausse des recettes meublées OU baisse des autres revenus professionnels. À surveiller annuellement."
+    "bascule_involontaire": "Attention : passage LMP possible en cas de hausse des recettes meublées OU baisse des autres revenus professionnels. À surveiller annuellement.",
+    "routage": "Statut LMP (cotisations TNS, plus-values professionnelles, liasse) → expert-comptable recommandé."
   },
 
   "sci_ir": {
     "description": "SCI à l'IR (régime par défaut, transparence fiscale)",
     "principe": "Les revenus et charges remontent directement dans la déclaration des associés au prorata des parts",
     "nature_revenus": "Revenus fonciers classiques (micro ou réel selon total fonciers du foyer)",
+    "amortissement_possible": false,
     "cession_parts_ou_bien": "Plus-values immobilières des particuliers (régime des particuliers)",
+    "transmission": "Démembrement / donation de parts → optimisation de transmission, voir notaire.",
     "note_sci_is": "SCI à l'IS → voir skill `comptable` (hors scope du fiscaliste)"
   }
 }

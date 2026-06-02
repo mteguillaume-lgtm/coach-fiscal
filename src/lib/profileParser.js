@@ -110,7 +110,10 @@ function _rni(pd, profil, text) {
   const pensionAlimRecue = pd.pensionAlimRecue || 0;
   // PHASE 2 : bénéfice TNS micro (BIC/BNC/BA) hors versement libératoire, réintégré au barème.
   const beneficeTns = pd.beneficeTnsImposable || 0;
-  const rniFoyerSum  = Math.max(0, rniD1 + rniD2 + (pd.foncierNet || 0) - deductionsRevenu + pensionAlimRecue + beneficeTns);
+  // PHASE 3 : revenu immobilier locatif net (foncier réel + déficit imputé + LMNP + SCI IR),
+  // signé — un déficit foncier imputé sur le revenu global le réduit.
+  const immoDeltaRni = pd.immoDeltaRni || 0;
+  const rniFoyerSum  = Math.max(0, rniD1 + rniD2 + (pd.foncierNet || 0) - deductionsRevenu + pensionAlimRecue + beneficeTns + immoDeltaRni);
   const rniFoyerText = n(text, /RNI FOYER TOTAL[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /RNI total[^:\n]*:\s*([\d\s,]+)\s*€/i)
                     || n(text, /Revenu net imposable total estimé\s*:\s*([\d\s,]+)\s*€/);

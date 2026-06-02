@@ -50,6 +50,30 @@ economie.gouv.fr, indexation LFI 2026 +0,9 %) et bloc `_meta_sources_plafonds`
 documenté dans le JSON. La réduction d'impôt complémentaire invalidité (1 801 €)
 est notée pour usage ultérieur.
 
+## PHASE 3 — Immobilier locatif (revenus 2025)
+
+| Donnée | Valeur | Fichier Paperasse | Source officielle | Vérifié le |
+|--------|--------|-------------------|-------------------|-----------|
+| Micro-foncier (location nue) — seuil / abattement | 15 000 € / 30 % (case 4BE) | `regimes-fonciers-lmnp.json` → `micro_foncier` | art. 32 CGI ; BOI-RFPI | 2026-06-02 |
+| Déficit foncier — imputation revenu global | 10 700 €/an (cases 4BB/4BC/4BD) | `regimes-fonciers-lmnp.json` → `regime_reel_foncier.deficit_foncier` | art. 156-I-3° CGI | 2026-06-02 |
+| Déficit foncier — plafond rénovation énergétique | 21 400 €/an (temporaire) | `regimes-fonciers-lmnp.json` → `regime_reel_foncier.deficit_foncier` | art. 156-I-3° CGI (loi climat) | 2026-06-02 |
+| Déficit foncier — report sur revenus fonciers | 10 ans ; intérêts JAMAIS imputables sur revenu global | `regimes-fonciers-lmnp.json` → `regime_reel_foncier.deficit_foncier` | art. 156-I-3° CGI ; BOI-RFPI-BASE-30 | 2026-06-02 |
+| LMNP micro-BIC longue durée — seuil / abattement | 77 700 € / 50 % (5ND/5OD/5PD) | `regimes-fonciers-lmnp.json` → `micro_bic_lmnp.lmnp_longue_duree` | art. 50-0 CGI ; BOI-BIC-CHAMP-40 | 2026-06-02 |
+| LMNP meublé tourisme classé — seuil / abattement | 77 700 € / 50 % (5NG/5OG/5PG) | `regimes-fonciers-lmnp.json` → `micro_bic_lmnp.meuble_tourisme_classe` | loi Le Meur (nov. 2024) ; BOI-BIC-CHAMP-40 | 2026-06-02 |
+| LMNP meublé tourisme non classé — seuil / abattement | 15 000 € / 30 % | `regimes-fonciers-lmnp.json` → `micro_bic_lmnp.meuble_tourisme_non_classe` | loi Le Meur (nov. 2024) ; BOI-BIC-CHAMP-40 | 2026-06-02 |
+| Abattement micro-BIC LMNP — plancher | 305 € | `regimes-fonciers-lmnp.json` → `micro_bic_lmnp.abattement_minimum_euros` | art. 50-0 CGI | 2026-06-02 |
+| LMNP réel — résultat BIC net (saisi) | cases 5NA/5OA/5PA ; amortissements → expert-comptable | `regimes-fonciers-lmnp.json` → `lmnp_reel` | art. 39 C CGI ; liasse 2031/2033-A | 2026-06-02 |
+| Bascule LMP — seuils cumulatifs | recettes > 23 000 € **ET** > 50 % des revenus pro du foyer | `regimes-fonciers-lmnp.json` → `lmp_vs_lmnp.seuils_cumulatifs` | art. 155-IV CGI | 2026-06-02 |
+| SCI à l'IR — transparence | revenus fonciers (micro/réel) au prorata des parts ; pas d'amortissement | `regimes-fonciers-lmnp.json` → `sci_ir` | art. 8 CGI | 2026-06-02 |
+| PS sur foncier / LMNP | 17,2 % (non dupliqué — voir `pfu-prelevements-sociaux.json`) | `pfu-prelevements-sociaux.json` | art. 235 ter CGI | (existant) |
+
+> **Manque comblé en PHASE 3** : les n° de cases déclaratives (4BA-4BE, 5ND/5OD,
+> 5NG/5OG, 5NA/5OA) et les plafonds numériques (10 700 / 21 400 / 305 €, seuils
+> de bascule LMP 23 000 € et 50 %) n'étaient présents que dans le `.md` de
+> référence ; ils ont été structurés dans `regimes-fonciers-lmnp.json` (champs
+> `cases*`, `deficit_foncier.*`, `lmp_vs_lmnp.seuils_cumulatifs.*`) pour rester
+> lisibles par le moteur, sans chiffre en dur.
+
 ## Rituel annuel de bascule d'année (procédure — à NE PAS exécuter ici)
 
 Chaque janvier, après publication de la Loi de finances :

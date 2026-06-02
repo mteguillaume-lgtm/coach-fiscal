@@ -68,26 +68,28 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Cas | Cases | État | Sprint cible |
 |---|---|---|---|
 | Micro-foncier < 15 000€ | 4BE | ✅ | Initial |
-| Régime réel formulaire 2044 | 2044 | ❌ | C1 |
-| Déficit foncier reportable 10 ans | 4BB/4BC/4BD | ❌ | C1 |
-| Déficit foncier 10 700€ imputable revenu global | — | ❌ | C1 |
-| Travaux énergétiques double plafond | 4BC | ❌ | C1 |
-| Revenus SCPI | 4BE ou 2044 | ❌ | C1 |
-| Revenus SCI à l'IR (transparence) | 2044 | ❌ | C1 |
+| Régime réel formulaire 2044 | 2044 / 4BA | ✅ | PHASE 3 |
+| Déficit foncier reportable 10 ans | 4BB/4BC/4BD | ✅ | PHASE 3 |
+| Déficit foncier 10 700€ imputable revenu global | 4BC | ✅ | PHASE 3 |
+| Travaux énergétiques double plafond (21 400€) | 4BC | ✅ | PHASE 3 |
+| Intérêts d'emprunt non imputables sur revenu global | — | ✅ | PHASE 3 |
+| Revenus SCPI | 4BE ou 2044 | 🟡 | PHASE 3 (via foncier réel/micro) |
+| Revenus SCI à l'IR (transparence) | 2044 | ✅ | PHASE 3 (quote-part nette) |
 | Indivision quote-part | 4BE ou 2044 | 🟡 | C1 |
-| Démembrement nu-propriétaire | — | 🟡 | C1 |
-| Démembrement usufruitier | 4BE ou 2044 | ❌ | C1 |
+| Démembrement nu-propriétaire | — | 🟡 | C1 (→ notaire) |
+| Démembrement usufruitier | 4BE ou 2044 | 🟡 | C1 (→ notaire) |
 
 ## Location meublée (LMNP / LMP)
 
 | Cas | Cases | État | Sprint cible |
 |---|---|---|---|
-| LMNP micro-BIC < 77 700€ | 5ND/5OD | ❌ | C2 |
-| LMNP micro-BIC meublé tourisme classé | 5NG/5OG | ❌ | C2 |
-| LMNP régime réel formulaire 2031 | 2031 | ❌ | C2 |
-| LMNP amortissements | 2033-A | ❌ | C2 |
-| Bascule LMP (recettes > 23 000€ + 50%) | 5KC/5LC | ❌ | C2 |
-| Déficit LMNP reportable 10 ans (BIC) | — | ❌ | C2 |
+| LMNP micro-BIC longue durée < 77 700€ (abat. 50%) | 5ND/5OD | ✅ | PHASE 3 |
+| LMNP micro-BIC meublé tourisme classé (abat. 50%) | 5NG/5OG | ✅ | PHASE 3 |
+| LMNP micro-BIC tourisme non classé < 15 000€ (abat. 30%, loi Le Meur) | 5ND/5OD | ✅ | PHASE 3 |
+| LMNP régime réel formulaire 2031 (résultat saisi) | 2031 / 5NA | 🟡 | PHASE 3 (→ expert-comptable) |
+| LMNP amortissements | 2033-A | 🟡 | PHASE 3 (→ expert-comptable) |
+| Bascule LMP (recettes > 23 000€ ET > 50%) | 5KC/5LC | ✅ | PHASE 3 (détection + routage) |
+| Déficit LMNP reportable 10 ans (BIC, non imputable global) | — | ✅ | PHASE 3 |
 
 ## Plus-values immobilières
 

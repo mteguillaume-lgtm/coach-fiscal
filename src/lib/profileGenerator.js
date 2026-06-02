@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -94,10 +94,10 @@ const fmtN   = v => Math.round(v || 0).toLocaleString('fr-FR') + ' €';
 // Micro-foncier : abattement 30% automatique si total brut < 15 000 €
 function calcFoncier(brut) {
   if (!brut || brut <= 0) return { brut: 0, net: 0, regime: null, ps: 0 };
-  const isMicro = brut <= 15000;
-  const net  = isMicro ? Math.round(brut * 0.70) : brut;
-  const ps   = Math.round(net * 0.172);
-  return { brut, net, regime: isMicro ? 'micro-foncier (abat. 30%)' : 'régime réel', ps };
+  const isMicro = brut <= SEUIL_MICRO_FONCIER;
+  const net  = isMicro ? Math.round(brut * (1 - ABATTEMENT_MICRO_FONCIER)) : brut;
+  const ps   = Math.round(net * TAUX_PS_CAPITAL);
+  return { brut, net, regime: isMicro ? `micro-foncier (abat. ${Math.round(ABATTEMENT_MICRO_FONCIER * 100)}%)` : 'régime réel', ps };
 }
 
 // Revenus indépendants au régime micro (BIC / BNC / BA).
@@ -148,6 +148,118 @@ Versement libératoire IR foyer (total) : ${fmtN(vlTotal)}`;
   return { deltaRni, vlTotal, reelFlag, section };
 }
 
+// Montant signé en € (peut être négatif — déficit foncier imputé sur le revenu global).
+const fmtSigned = v => `${Math.round(v) < 0 ? '−' : ''}${Math.abs(Math.round(v || 0)).toLocaleString('fr-FR')} €`;
+
+// Immobilier locatif (PHASE 3) — foncier réel (location nue, 2044), déficit foncier
+// (imputation 10 700 €/21 400 €, report 10 ans), LMNP micro-BIC (loi Le Meur),
+// LMNP réel (résultat net SAISI — liasse hors scope → routage expert-comptable),
+// SCI à l'IR (transparence). `deltaRni` = revenu net réintégré au RNI foyer
+// (négatif = déficit foncier imputé). `psBase` = base des prélèvements sociaux 17,2 %.
+// `revenusProFoyer` sert à la détection de bascule LMP (recettes meublées > 50 % des revenus pro).
+function _immoBlock(d, revenusProFoyer = 0) {
+  const recettes  = parseFloat(d.foncier_reel_recettes || 0);
+  const charges   = parseFloat(d.foncier_reel_charges  || 0);
+  const interets  = parseFloat(d.foncier_reel_interets || 0);
+  const renoEnerg = d.foncier_reno_energ === 'Oui';
+  const lmnpType  = d.lmnp_type || '';
+  const lmnpRec   = parseFloat(d.lmnp_recettes      || 0);
+  const lmnpReel  = parseFloat(d.lmnp_reel_net      || 0);
+  const lmnpReelRec = parseFloat(d.lmnp_reel_recettes || 0);
+  const sciNet    = parseFloat(d.sci_ir_net         || 0);
+
+  const hasFoncierReel = recettes > 0 || charges > 0 || interets > 0;
+  const hasLmnpMicro   = !!(lmnpType && LMNP_MICRO_REGIMES[lmnpType] && lmnpRec > 0);
+  const hasLmnpReel    = lmnpReel !== 0 || lmnpReelRec > 0;
+  const hasSci         = sciNet !== 0;
+  if (!hasFoncierReel && !hasLmnpMicro && !hasLmnpReel && !hasSci) {
+    return { deltaRni: 0, psBase: 0, section: '', reelFlag: false, lmpFlag: false };
+  }
+
+  const lignes = [];
+  let deltaRni = 0;
+  let psBase   = 0;
+  let reelFlag = false;
+
+  // ─ Foncier réel (location nue) ─
+  if (hasFoncierReel) {
+    const fr = calcFoncierReel({ recettes, charges, interets });
+    if (fr.net >= 0) {
+      deltaRni += fr.net;
+      psBase   += fr.net;
+      lignes.push(`Foncier réel — recettes : ${fmtN(fr.recettes)} | charges : ${fmtN(fr.charges)} | intérêts : ${fmtN(fr.interets)}`);
+      lignes.push(`Foncier réel net imposable foyer : ${fmtN(fr.net)}`);
+    } else {
+      const def = calcDeficitFoncier({
+        deficitAutresCharges: fr.deficitAutresCharges,
+        deficitInterets:      fr.deficitInterets,
+        renovationEnergetique: renoEnerg,
+      });
+      deltaRni -= def.imputableRevenuGlobal;
+      lignes.push(`Foncier réel — recettes : ${fmtN(fr.recettes)} | charges : ${fmtN(fr.charges)} | intérêts : ${fmtN(fr.interets)}`);
+      lignes.push(`Déficit foncier total : ${fmtN(fr.deficit)} (dont intérêts ${fmtN(fr.deficitInterets)}, non imputable sur le revenu global)`);
+      lignes.push(`Déficit foncier imputé sur le revenu global : ${fmtN(def.imputableRevenuGlobal)}${renoEnerg ? ' (plafond rénovation énergétique 21 400 €)' : ' (plafond 10 700 €)'}`);
+      lignes.push(`Déficit foncier reportable (10 ans, sur revenus fonciers) : ${fmtN(def.reportableRevenusFonciers)}`);
+    }
+  }
+
+  // ─ SCI à l'IR (transparence) — quote-part de revenu foncier net ─
+  if (hasSci) {
+    deltaRni += sciNet;
+    if (sciNet > 0) psBase += sciNet;
+    lignes.push(`Quote-part SCI à l'IR (revenu foncier net) foyer : ${fmtSigned(sciNet)}`);
+  }
+
+  // ─ LMNP micro-BIC ─
+  let recettesMeublees = 0;
+  if (hasLmnpMicro) {
+    const lm = calcLmnpMicro({ type: lmnpType, recettes: lmnpRec });
+    deltaRni += lm.beneficeImposable;
+    psBase   += lm.beneficeImposable;
+    recettesMeublees += lm.recettes;
+    const caseR = LMNP_MICRO_REGIMES[lmnpType].cases_recettes?.D1 || '';
+    lignes.push(`LMNP micro-BIC — ${lm.label}${caseR ? ` (${caseR})` : ''}`);
+    lignes.push(`LMNP micro recettes : ${fmtN(lm.recettes)} | abattement ${Math.round(lm.abattement * 100)} % : ${fmtN(lm.abattementEuros)}`);
+    lignes.push(`Bénéfice LMNP micro-BIC foyer : ${fmtN(lm.beneficeImposable)}`);
+    if (lm.depassementSeuil) {
+      lignes.push(`⚠️ Recettes LMNP > seuil micro (${fmtN(lm.seuil)}) → régime réel obligatoire : voir expert-comptable`);
+      reelFlag = true;
+    }
+  }
+
+  // ─ LMNP réel (résultat net SAISI ; amortissements/liasse hors scope) ─
+  if (hasLmnpReel) {
+    reelFlag = true;
+    recettesMeublees += lmnpReelRec;
+    if (lmnpReel > 0) {
+      deltaRni += lmnpReel;
+      psBase   += lmnpReel;
+      lignes.push(`Résultat LMNP réel net foyer (saisi) : ${fmtN(lmnpReel)}`);
+    } else if (lmnpReel < 0) {
+      // Déficit LMNP : NON imputable sur le revenu global (≠ LMP) → reportable sur les BIC meublés.
+      lignes.push(`Déficit LMNP réel : ${fmtN(-lmnpReel)} — non imputable sur le revenu global, reportable 10 ans sur les BIC meublés`);
+    }
+    lignes.push(`ℹ️ LMNP/LMP au réel : amortissements et liasse 2031/2033-A → expert-comptable recommandé`);
+  }
+
+  // ─ Détection bascule LMP (recettes meublées > 23 000 € ET > 50 % des revenus pro) ─
+  let lmpFlag = false;
+  if (recettesMeublees > 0) {
+    const lmp = detectLmp({ recettesMeublees, revenusProFoyer });
+    if (lmp.estLMP) {
+      lmpFlag = true;
+      lignes.push(`⚠️ Bascule LMP probable : recettes meublées ${fmtN(recettesMeublees)} > ${fmtN(lmp.seuilRecettes)} ET > 50 % des revenus pro du foyer → statut professionnel (cotisations TNS, plus-values pro) : expert-comptable recommandé`);
+    }
+  }
+
+  const section = `
+== REVENUS IMMOBILIER LOCATIF ==
+${lignes.join('\n')}
+Revenu immobilier net réintégré au RNI foyer : ${fmtSigned(deltaRni)}
+Base PS immobilier foyer : ${fmtN(psBase)}`;
+  return { deltaRni, psBase, section, reelFlag, lmpFlag };
+}
+
 // Plafond PER : 10% du RNI (après abattement 10% salaires) ou plancher PASS, moins PERO et abondement.
 // Délègue à calcPlafondPer (source unique de vérité dans taxCalculator.js) pour le calcul de dispo.
 function fmtPlafondPer(netImp, pero, abondPEEPERCO = 0) {
@@ -176,7 +288,8 @@ function _buildSolo(d, docSums) {
   const foncier  = calcFoncier(parseFloat(d.foncier || 0));
   const dedInfo  = _deductionsRevenu(d);
   const tns      = _tnsBlock([{ decl: d, who: 'D1' }]);
-  const rniTotal = Math.max(0, rni + foncier.net + dedInfo.deltaRni + tns.deltaRni);
+  const immo     = _immoBlock(d, rni + tns.deltaRni);
+  const rniTotal = Math.max(0, rni + foncier.net + dedInfo.deltaRni + tns.deltaRni + immo.deltaRni);
   const fam      = _famille(d, false);
   const parts    = fam.parts;
   const pero     = parseFloat(d.pero_d1 || 0);
@@ -233,8 +346,9 @@ ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : 
 ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
+${immo.section}
 == DONNÉES POUR CALCUL IR ==
-RNI total (salaires + foncier net + TNS) : ${fmtN(rniTotal)}
+RNI total (salaires + foncier net + TNS + immobilier) : ${fmtN(rniTotal)}
 Parts fiscales : ${parts}
 PAS prélevé 2025 : ${pas > 0 ? fmtN(pas) : 'Non renseigné'}
 ${parseFloat(d.acompte_8hw || 0) > 0 ? `Acompte IR D1 (8HW) : ${fmtN(parseFloat(d.acompte_8hw))}` : ''}
@@ -340,7 +454,8 @@ function _buildCouple(d, d1, d2, docSums) {
   const parts    = fam.parts;
   const dedInfo  = _deductionsRevenu(d);
   const tns      = _tnsBlock([{ decl: d1, who: 'D1' }, { decl: d2, who: 'D2' }]);
-  const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni + tns.deltaRni);
+  const immo     = _immoBlock(d, rniD1 + rniD2 + tns.deltaRni);
+  const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni + tns.deltaRni + immo.deltaRni);
 
   const pasD1    = parseFloat(d1.pas_tot || 0);
   const pasD2    = parseFloat(d2.pas_tot || 0);
@@ -413,6 +528,7 @@ ${parseFloat(d.int_mob_2tr || 0) > 0 ? `Intérêts mobiliers bruts (case 2TR) : 
 ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(parseFloat(d.int_mob_2ck))}` : ''}
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
+${immo.section}
 == DONNÉES POUR CALCUL IR FOYER ==
 RNI D1 (après abat. salaires) : ${fmtN(rniSalD1)}
 ${rniRenteD1 > 0 ? `Rente 1BS D1 (après abat. 10% pension) : ${fmtN(rniRenteD1)}` : ''}

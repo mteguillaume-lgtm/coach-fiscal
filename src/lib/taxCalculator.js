@@ -90,6 +90,18 @@ export const TAUX_PS_CAPITAL          = pfuRaw.prelevements_sociaux.taux_revenus
 export const SEUIL_MICRO_FONCIER      = fonciersRaw.micro_foncier.seuil_recettes_brutes;
 export const ABATTEMENT_MICRO_FONCIER = fonciersRaw.micro_foncier.abattement;
 
+// ─── Immobilier locatif — PHASE 3 (depuis regimes-fonciers-lmnp.json) ─────────
+
+export const DEFICIT_FONCIER          = fonciersRaw.regime_reel_foncier.deficit_foncier;
+export const LMNP_MICRO_REGIMES       = {
+  lmnp_longue_duree:        fonciersRaw.micro_bic_lmnp.lmnp_longue_duree,
+  meuble_tourisme_classe:   fonciersRaw.micro_bic_lmnp.meuble_tourisme_classe,
+  meuble_tourisme_non_classe: fonciersRaw.micro_bic_lmnp.meuble_tourisme_non_classe,
+};
+export const LMNP_MICRO_ABATT_MIN     = fonciersRaw.micro_bic_lmnp.abattement_minimum_euros;
+export const LMNP_MICRO_TYPES         = Object.keys(LMNP_MICRO_REGIMES);
+export const LMP_SEUILS               = fonciersRaw.lmp_vs_lmnp.seuils_cumulatifs;
+
 // ─── Heures supplémentaires défiscalisées + PPV (depuis le JSON) ──────────────
 
 export const PLAFOND_HEURES_SUPP      = hsSuppRaw.heures_supplementaires_defiscalisees.plafond_annuel_par_declarant;
@@ -444,6 +456,129 @@ export function estimCotisationsMicro({ type, recettes = 0, versementLiberatoire
     tauxVL,
     totalPrelevements: cotisations + vl,
     estimation: true,
+  };
+}
+
+// ─── Immobilier locatif — PHASE 3 ────────────────────────────────────────────
+
+/**
+ * Revenus fonciers au régime réel (location nue, formulaire 2044).
+ * Source : regimes-fonciers-lmnp.json → regime_reel_foncier.
+ * Résultat net = recettes − charges (dont intérêts d'emprunt). Peut être
+ * négatif (déficit). Les intérêts sont isolés car ils ne sont JAMAIS imputables
+ * sur le revenu global (uniquement sur les revenus fonciers) — cf. calcDeficitFoncier.
+ *
+ * @param {object} o
+ * @param {number} o.recettes  - loyers bruts encaissés
+ * @param {number} o.charges   - charges déductibles HORS intérêts (travaux, taxe foncière, assurances, gestion…)
+ * @param {number} o.interets  - intérêts d'emprunt déductibles
+ * @returns {{ recettes:number, charges:number, interets:number, chargesTotal:number,
+ *            net:number, deficit:number, deficitInterets:number, deficitAutresCharges:number }}
+ */
+export function calcFoncierReel({ recettes = 0, charges = 0, interets = 0 } = {}) {
+  const rec = Math.max(0, recettes || 0);
+  const chg = Math.max(0, charges || 0);
+  const int = Math.max(0, interets || 0);
+  const chargesTotal = chg + int;
+  const net = _round(rec - chargesTotal);
+  // Décomposition du déficit : les intérêts s'imputent en priorité sur les
+  // recettes (art. 156-I-3° CGI). La fraction de déficit due aux intérêts n'est
+  // jamais imputable sur le revenu global.
+  const deficit = net < 0 ? -net : 0;
+  const deficitInterets = _round(Math.max(0, int - rec));            // intérêts non couverts par les recettes
+  const deficitAutresCharges = _round(Math.max(0, deficit - deficitInterets));
+  return {
+    recettes: rec, charges: chg, interets: int, chargesTotal,
+    net, deficit, deficitInterets, deficitAutresCharges,
+  };
+}
+
+/**
+ * Imputation d'un déficit foncier (art. 156-I-3° CGI).
+ * Source : regimes-fonciers-lmnp.json → regime_reel_foncier.deficit_foncier.
+ * - La fraction due aux AUTRES charges (hors intérêts) est imputable sur le
+ *   revenu global dans la limite annuelle (10 700 €, ou 21 400 € pour travaux de
+ *   rénovation énergétique globale).
+ * - L'excédent + la fraction due aux intérêts sont reportables 10 ans sur les
+ *   seuls revenus fonciers.
+ *
+ * @param {object} o
+ * @param {number}  o.deficitAutresCharges - déficit hors intérêts (de calcFoncierReel)
+ * @param {number}  o.deficitInterets      - déficit dû aux intérêts (de calcFoncierReel)
+ * @param {boolean} [o.renovationEnergetique=false] - travaux de rénovation énergétique globale → plafond doublé
+ * @returns {{ imputableRevenuGlobal:number, reportableRevenusFonciers:number, plafond:number }}
+ */
+export function calcDeficitFoncier({ deficitAutresCharges = 0, deficitInterets = 0, renovationEnergetique = false } = {}) {
+  const plafond = renovationEnergetique
+    ? DEFICIT_FONCIER.imputation_revenu_global_renovation_energetique
+    : DEFICIT_FONCIER.imputation_revenu_global;
+  const autres = Math.max(0, deficitAutresCharges || 0);
+  const inter  = Math.max(0, deficitInterets || 0);
+  const imputableRevenuGlobal = Math.min(autres, plafond);
+  // Excédent de la fraction « autres charges » au-delà du plafond + intérêts → report foncier.
+  const reportableRevenusFonciers = _round((autres - imputableRevenuGlobal) + inter);
+  return {
+    imputableRevenuGlobal: _round(imputableRevenuGlobal),
+    reportableRevenusFonciers,
+    plafond,
+  };
+}
+
+/**
+ * Bénéfice imposable d'une location meublée non professionnelle au régime
+ * micro-BIC (LMNP). Source : regimes-fonciers-lmnp.json → micro_bic_lmnp.
+ * Réforme loi Le Meur : 3 régimes (longue durée 50 %, tourisme classé 50 %,
+ * tourisme non classé 30 %). Bénéfice = recettes − abattement forfaitaire
+ * (plancher 305 €). Imposé en BIC, réintégré au RNI.
+ *
+ * @param {object} o
+ * @param {string} o.type      - 'lmnp_longue_duree' | 'meuble_tourisme_classe' | 'meuble_tourisme_non_classe'
+ * @param {number} o.recettes  - loyers meublés bruts encaissés
+ * @returns {{ type:string, label:string, recettes:number, abattement:number, abattementEuros:number,
+ *            beneficeImposable:number, seuil:number, depassementSeuil:boolean, regimeReelObligatoire:boolean }|null}
+ */
+export function calcLmnpMicro({ type, recettes = 0 } = {}) {
+  const regime = LMNP_MICRO_REGIMES[type];
+  if (!regime) return null;
+  const rec = Math.max(0, recettes || 0);
+  const abattementEuros = rec > 0 ? Math.min(rec, Math.max(_round(rec * regime.abattement), LMNP_MICRO_ABATT_MIN)) : 0;
+  const beneficeImposable = _round(rec - abattementEuros);
+  const depassementSeuil = rec > regime.seuil;
+  return {
+    type,
+    label: regime.label,
+    recettes: rec,
+    abattement: regime.abattement,
+    abattementEuros,
+    beneficeImposable,
+    seuil: regime.seuil,
+    depassementSeuil,
+    regimeReelObligatoire: depassementSeuil,
+  };
+}
+
+/**
+ * Détecte la bascule LMNP → LMP (Loueur Meublé Professionnel, art. 155-IV CGI).
+ * Source : regimes-fonciers-lmnp.json → lmp_vs_lmnp.seuils_cumulatifs.
+ * Conditions CUMULATIVES : recettes meublées > 23 000 € ET > 50 % des autres
+ * revenus professionnels du foyer (salaires + BIC + BNC + rémunérations dirigeant).
+ *
+ * @param {object} o
+ * @param {number} o.recettesMeublees  - total des recettes meublées du foyer
+ * @param {number} o.revenusProFoyer   - autres revenus professionnels du foyer
+ * @returns {{ estLMP:boolean, seuilRecettes:number, partRevenusPro:number, depasseSeuil:boolean, depassePart:boolean }}
+ */
+export function detectLmp({ recettesMeublees = 0, revenusProFoyer = 0 } = {}) {
+  const rec = Math.max(0, recettesMeublees || 0);
+  const pro = Math.max(0, revenusProFoyer || 0);
+  const depasseSeuil = rec > LMP_SEUILS.seuil_recettes;
+  const depassePart  = rec > pro * LMP_SEUILS.part_revenus_pro_min;
+  return {
+    estLMP: depasseSeuil && depassePart,
+    seuilRecettes: LMP_SEUILS.seuil_recettes,
+    partRevenusPro: LMP_SEUILS.part_revenus_pro_min,
+    depasseSeuil,
+    depassePart,
   };
 }
 
@@ -892,7 +1027,11 @@ export function computeFoyerSummary(profile) {
       : Math.round(foncierBrut * (1 - ABATTEMENT_MICRO_FONCIER));
   const psFoncier = Math.round(foncierNet * TAUX_PS_CAPITAL);
 
-  const totalDu = irNet + cehr + psFoncier;
+  // PHASE 3 : PS 17,2 % sur les autres revenus immobiliers locatifs (foncier réel,
+  // LMNP micro/réel, quote-part SCI à l'IR) — base consolidée par le générateur.
+  const psImmo = Math.round((profile.immoPsBase || 0) * TAUX_PS_CAPITAL);
+
+  const totalDu = irNet + cehr + psFoncier + psImmo;
 
   // Priorité à pasTotal consolidé (tous plugins) si disponible
   const pasTotal = profile.pasTotal > 0
@@ -936,6 +1075,9 @@ export function computeFoyerSummary(profile) {
     cehr,
     irNet,
     psFoncier,
+    psImmo,
+    psImmoBase: profile.immoPsBase || 0,
+    immoDeltaRni: profile.immoDeltaRni || 0,
     totalDu,
     pasTotal,
     acomptesIR,
