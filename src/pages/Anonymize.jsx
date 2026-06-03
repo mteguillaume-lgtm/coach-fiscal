@@ -10,7 +10,12 @@ import {
 import { useApp }         from '../context/AppContext';
 import { anonymizePdf }   from '../lib/anonymizer';
 import { buildPatterns }  from '../lib/patterns';
+import { DOCUMENTS }      from '../data/documentTypes/index.js';
 import Button             from '../components/Button';
+import OnboardingWizard   from '../components/OnboardingWizard';
+import DocumentChecklist  from '../components/DocumentChecklist';
+import CoherenceAlerts    from '../components/CoherenceAlerts';
+import { checkCoherence } from '../lib/coherenceCheck';
 
 const MAX_FILES_SOLO   = 15;
 const MAX_FILES_TARGET = 15;  // par déclarant en mode couple
@@ -31,7 +36,8 @@ function Spinner({ size = 16 }) {
 }
 
 // ─── File row ─────────────────────────────────────────────────────────────────
-function FileRow({ item, onRemove }) {
+function FileRow({ item, onRemove, onChangeType }) {
+  const extractedCount = item.extracted ? Object.keys(item.extracted).length : 0;
   return (
     <div className={[
       'group flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200',
@@ -66,10 +72,34 @@ function FileRow({ item, onRemove }) {
           </p>
         )}
         {item.status === 'done' && (
-          <p className="text-xs text-gray-400 mt-0.5">
-            <span className="text-teal-600 font-medium">{item.zonesCount} zone(s)</span> noircies
-            {item.suggestedFilename && ` · ${item.suggestedFilename}`}
-          </p>
+          <>
+            <p className="text-xs text-gray-400 mt-0.5">
+              <span className="text-teal-600 font-medium">{item.zonesCount} zone(s)</span> noircies
+              {extractedCount > 0 && (
+                <span className="text-teal-600"> · {extractedCount} champ(s) lu(s) localement</span>
+              )}
+            </p>
+            {/* Couche 2 — type détecté + correction en 1 clic */}
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <FileText size={11} className="text-gray-400 shrink-0" />
+              <span className="text-xs text-gray-500 shrink-0">Type&nbsp;:</span>
+              <select
+                value={item.typeId || ''}
+                onClick={e => e.stopPropagation()}
+                onChange={e => onChangeType?.(item.id, e.target.value)}
+                className="text-xs rounded-lg border border-gray-200 bg-white px-2 py-1
+                  text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-300/50 max-w-[14rem] truncate"
+              >
+                <option value="">Document non reconnu</option>
+                {DOCUMENTS.map(d => (
+                  <option key={d.id} value={d.id}>{d.label}</option>
+                ))}
+              </select>
+              {!item.typeId && (
+                <span className="text-2xs text-amber-600">à préciser</span>
+              )}
+            </div>
+          </>
         )}
         {item.status === 'error' && (
           <p className="text-xs text-red-500 mt-0.5 truncate">{item.error}</p>
@@ -117,7 +147,7 @@ function Accordion({ icon: Icon, title, badge, open, onToggle, children }) {
 }
 
 // ─── Drop zone card (pour mode couple) ───────────────────────────────────────
-function DropZoneCard({ target, items, maxReached, onFiles, onRemove }) {
+function DropZoneCard({ target, items, maxReached, onFiles, onRemove, onChangeType }) {
   const fileInputRef   = useRef(null);
   const dragCounterRef = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -211,7 +241,7 @@ function DropZoneCard({ target, items, maxReached, onFiles, onRemove }) {
       {/* Liste fichiers du bloc */}
       {myItems.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          {myItems.map(item => <FileRow key={item.id} item={item} onRemove={onRemove} />)}
+          {myItems.map(item => <FileRow key={item.id} item={item} onRemove={onRemove} onChangeType={onChangeType} />)}
         </div>
       )}
     </div>
@@ -223,6 +253,32 @@ export default function Anonymize() {
   const navigate          = useNavigate();
   const { state, dispatch } = useApp();
   const isCouple          = state.mode === 'couple';
+
+  // ── Étape 0 — situation (gate) ──────────────────────────────────────────────
+  // Le questionnaire de situation (OnboardingWizard) s'exécute ICI, avant le dépôt,
+  // pour pouvoir personnaliser la checklist et détecter un document manquant.
+  const collectProfile = state.collectProfile || {};
+  const expertMode     = collectProfile.expertMode || false;
+  const onboardingDone = collectProfile.onboardingDone || false;
+  const hasExistingData = Object.keys(state.formData || {}).length > 0 || !!state.profile;
+  const showWizard = !onboardingDone && !expertMode && !hasExistingData;
+
+  function handleWizardComplete(collected, mode, preFilledForm = {}) {
+    dispatch({ type: 'SET_COLLECT_PROFILE', payload: collected });
+    dispatch({ type: 'SET_MODE',            payload: mode });
+    dispatch({ type: 'SET_FORM_DATA',       payload: { ...(state.formData || {}), ...preFilledForm } });
+  }
+  function handleWizardSkip() {
+    dispatch({ type: 'SET_COLLECT_PROFILE', payload: { ...collectProfile, expertMode: true, onboardingDone: true } });
+  }
+
+  // Cohérence : activer un module manquant signalé par une alerte « non déclaré ».
+  function handleEnableModule(flag) {
+    dispatch({
+      type: 'SET_COLLECT_PROFILE',
+      payload: { ...collectProfile, modules: { ...(collectProfile.modules || {}), [flag]: true } },
+    });
+  }
 
   const [prenom,    setPrenom]    = useState('');
   const [nom,       setNom]       = useState('');
@@ -246,9 +302,21 @@ export default function Anonymize() {
   useEffect(() => () => blobUrlsRef.current.forEach(u => URL.revokeObjectURL(u)), []);
 
   useEffect(() => {
-    const done = fileItems.filter(f => f.status === 'done')
-      .map(f => ({ name: f.suggestedFilename, objectUrl: f.objectUrl, blob: f.blob, target: f.target }));
-    dispatch({ type: 'SET_ANONYMIZED_FILES', payload: done });
+    const done = fileItems.filter(f => f.status === 'done');
+    dispatch({
+      type: 'SET_ANONYMIZED_FILES',
+      payload: done.map(f => ({
+        name: f.suggestedFilename, objectUrl: f.objectUrl, blob: f.blob,
+        target: f.target, typeId: f.typeId,
+      })),
+    });
+    // Couche 3 — extraction locale transmise à la collecte (pré-remplissage)
+    dispatch({
+      type: 'SET_EXTRACTED_DOCS',
+      payload: done
+        .filter(f => f.extracted && Object.keys(f.extracted).length > 0)
+        .map(f => ({ target: f.target, typeId: f.typeId, extracted: f.extracted, name: f.suggestedFilename })),
+    });
   }, [fileItems, dispatch]);
 
   const allPatterns  = useMemo(() => buildPatterns(prenom, nom, employeur), [prenom, nom, employeur]);
@@ -276,6 +344,7 @@ export default function Anonymize() {
     const newItems = validFiles.map(file => ({
       id: crypto.randomUUID(), name: file.name, file, target,
       status: 'processing', zonesCount: 0, suggestedFilename: '', blob: null, objectUrl: null, error: null,
+      typeId: null, typeLabel: null, extracted: null,
     }));
     setFileItems(prev => [...prev, ...newItems]);
 
@@ -290,7 +359,8 @@ export default function Anonymize() {
         setFileItems(prev => prev.map(f =>
           f.id === item.id
             ? { ...f, status: 'done', zonesCount: result.zonesCount,
-                suggestedFilename: result.suggestedFilename, blob: result.blob, objectUrl }
+                suggestedFilename: result.suggestedFilename, blob: result.blob, objectUrl,
+                typeId: result.typeId, typeLabel: result.typeLabel, extracted: result.extracted }
             : f
         ));
         toast.success(`Anonymisé · ${result.zonesCount} zone(s)`, { duration: 3000 });
@@ -301,8 +371,36 @@ export default function Anonymize() {
         toast.error(`Échec : ${item.name}`);
       }
     }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileItems, prenom, nom, employeur, enabledLabels, disabledLabels, isCouple]);
+
+  // Correction manuelle du type → ré-anonymise avec le bon profil + ré-extrait (local).
+  const changeType = useCallback(async (id, newTypeId) => {
+    const item = fileItems.find(f => f.id === id);
+    if (!item?.file) return;
+    if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+    setFileItems(prev => prev.map(f => f.id === id ? { ...f, status: 'processing' } : f));
+    try {
+      const result = await anonymizePdf(item.file, {
+        prenom, nom, employeur, enabledLabels,
+        forcedTypeId: newTypeId || null,
+        logoEnabled: !disabledLabels.has('Logo employeur'), padding: 3,
+      });
+      const objectUrl = URL.createObjectURL(result.blob);
+      blobUrlsRef.current.push(objectUrl);
+      setFileItems(prev => prev.map(f =>
+        f.id === id
+          ? { ...f, status: 'done', zonesCount: result.zonesCount,
+              suggestedFilename: result.suggestedFilename, blob: result.blob, objectUrl,
+              typeId: result.typeId, typeLabel: result.typeLabel, extracted: result.extracted }
+          : f
+      ));
+    } catch (err) {
+      setFileItems(prev => prev.map(f =>
+        f.id === id ? { ...f, status: 'error', error: err?.message || 'Erreur' } : f
+      ));
+      toast.error('Échec du changement de type');
+    }
+  }, [fileItems, prenom, nom, employeur, enabledLabels, disabledLabels]);
 
   // Handlers zone solo
   function onDragEnter(e) { e.preventDefault(); if (++dragCounterRef.current === 1) setIsDragging(true); }
@@ -345,6 +443,31 @@ export default function Anonymize() {
   // Limites par cible en mode couple
   const d1MaxReached = fileItems.filter(f => f.target === 'd1').length >= MAX_FILES_TARGET;
   const d2MaxReached = fileItems.filter(f => f.target === 'd2').length >= MAX_FILES_TARGET;
+  const detectedIds  = fileItems.filter(f => f.status === 'done' && f.typeId).map(f => f.typeId);
+  // Contrôle de cohérence déclaré ↔ détecté (affiché dès qu'au moins un doc est traité).
+  const coherenceAlerts = doneCount > 0
+    ? checkCoherence(collectProfile.modules || {}, detectedIds)
+    : [];
+
+  // ── Gate étape 0 : la situation se renseigne AVANT le dépôt ─────────────────
+  if (showWizard) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div>
+          <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape préalable</span>
+          <h1 className="text-2xl font-bold text-gray-900 mt-1">Votre situation</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Quelques questions pour personnaliser les documents à préparer et la collecte.
+          </p>
+        </div>
+        <OnboardingWizard
+          initialMode={state.mode}
+          onComplete={handleWizardComplete}
+          onSkip={handleWizardSkip}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -354,7 +477,7 @@ export default function Anonymize() {
         <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 1 / 4</span>
         <h1 className="text-2xl font-bold text-gray-900 mt-1">Anonymisation des PDF</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Noircissez les données sensibles avant envoi à Claude. Étape optionnelle.
+          Détection du type, extraction et masquage <strong>100 % en local</strong> — aucune donnée ne quitte votre navigateur. Étape optionnelle.
         </p>
         {isCouple && (
           <div className="flex items-center gap-1.5 mt-2 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 w-fit">
@@ -362,6 +485,9 @@ export default function Anonymize() {
           </div>
         )}
       </div>
+
+      {/* Checklist de documents personnalisée (filtrée par l'étape 0) */}
+      <DocumentChecklist modules={collectProfile.modules || {}} detectedIds={detectedIds} />
 
       {/* Personnalisation */}
       <Accordion icon={Settings} title="Personnalisation" badge="(optionnel)"
@@ -436,6 +562,7 @@ export default function Anonymize() {
             maxReached={d1MaxReached}
             onFiles={processFiles}
             onRemove={removeFile}
+            onChangeType={changeType}
           />
           <DropZoneCard
             target="d2"
@@ -443,6 +570,7 @@ export default function Anonymize() {
             maxReached={d2MaxReached}
             onFiles={processFiles}
             onRemove={removeFile}
+            onChangeType={changeType}
           />
         </div>
       ) : (
@@ -513,7 +641,7 @@ export default function Anonymize() {
             )}
           </div>
           <div className="flex flex-col gap-2">
-            {fileItems.map(item => <FileRow key={item.id} item={item} onRemove={removeFile} />)}
+            {fileItems.map(item => <FileRow key={item.id} item={item} onRemove={removeFile} onChangeType={changeType} />)}
           </div>
         </div>
       )}
@@ -544,6 +672,9 @@ export default function Anonymize() {
           </span>
         </div>
       )}
+
+      {/* Cohérence déclaré ↔ détecté (filet anti-oubli, non bloquant) */}
+      <CoherenceAlerts alerts={coherenceAlerts} onEnableModule={handleEnableModule} />
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-2">

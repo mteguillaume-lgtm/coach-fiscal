@@ -62,6 +62,8 @@ export function buildPatterns(prenom = '', nom = '', employeur = '') {
   add('INSEE (ligne)', '(?:INSEE)\\s*:\\s*(.+)',                          'nss');
 
   // ── Admin ────────────────────────────────────────────────────────
+  add('Numéro fiscal',     '(?:Num[ée]ro fiscal|N°\\s*fiscal)\\s*[:\\s]*(\\d[\\d\\s]{11,15})', 'admin');
+  add('Référence avis',    '(?:R[ée]f[ée]rence de l[\'’]avis|R[ée]f\\.?\\s*avis)\\s*[:\\s]*([\\w\\s]{6,20})', 'admin');
   add('SIRET',             '(?:SIRET\\s*[:\\s]*)?(\\b\\d{14}\\b)',            'admin');
   add('NUMCONTRAT',        'NUMCONTRAT=(\\d[\\d\\-]{4,20})',                  'admin');
   add('Code NAF / APE',    '(?:Code\\s+NAF\\s*[:\\s]*)?(\\b\\d{4}[A-Z]\\b)', 'admin');
@@ -118,4 +120,22 @@ export function buildPatterns(prenom = '', nom = '', employeur = '') {
 export function applyEnabledLabels(patterns, enabledLabels) {
   if (enabledLabels === null) return patterns;
   return patterns.map(p => ({ ...p, enabled: enabledLabels.includes(p.label) }));
+}
+
+/**
+ * Labels des patterns appartenant aux groupes donnés.
+ * Sert à traduire le `anonymizeGroups` d'une entrée du registre de documents
+ * en liste de labels passable à `anonymizePdf({ enabledLabels })` — masquage PAR TYPE.
+ *
+ * @param {string[]} groups - groupes de patterns.js (identite, employeur, nss, admin, adresse, banque, salaire)
+ * @param {string} [prenom]   - pour inclure les patterns dynamiques d'identité
+ * @param {string} [nom]
+ * @param {string} [employeur]
+ * @returns {string[]} labels à activer
+ */
+export function labelsForGroups(groups = [], prenom = '', nom = '', employeur = '') {
+  const set = new Set(groups);
+  return buildPatterns(prenom, nom, employeur)
+    .filter(p => set.has(p.group))
+    .map(p => p.label);
 }

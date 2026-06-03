@@ -1,15 +1,15 @@
 import { useState, useCallback, useEffect, useRef, Fragment } from 'react';
-import { useNavigate }    from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import toast              from 'react-hot-toast';
 import {
   ChevronDown, X, CheckCircle, AlertCircle, Loader2, ArrowLeft,
   Upload, Sparkles, Users, User, Home, TrendingUp, Scissors, Building2, FolderOpen,
   Settings2, Eye,
 } from 'lucide-react';
-import OnboardingWizard from '../components/OnboardingWizard';
 
 import { useApp }                   from '../context/AppContext';
 import { analyzeDoc, mapExtracted } from '../lib/extractor';
+import { mapExtractToForm }         from '../lib/docExtract';
 import { parseProfile }             from '../lib/profileParser';
 import { buildProfile }             from '../lib/profileGenerator';
 import { abattement10 }             from '../lib/taxCalculator';
@@ -1229,20 +1229,14 @@ export default function Collect() {
   const modules    = collectProfile.modules    || {};
   const expertMode = collectProfile.expertMode || false;
 
-  // Afficher le wizard si : onboarding non fait ET pas mode expert ET pas de données existantes
+  // L'étape 0 (situation) est désormais le gate de /anonymize. Si elle n'a pas été
+  // faite (et hors mode expert / données déjà présentes), on y renvoie l'utilisateur
+  // au lieu de redemander la situation ici (zéro double saisie).
   const hasExistingData = Object.keys(state.formData || {}).length > 0 || !!state.profile;
-  const showWizard = !collectProfile.onboardingDone && !expertMode && !hasExistingData;
-
-  function handleWizardComplete(collected, mode, preFilledForm = {}) {
-    dispatch({ type: 'SET_COLLECT_PROFILE', payload: collected });
-    dispatch({ type: 'SET_MODE', payload: mode });
-    // Pré-remplir statut, parts, enfants depuis le wizard
-    setFormData(prev => ({ ...prev, ...preFilledForm }));
-  }
-
-  function handleWizardSkip() {
-    dispatch({ type: 'SET_COLLECT_PROFILE', payload: { ...collectProfile, expertMode: true, onboardingDone: true } });
-  }
+  const needsSituation = !collectProfile.onboardingDone && !expertMode && !hasExistingData;
+  // Alias conservé pour les conditions d'affichage existantes (toujours false dans le
+  // rendu principal, puisque needsSituation déclenche une redirection en amont).
+  const showWizard = false;
 
   function handleReconfigure() {
     dispatch({ type: 'SET_COLLECT_PROFILE', payload: { ...collectProfile, onboardingDone: false, expertMode: false } });
@@ -1266,6 +1260,43 @@ export default function Collect() {
     console.log('Fichiers anonymisés disponibles:', state.anonymizedFiles);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pré-remplissage depuis l'extraction LOCALE faite à l'anonymisation (Couche 3).
+  // Une seule fois : les valeurs extraites ne remplacent jamais une saisie existante.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    const docs = state.extractedDocs || [];
+    if (prefilledRef.current || docs.length === 0) return;
+    prefilledRef.current = true;
+
+    const fdMerge = {}, d1Merge = {}, d2Merge = {};
+    for (const doc of docs) {
+      const { declarant, foyer } = mapExtractToForm(doc.extracted || {}, doc.target);
+      Object.assign(fdMerge, foyer);
+      if (!isCouple)                 Object.assign(fdMerge, declarant);
+      else if (doc.target === 'd2')  Object.assign(d2Merge, declarant);
+      else                           Object.assign(d1Merge, declarant);
+    }
+
+    const markNew = (data, merge) =>
+      Object.fromEntries(Object.keys(merge)
+        .filter(k => data[k] == null || data[k] === '')
+        .map(k => [k, true]));
+
+    if (Object.keys(fdMerge).length) {
+      setAutoFilled(p => ({ ...markNew(formData, fdMerge), ...p }));
+      setFormData(p => ({ ...fdMerge, ...p }));
+    }
+    if (Object.keys(d1Merge).length) {
+      setAutoF1(p => ({ ...markNew(d1Data, d1Merge), ...p }));
+      setD1Data(p => ({ ...d1Merge, ...p }));
+    }
+    if (Object.keys(d2Merge).length) {
+      setAutoF2(p => ({ ...markNew(d2Data, d2Merge), ...p }));
+      setD2Data(p => ({ ...d2Merge, ...p }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.extractedDocs, isCouple]);
 
   const handleFiles = useCallback(async (files, target = 'solo') => {
     if (!files || !files.length) return;
@@ -1526,6 +1557,9 @@ export default function Collect() {
     e.target.value = '';
   };
 
+  // L'étape 0 n'a pas été faite → on renvoie vers /anonymize (gate de la situation).
+  if (needsSituation) return <Navigate to="/anonymize" replace />;
+
   return (
     <div className="flex flex-col gap-5">
 
@@ -1557,16 +1591,7 @@ export default function Collect() {
         </div>
       </div>
 
-      {/* Wizard d'onboarding */}
-      {showWizard && (
-        <OnboardingWizard
-          initialMode={state.mode}
-          onComplete={handleWizardComplete}
-          onSkip={handleWizardSkip}
-        />
-      )}
-
-      {/* Contenu principal (masqué pendant le wizard) */}
+      {/* Contenu principal */}
       {!showWizard && (<>
 
       {/* Import profil existant */}

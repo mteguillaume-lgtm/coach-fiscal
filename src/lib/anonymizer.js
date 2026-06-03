@@ -3,7 +3,9 @@
 
 import { PDFDocument, rgb } from 'pdf-lib';
 import { extractWordsWithPositions } from './pdfReader';
-import { buildPatterns, applyEnabledLabels, LOGO_ZONE } from './patterns';
+import { buildPatterns, applyEnabledLabels, labelsForGroups, LOGO_ZONE } from './patterns';
+import { detectType, getType } from '../data/documentTypes/index.js';
+import { extractFields } from './docExtract';
 
 const DEFAULT_PADDING = 3; // identique à PADDING = 3 dans app.py
 
@@ -234,35 +236,58 @@ export async function anonymizePdf(file, options = {}) {
     nom          = '',
     employeur    = '',
     enabledLabels = null,
+    forcedTypeId  = null,
     logoEnabled  = true,
     padding      = DEFAULT_PADDING,
   } = options;
 
-  // 1. Extraction texte + positions
+  // 1. Extraction texte + positions (100 % LOCAL — pdf.js, aucun réseau)
   const pages = await extractWordsWithPositions(file);
 
-  // 2. Construction des patterns
+  // Texte complet reconstitué pour la détection de type et l'extraction LOCALE,
+  // exécutées AVANT tout masquage. Aucune donnée ne quitte le navigateur.
+  const fullText = pages
+    .map(p => p.lines.map(l => l.map(w => w.text).join(' ')).join('\n'))
+    .join('\n');
+
+  // Couche 2 — détection du type (registre). forcedTypeId = correction manuelle.
+  const detected = forcedTypeId
+    ? { id: forcedTypeId, confidence: 1 }
+    : detectType(fullText);
+  const typeId = detected.id;
+  const type   = typeId ? getType(typeId) : null;
+
+  // Couche 3 — extraction LOCALE des champs cibles AVANT le masquage.
+  const extracted = typeId ? extractFields(fullText, typeId) : {};
+
+  // 2. Masquage PAR TYPE : groupes d'anonymisation du registre, éventuellement
+  //    restreints par le choix manuel de l'utilisateur (enabledLabels). Sans type
+  //    reconnu, on retombe sur le comportement historique (enabledLabels seul).
+  let effectiveLabels = enabledLabels;
+  if (type) {
+    const base = labelsForGroups(type.anonymizeGroups, prenom, nom, employeur);
+    effectiveLabels = enabledLabels ? base.filter(l => enabledLabels.includes(l)) : base;
+  }
   const rawPatterns  = buildPatterns(prenom, nom, employeur);
-  const patterns     = applyEnabledLabels(rawPatterns, enabledLabels);
+  const patterns     = applyEnabledLabels(rawPatterns, effectiveLabels);
+
+  // Le logo (zone fixe) n'a de sens que sur les documents employeur (bulletins).
+  const logoApplies = logoEnabled && (!type || type.anonymizeGroups.includes('employeur'));
 
   // 3. Chargement du PDF pour modification (pdf-lib)
   const arrayBuffer  = await file.arrayBuffer();
   const pdfDoc       = await PDFDocument.load(arrayBuffer);
 
   let totalZones     = 0;
-  let detectedPeriod = null;
   const detections   = [];
+
+  // Période (mois/année) pour le nom de fichier — parsing inchangé.
+  const period = detectPeriod(fullText);
 
   for (const { pageNumber, lines } of pages) {
     const pageIdx = pageNumber - 1;
     const pdfPage = pdfDoc.getPage(pageIdx);
     const { height: pdfHeight } = pdfPage.getSize(); // coordonnées pdf-lib (bottom-origin)
-
-    // Détection de période sur les 2 premières pages
-    if (pageNumber <= 2 && !detectedPeriod) {
-      const pageText = lines.map(l => l.map(w => w.text).join(' ')).join('\n');
-      detectedPeriod = detectPeriod(pageText);
-    }
 
     // Trouver les zones à noircir sur chaque ligne
     const allZones = [];
@@ -271,7 +296,7 @@ export async function anonymizePdf(file, options = {}) {
     }
 
     // Zone logo (fixe, définie dans LOGO_ZONE)
-    if (logoEnabled && (LOGO_ZONE.page === -1 || LOGO_ZONE.page === pageIdx)) {
+    if (logoApplies && (LOGO_ZONE.page === -1 || LOGO_ZONE.page === pageIdx)) {
       allZones.push({
         label:  'Logo employeur',
         text:   '(image)',
@@ -306,10 +331,16 @@ export async function anonymizePdf(file, options = {}) {
   const bytes = await pdfDoc.save();
   const blob  = new Blob([bytes], { type: 'application/pdf' });
 
-  // detectedPeriod est désormais un objet { type, month, year, suggestedFilename }
-  // ou null si aucune page n'a été scannée (PDF vide)
-  const period = detectedPeriod ?? detectPeriod('');
-  const suggestedFilename = period.suggestedFilename;
-
-  return { blob, suggestedFilename, zonesCount: totalZones, detections, period };
+  return {
+    blob,
+    suggestedFilename: period.suggestedFilename,
+    zonesCount: totalZones,
+    detections,
+    period,
+    // Couche 2/3 : type détecté (registre) + extraction locale
+    typeId,
+    typeLabel:  type?.label ?? null,
+    confidence: detected.confidence,
+    extracted,
+  };
 }

@@ -1,0 +1,206 @@
+{
+  "version": "2026.1",
+  "documents": [
+    {
+      "id": "avis_ir",
+      "label": "Avis d'imposition",
+      "tier": "socle",
+      "condition": null,
+      "detect": ["AVIS D'IMP[OÔ]T", "revenu fiscal de référence", "déclaration des revenus", "DGFiP"],
+      "anonymizeGroups": ["identite", "adresse", "admin", "nss"],
+      "extract": ["rfr", "nbParts", "tmi", "tauxPAS", "plafondPER"]
+    },
+    {
+      "id": "bulletin_salaire",
+      "label": "Bulletin de salaire (décembre)",
+      "tier": "socle",
+      "condition": "salaires",
+      "detect": ["bulletin de paie", "bulletin de salaire", "fiche de paie", "net imposable", "net à payer", "cotisations salariales"],
+      "anonymizeGroups": ["identite", "employeur", "nss", "admin", "adresse", "banque"],
+      "extract": ["netImposable", "brutImposable", "pasAnnuel", "tauxPAS", "peroCotisations"]
+    },
+    {
+      "id": "ifu",
+      "label": "IFU — imprimé fiscal unique (2561)",
+      "tier": "socle",
+      "condition": "capitauxMobiliers",
+      "detect": ["imprim[ée] fiscal unique", "\\b2561\\b", "revenus de capitaux mobiliers", "IFU"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["div2DC", "int2TR", "pv3VG", "mv3VH", "ci2CK"]
+    },
+
+    {
+      "id": "releve_assurance_vie",
+      "label": "Relevé d'assurance-vie",
+      "tier": "enveloppes",
+      "condition": null,
+      "detect": ["assurance[- ]vie", "contrat d'assurance vie", "valeur de rachat", "unit[ée]s de compte", "fonds en euros"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["avEncours", "avDate", "avVersements"]
+    },
+    {
+      "id": "releve_pea",
+      "label": "Relevé PEA / PEA-PME",
+      "tier": "enveloppes",
+      "condition": null,
+      "detect": ["plan d'[ée]pargne en actions", "\\bPEA\\b", "PEA-PME"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["peaValo", "peaDate", "peaPvLatente"]
+    },
+    {
+      "id": "releve_per_individuel",
+      "label": "Relevé PER individuel (PERin)",
+      "tier": "enveloppes",
+      "condition": "perVolontaire",
+      "detect": ["plan d'[ée]pargne retraite", "PER individuel", "PERin", "compartiment"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["perEncours", "perVersements"]
+    },
+    {
+      "id": "attestation_pero",
+      "label": "Attestation PERO employeur",
+      "tier": "enveloppes",
+      "condition": "epargneSalariale",
+      "detect": ["PER obligatoire", "PERO", "PERECO", "article 83", "cotisations obligatoires"],
+      "anonymizeGroups": ["identite", "employeur", "nss", "admin"],
+      "extract": ["peroCotisations", "perAbondement"]
+    },
+    {
+      "id": "attestation_per_versement",
+      "label": "Attestation versement PER individuel",
+      "tier": "enveloppes",
+      "condition": "perVolontaire",
+      "detect": ["attestation.{0,20}versement", "versements d[ée]ductibles", "6NS", "6NT"],
+      "anonymizeGroups": ["identite", "adresse", "admin"],
+      "extract": ["per6NS", "perVersements"]
+    },
+    {
+      "id": "releve_livrets",
+      "label": "Relevés livrets (A / LDDS / LEP / CEL)",
+      "tier": "enveloppes",
+      "condition": null,
+      "detect": ["livret A", "\\bLDDS\\b", "livret de d[ée]veloppement durable", "\\bLEP\\b", "livret d'[ée]pargne populaire", "\\bCEL\\b"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["livretA", "ldds", "lep", "cel"]
+    },
+    {
+      "id": "releve_pel",
+      "label": "Relevé PEL",
+      "tier": "enveloppes",
+      "condition": null,
+      "detect": ["plan d'[ée]pargne logement", "\\bPEL\\b"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["pelSolde", "pelDate", "pelTaux"]
+    },
+    {
+      "id": "releve_cto",
+      "label": "Relevé compte-titres (CTO)",
+      "tier": "enveloppes",
+      "condition": "capitauxMobiliers",
+      "detect": ["compte[- ]titres", "\\bCTO\\b", "portefeuille titres"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["ctoValo"]
+    },
+
+    {
+      "id": "taxe_fonciere",
+      "label": "Avis de taxe foncière",
+      "tier": "immobilier",
+      "condition": "immobilier",
+      "detect": ["taxe fonci[èe]re", "valeur locative", "taxe d'enl[èe]vement des ordures"],
+      "anonymizeGroups": ["identite", "adresse", "admin", "nss"],
+      "extract": ["taxeFonciereCommune", "valeurLocativeCadastrale"]
+    },
+    {
+      "id": "amortissement_credit",
+      "label": "Tableau d'amortissement crédit",
+      "tier": "immobilier",
+      "condition": "immobilier",
+      "detect": ["tableau d'amortissement", "capital restant d[ûu]", "[ée]ch[ée]ancier", "mensualit[ée]"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["creditCRD", "creditMensualite", "creditTaux", "creditAssurance", "creditEcheance"]
+    },
+    {
+      "id": "bail_quittances",
+      "label": "Baux / quittances / récap gestionnaire",
+      "tier": "immobilier",
+      "condition": "foncier",
+      "detect": ["contrat de location", "\\bbail\\b", "quittance de loyer", "loyer (?:mensuel|hors charges)"],
+      "anonymizeGroups": ["identite", "adresse", "banque"],
+      "extract": ["loyers", "charges", "regimeLocation"]
+    },
+    {
+      "id": "declaration_foncier_n1",
+      "label": "Déclaration 2044 / 2031 N-1",
+      "tier": "immobilier",
+      "condition": "foncier",
+      "detect": ["\\b2044\\b", "\\b2031\\b", "revenus fonciers", "d[ée]ficit foncier"],
+      "anonymizeGroups": ["identite", "adresse", "admin", "nss"],
+      "extract": ["loyers", "charges", "deficitFoncierReportable"]
+    },
+    {
+      "id": "acte_vente_immo",
+      "label": "Acte de vente / 2048-IMM",
+      "tier": "immobilier",
+      "condition": "immobilier",
+      "detect": ["acte de vente", "2048-?IMM", "plus-value immobili[èe]re", "prix de cession"],
+      "anonymizeGroups": ["identite", "adresse", "admin", "nss", "banque"],
+      "extract": ["pvImmoMontant", "pvImmoDuree"]
+    },
+
+    {
+      "id": "export_crypto",
+      "label": "Export transactions crypto",
+      "tier": "specifique",
+      "condition": "crypto",
+      "detect": ["cessions? d'actifs num[ée]riques", "crypto", "bitcoin", "ethereum", "\\b2086\\b", "PAMC"],
+      "anonymizeGroups": ["identite", "banque", "admin"],
+      "extract": ["cryptoCessions", "cryptoPAMC"]
+    },
+    {
+      "id": "comptes_etrangers",
+      "label": "Relevés comptes / courtiers étrangers",
+      "tier": "specifique",
+      "condition": "international",
+      "detect": ["\\b3916\\b", "compte (?:bancaire )?[àa] l'[ée]tranger", "foreign account", "broker"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["compteEtranger"]
+    },
+    {
+      "id": "liasse_tns",
+      "label": "Liasse TNS / BNC / BIC",
+      "tier": "specifique",
+      "condition": "tns",
+      "detect": ["\\b2035\\b", "\\b2031\\b", "b[ée]n[ée]fice (?:non commercial|industriel)", "\\bBNC\\b", "\\bBIC\\b", "r[ée]sultat fiscal"],
+      "anonymizeGroups": ["identite", "adresse", "admin", "nss"],
+      "extract": ["tnsResultat", "tnsCotisations"]
+    },
+    {
+      "id": "statuts_sci_2072",
+      "label": "Statuts + 2072 SCI",
+      "tier": "specifique",
+      "condition": "foncier",
+      "detect": ["soci[ée]t[ée] civile immobili[èe]re", "\\bSCI\\b", "\\b2072\\b", "quote-part"],
+      "anonymizeGroups": ["identite", "adresse", "admin"],
+      "extract": ["sciQuotePart", "sciResultatFoncier"]
+    },
+    {
+      "id": "donations_anterieures",
+      "label": "Donations antérieures",
+      "tier": "specifique",
+      "condition": null,
+      "detect": ["acte de donation", "donation-partage", "don manuel", "abattement.{0,20}donation"],
+      "anonymizeGroups": ["identite", "adresse", "admin", "nss"],
+      "extract": ["donationMontant", "donationDate"]
+    },
+    {
+      "id": "justificatifs_reductions",
+      "label": "Justificatifs réductions / crédits",
+      "tier": "specifique",
+      "condition": "creditsImpot",
+      "detect": ["\\bCESU\\b", "attestation fiscale", "re[çc]u (?:fiscal|de dons)", "7DB", "7UD", "7GA", "URSSAF"],
+      "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
+      "extract": ["reducCESU", "reducDons", "reducGarde", "reducScolarite"]
+    }
+  ]
+}
