@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Download, ArrowLeft, Sparkles, Wand2, FileText } from 'lucide-react';
+import { Download, ArrowLeft, ArrowRight, Sparkles, Wand2, FileText, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Button from '../components/Button';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, MAX_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { genererSynthese } from '../lib/conseilPatrimonial';
 
 import AuroraBackground from '../components/motion/AuroraBackground';
 import SpotlightCursor from '../components/motion/SpotlightCursor';
@@ -2438,6 +2439,94 @@ function RecapModule({ p, d }) {
   );
 }
 
+// ─── Module : Synthèse & conseil patrimonial (executive summary) ─────────────
+// Bilan d'ouverture du rapport. Réutilise conseilPatrimonial.genererSynthese()
+// (mêmes leviers que la page Opportunités) rendu en thème clair/imprimable.
+
+function SyntheseConseilModule({ synthese }) {
+  if (!synthese) return null;
+  const {
+    totalDuActuel, gainTotal, totalDuApresAction,
+    synthese: texte, actions = [], zonesNonCouvertes = [],
+  } = synthese;
+  const topActions = actions.slice(0, 5);
+
+  return (
+    <SectionBox
+      title="Synthèse & conseil patrimonial"
+      num="01b"
+      badge={gainTotal > 0 ? `Gain ${e0(gainTotal)}` : undefined}
+    >
+      <div className="p-4 sm:p-5 flex flex-col gap-5">
+
+        {/* Synthèse rédigée, adaptée au profil */}
+        <p className="text-sm text-gray-700 leading-relaxed">{texte}</p>
+
+        {/* Bilan chiffré : sans action → avec action */}
+        {gainTotal > 0 && (
+          <div>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
+                <p className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">Sans action</p>
+                <p className="text-lg font-bold text-gray-800 tabular-nums">{e0(totalDuActuel)}</p>
+              </div>
+              <ArrowRight size={18} className="text-teal-500 mx-auto" />
+              <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-center">
+                <p className="text-[11px] uppercase tracking-widest text-teal-600 font-bold">Avec action</p>
+                <p className="text-lg font-bold text-teal-700 tabular-nums">{e0(totalDuApresAction)}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-center text-xs font-semibold text-teal-600">
+              Gain potentiel estimé : {e0(gainTotal)}
+            </p>
+          </div>
+        )}
+
+        {/* Feuille de route — priorités classées par impact */}
+        {topActions.length > 0 && (
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Priorités d&apos;action</p>
+            <ol className="flex flex-col gap-2">
+              {topActions.map((a, i) => (
+                <li key={a.id || i} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2.5">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-teal-gradient text-white text-[11px] font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">{a.titre}</p>
+                    {a.action && <p className="text-xs text-gray-500 leading-snug mt-0.5">{a.action}</p>}
+                  </div>
+                  {a.impactEuros > 0 && (
+                    <span className="shrink-0 text-xs font-bold text-emerald-700 tabular-nums">− {e0(a.impactEuros)}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+            <p className="text-[11px] text-gray-400 mt-2">Détail des horizons court / moyen / long terme en section 10 — Feuille de route.</p>
+          </div>
+        )}
+
+        {/* Zones hors périmètre → orientation professionnelle */}
+        {zonesNonCouvertes.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldAlert size={14} className="text-amber-600" />
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Points à confier à un professionnel</p>
+            </div>
+            <ul className="flex flex-col gap-2.5">
+              {zonesNonCouvertes.map(z => (
+                <li key={z.id} className="text-xs leading-relaxed">
+                  <p className="font-semibold text-gray-800">{z.signal}</p>
+                  <p className="text-gray-500">{z.pourquoi}</p>
+                  <p className="mt-0.5 text-amber-700 font-medium">→ {z.professionnel}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </SectionBox>
+  );
+}
+
 // ─── Module : Bilan patrimonial ──────────────────────────────────────────────
 
 function BilanPatrimonialModule({ p }) {
@@ -2832,6 +2921,14 @@ export default function Rapport() {
 
   const d = useMemo(() => computeData(profile, p), [profile, p]);
 
+  // Synthèse patrimoniale (executive summary) — on aligne « sans action » sur les
+  // chiffres affichés en tête du rapport (d.totalDu / d.tmi) plutôt que de laisser
+  // genererSynthese recalculer, pour ne pas afficher deux montants divergents.
+  const synthese = useMemo(
+    () => genererSynthese(p, { totalDu: d.totalDu, tmi: d.tmi }),
+    [p, d.totalDu, d.tmi],
+  );
+
   const handleExportPDF = () => {
     const title = document.title;
     document.title = `Rapport-IR-2025-${new Date().toISOString().slice(0, 10)}`;
@@ -3026,6 +3123,8 @@ export default function Rapport() {
                 <> Le principal levier fiscal est le versement PER&nbsp;: <strong>{e0(perOpt.optimumTotal)}</strong> permettent d'effacer la tranche à {perOpt.tmiDepart}&nbsp;% et de générer <strong>{e0(perOpt.economieOptimum)}</strong> d'économie IR (effort net réel&nbsp;: {e0(perOpt.effortNet)}).{perOpt.capaciteResiduelle > 0 ? ` La capacité résiduelle (${e0(perOpt.capaciteResiduelle)}) est à orienter vers PEA ou AV — le PER ne génère plus que 11 % sur cet excédent.` : ''}</>
               )}
             </ProseCard>
+
+            <SyntheseConseilModule synthese={synthese} />
           </>
         )}
 
