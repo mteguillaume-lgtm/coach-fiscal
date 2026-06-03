@@ -77,7 +77,7 @@ export default function Setup() {
               style={{ background: 'radial-gradient(circle, rgba(46,184,138,0.5), transparent 60%)' }}
             />
             <motion.img
-              src="/kapio-mark.svg"
+              src="/favicon.svg"
               alt="Kapio"
               className="relative w-20 h-20 mx-auto drop-shadow-2xl"
               animate={{ y: [0, -4, 0] }}
