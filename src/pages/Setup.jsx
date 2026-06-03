@@ -64,22 +64,17 @@ export default function Setup() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="mb-12 text-center"
         >
-          {/* Logo qui pulse */}
+          {/* Logo (identique à la page d'accueil, sans halo, centré) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="relative inline-block mb-6"
+            className="relative flex justify-center mb-6"
           >
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 blur-2xl opacity-60"
-              style={{ background: 'radial-gradient(circle, rgba(46,184,138,0.5), transparent 60%)' }}
-            />
             <motion.img
-              src="/favicon.svg"
+              src="/kapio-logo.png"
               alt="Kapio"
-              className="relative w-20 h-20 mx-auto drop-shadow-2xl"
+              className="relative w-48 h-auto sm:w-72 mx-auto drop-shadow-2xl object-contain"
               animate={{ y: [0, -4, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
@@ -96,7 +91,7 @@ export default function Setup() {
               <span className="absolute inline-flex w-full h-full rounded-full bg-kapio-300 opacity-75 animate-pulse2" />
               <span className="relative inline-flex w-2 h-2 rounded-full bg-kapio-300" />
             </span>
-            Étape 0 / 4
+            Étape 0 / 5
             <Sparkles size={11} className="text-kapio-300" />
           </motion.div>
 

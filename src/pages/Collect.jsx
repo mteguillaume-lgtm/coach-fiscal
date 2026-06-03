@@ -1567,7 +1567,7 @@ export default function Collect() {
       {/* Header */}
       <div>
         <div className="flex gap-2 flex-wrap mb-2">
-          <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 2 / 4</span>
+          <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 2 / 5</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Collecte fiscale</h1>
         <p className="text-sm text-gray-500">

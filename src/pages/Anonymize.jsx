@@ -474,7 +474,7 @@ export default function Anonymize() {
 
       {/* Header */}
       <div>
-        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 1 / 4</span>
+        <span className="text-xs font-semibold text-teal-600 uppercase tracking-widest">Étape 1 / 5</span>
         <h1 className="text-2xl font-bold text-gray-900 mt-1">Anonymisation des PDF</h1>
         <p className="text-sm text-gray-500 mt-1">
           Détection du type, extraction et masquage <strong>100 % en local</strong> — aucune donnée ne quitte votre navigateur. Étape optionnelle.

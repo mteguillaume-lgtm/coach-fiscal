@@ -128,7 +128,7 @@ export default function Privacy() {
           <h2 className="text-lg font-bold text-gray-900">Transmis à api.anthropic.com</h2>
         </div>
         <p className="text-sm text-gray-500 -mt-2">
-          Uniquement lors de l'étape 4 (Conseil). Chaque message envoyé génère une requête HTTPS
+          Uniquement lors de l'étape 5 (Conseil). Chaque message envoyé génère une requête HTTPS
           vers{' '}
           <code className="text-xs bg-gray-100 border border-gray-150 px-1.5 py-0.5 rounded font-mono">
             api.anthropic.com/v1/messages
