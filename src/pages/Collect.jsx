@@ -316,9 +316,9 @@ const INTL_FIELDS = [
 // CTO — compte-titres ordinaire (PHASE 0.a). Pas de date/antériorité (aucun
 // compteur fiscal). Le courtier étranger déclenche le flag 3916.
 const CTO_FIELDS = [
-  { key: 'cto', label: 'CTO (compte-titres ordinaire) — valorisation (€)', type: 'number', ph: '0',
+  { key: 'cto', label: 'CTO (compte-titres ordinaire) — valorisation (€)', type: 'number', ph: '0', requires: 'cto',
     hint: 'Compte-titres ordinaire : actions/ETF/obligations détenus hors PEA. Aucune fiscalité à l\'entrée ; dividendes et plus-values imposés (PFU 30 % ou barème) — chiffrage en phases ultérieures.' },
-  { key: 'cto_courtier', label: 'CTO — courtier', type: 'select',
+  { key: 'cto_courtier', label: 'CTO — courtier', type: 'select', requires: 'cto',
     opts: ['Courtier français', 'Interactive Brokers', 'Trading 212', 'Degiro', 'Saxo Bank', 'Charles Schwab', 'Autre étranger', 'Autre'],
     dependsOn: { key: 'cto', check: v => parseFloat(v || 0) > 0 },
     hint: 'Courtier établi à l\'étranger (Interactive Brokers, Trading 212, Degiro, Saxo…) → déclaration obligatoire du compte via le formulaire 3916.' },
@@ -343,17 +343,17 @@ const REDUC_CREDIT_FIELDS = [
 ];
 
 const EP_INDIV_FIELDS = [
-  { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
-  { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
-  { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0' },
-  { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
-  { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0' },
-  { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate,
+  { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0', requires: 'livrets' },
+  { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0', requires: 'livrets' },
+  { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0', requires: 'livrets' },
+  { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0', requires: 'livrets' },
+  { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0', requires: 'pel' },
+  { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate, requires: 'pel',
     dependsOn: { key: 'pel', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
-  { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate,
+  { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0', requires: 'pea' },
+  { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate, requires: 'pea',
     dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
+  { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0', requires: 'pea',
     dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
   ...CTO_FIELDS,
   { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0', requires: 'perVolontaire' },
@@ -368,10 +368,10 @@ const EP_INDIV_FIELDS = [
     requires: 'epargneSalariale',
     dependsOn: { key: 'pee', check: v => parseFloat(v || 0) > 0 },
     hint: 'Abondement versé par votre employeur sur le PEE ou PERCO en 2025. Exonéré d\'IR mais déduit de votre plafond PER individuel (art. 163 quatervicies I-a CGI, BOI-IR-BASE-20-50-20). Réduit la capacité de versement déductible sur votre PER.' },
-  { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
-  { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate,
+  { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0', requires: 'assuranceVie' },
+  { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate, requires: 'assuranceVie',
     dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 } },
-  { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
+  { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0', requires: 'assuranceVie',
     dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
     hint: 'Tous contrats AV de ce déclarant. Seuil 150 000 € (art. 125-0 A CGI).' },
   { key: 'crypto_wallet',      label: 'Crypto — valeur wallet (€)',    type: 'number', ph: '0', requires: 'crypto' },
@@ -431,23 +431,23 @@ const SECTION_PROFIL_SOLO = {
 
 const SECTION_EP_SOLO = {
   id: 'ep', Icon: Building2, label: 'Épargne & Placements', fields: [
-    { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0' },
-    { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0' },
-    { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0' },
-    { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0' },
-    { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0' },
-    { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate,
+    { key: 'livret_a',           label: 'Livret A — solde (€)',          type: 'number', ph: '0', requires: 'livrets' },
+    { key: 'ldd',                label: 'LDDS — solde (€)',              type: 'number', ph: '0', requires: 'livrets' },
+    { key: 'lep',                label: 'LEP — solde (€)',               type: 'number', ph: '0', requires: 'livrets' },
+    { key: 'livret_plus',        label: 'Livret+ / Livret bancaire (€)', type: 'number', ph: '0', requires: 'livrets' },
+    { key: 'pel',                label: 'PEL — solde (€)',               type: 'number', ph: '0', requires: 'pel' },
+    { key: 'pel_date',           label: 'PEL — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePelDate, requires: 'pel',
       dependsOn: { key: 'pel', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0' },
-    { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate,
+    { key: 'pea',                label: 'PEA — valorisation (€)',        type: 'number', ph: '0', requires: 'pea' },
+    { key: 'pea_date',           label: 'PEA — date ouverture',          type: 'text',   ph: 'MM/AAAA', compute: computePeaDate, requires: 'pea',
       dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0',
+    { key: 'pea_verse',          label: 'PEA — total versé (€)',         type: 'number', ph: '0', requires: 'pea',
       dependsOn: { key: 'pea', check: v => parseFloat(v || 0) > 0 } },
     ...CTO_FIELDS,
-    { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0' },
-    { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate,
+    { key: 'av',                 label: 'Assurance-vie — valorisation (€)', type: 'number', ph: '0', requires: 'assuranceVie' },
+    { key: 'av_date',            label: 'AV — date souscription',        type: 'text',   ph: 'MM/AAAA', compute: computeAvDate, requires: 'assuranceVie',
       dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 } },
-    { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0',
+    { key: 'av_verse',           label: 'AV — versements nets cumulés (€)', type: 'number', ph: '0', requires: 'assuranceVie',
       dependsOn: { key: 'av', check: v => parseFloat(v || 0) > 0 },
       hint: 'Tous vos contrats AV confondus. Seuil fiscal : 150 000 € (art. 125-0 A CGI). En dessous = taux 7,5 % IR post-8 ans. Au-delà = PFU 12,8 % sur la fraction excédentaire.' },
     { key: 'per',                label: 'PER versements 2025 (€)',       type: 'number', ph: '0', requires: 'perVolontaire' },
@@ -1337,18 +1337,19 @@ export default function Collect() {
   // Progress (visible fields only, including capacité keys)
   const { filled: totalF, total: totalAll, pct } = (() => {
     const capF = CAPACITE_KEYS.filter(k => formData[k] && formData[k] !== '').length;
+    const shown = (f, data) => _moduleVisible(f, modules, expertMode) && _fieldVisible(f, data);
     if (!isCouple) {
-      const visF   = SOLO_SECTIONS.flatMap(s => s.fields.filter(f => _fieldVisible(f, formData)));
+      const visF   = SOLO_SECTIONS.flatMap(s => s.fields.filter(f => shown(f, formData)));
       const filled = visF.filter(f => formData[f.key] && formData[f.key] !== '').length + capF;
       const total  = visF.length + CAPACITE_KEYS.length;
       return { filled, total, pct: Math.round(filled / total * 100) };
     }
     const foyer  = [SECTION_SIT, SECTION_REV_FOYER, SECTION_DED, SECTION_IMMO];
-    const visFoy = foyer.flatMap(s => s.fields.filter(f => _fieldVisible(f, formData)));
+    const visFoy = foyer.flatMap(s => s.fields.filter(f => shown(f, formData)));
     const foyerF = visFoy.filter(f => formData[f.key] && formData[f.key] !== '').length;
     const dFields = [...REV_FIELDS, ...EP_INDIV_FIELDS, ...PROFIL_INDIV_FIELDS];
-    const visD1 = dFields.filter(f => _fieldVisible(f, d1Data));
-    const visD2 = dFields.filter(f => _fieldVisible(f, d2Data));
+    const visD1 = dFields.filter(f => shown(f, d1Data));
+    const visD2 = dFields.filter(f => shown(f, d2Data));
     const d1F = visD1.filter(f => d1Data[f.key] && d1Data[f.key] !== '').length;
     const d2F = visD2.filter(f => d2Data[f.key] && d2Data[f.key] !== '').length;
     const total  = visFoy.length + visD1.length + visD2.length + CAPACITE_KEYS.length;
@@ -1738,6 +1739,9 @@ export default function Collect() {
           const immoReason = modules.foncier
             ? 'Affiché car vous percevez des loyers ou revenus fonciers'
             : 'Affiché car vous possédez un bien immobilier';
+          const hasEpModule = expertMode || modules.livrets || modules.pel || modules.pea
+            || modules.cto || modules.assuranceVie || modules.perVolontaire
+            || modules.epargneSalariale || modules.crypto;
 
           return (
             <>
@@ -1754,7 +1758,9 @@ export default function Collect() {
                   <AccSection section={SECTION_PROFIL_SOLO} data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
                   <AccSection section={SECTION_REV_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
                   <CapaciteSection formData={formData} onChange={handleChange} isCouple={false} {...accProps} />
-                  <AccSection section={SECTION_EP_SOLO}     data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
+                  {hasEpModule && (
+                    <AccSection section={SECTION_EP_SOLO}     data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
+                  )}
                   <AccSection section={SECTION_DED_SOLO}    data={formData} onChange={handleChange} autoFKeys={autoFilled} {...accProps} {...modProps} />
                   {(expertMode || modules.immobilier || modules.foncier) && (
                     <AccSection section={SECTION_IMMO} data={formData} onChange={handleChange} autoFKeys={autoFilled}

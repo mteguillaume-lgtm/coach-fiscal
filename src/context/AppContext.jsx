@@ -17,6 +17,11 @@ const COLLECT_PROFILE_DEFAULT = {
     immobilier:           false,
     capitauxMobiliers:    false,
     crypto:               false,
+    livrets:              false,
+    pel:                  false,
+    pea:                  false,
+    assuranceVie:         false,
+    cto:                  false,
     epargneSalariale:     false,
     perVolontaire:        false,
     pensionsAlimentaires: false,
@@ -27,6 +32,37 @@ const COLLECT_PROFILE_DEFAULT = {
   onboardingDone: false,
   expertMode:     false,
 };
+
+// Champs de collecte qui activent rétroactivement un module enveloppe (migration).
+// Les enveloppes étaient autrefois toujours affichées ; depuis le guidage par
+// l'onboarding elles sont gated par module. On réactive le module si une valeur
+// a déjà été saisie, pour ne jamais masquer une donnée existante.
+const ENVELOPE_MODULE_FIELDS = {
+  livrets:      ['livret_a', 'ldd', 'lep', 'livret_plus'],
+  pel:          ['pel'],
+  pea:          ['pea', 'pea_verse'],
+  assuranceVie: ['av', 'av_verse'],
+  cto:          ['cto'],
+};
+
+const _hasValue = v =>
+  v != null && v !== '' && v !== '0' && parseFloat(String(v).replace(/[^\d.-]/g, '')) > 0;
+
+// Normalise un collectProfile hydraté depuis localStorage : complète les clés de
+// modules manquantes (nouveaux modules ajoutés après coup) et active les enveloppes
+// pour lesquelles une donnée a déjà été saisie.
+function migrateCollectProfile(cp, ...dataBags) {
+  if (!cp || typeof cp !== 'object') return cp;
+  const storedMods = cp.modules || {};
+  const modules = { ...COLLECT_PROFILE_DEFAULT.modules, ...storedMods };
+  for (const [mod, keys] of Object.entries(ENVELOPE_MODULE_FIELDS)) {
+    // Ne touche qu'aux modules absents du stockage (migration legacy) — on ne
+    // contredit jamais un choix explicite (true/false) issu de l'onboarding.
+    if (mod in storedMods) continue;
+    if (dataBags.some(d => d && keys.some(k => _hasValue(d[k])))) modules[mod] = true;
+  }
+  return { ...COLLECT_PROFILE_DEFAULT, ...cp, modules };
+}
 
 const initialState = {
   mode: 'solo',         // "solo" | "couple"
@@ -134,8 +170,15 @@ function reducer(state, action) {
     case 'RESET':
     case 'RESET_ALL':
       return initialState;
-    case 'HYDRATE':
-      return { ...state, ...action.payload };
+    case 'HYDRATE': {
+      const next = { ...state, ...action.payload };
+      if (next.collectProfile) {
+        next.collectProfile = migrateCollectProfile(
+          next.collectProfile, next.formData, next.d1Data, next.d2Data,
+        );
+      }
+      return next;
+    }
     default:
       return state;
   }

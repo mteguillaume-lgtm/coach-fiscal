@@ -37,7 +37,12 @@ const CREDITS = [
 ];
 
 const EPARGNE = [
-  { value: 'per',               label: 'PER (plan épargne retraite)', desc: 'Versements volontaires déductibles' },
+  { value: 'livrets',           label: 'Livrets réglementés',         desc: 'Livret A, LDDS, LEP, livret bancaire' },
+  { value: 'pel',               label: 'PEL / épargne logement',      desc: "Plan d'épargne logement" },
+  { value: 'pea',               label: 'PEA / PEA-PME',               desc: 'Actions & ETF — cadre fiscal avantageux' },
+  { value: 'assurance_vie',     label: 'Assurance-vie',               desc: 'Fonds euros, unités de compte' },
+  { value: 'cto',               label: 'Compte-titres ordinaire (CTO)', desc: 'Actions, ETF, obligations hors PEA' },
+  { value: 'per',               label: 'PER individuel',              desc: 'Versements volontaires déductibles' },
   { value: 'epargne_salariale', label: 'Épargne salariale',           desc: 'PEE, PERCO, intéressement, participation' },
 ];
 
@@ -57,6 +62,11 @@ function computeModules({ typeD1, typeD2, adults, placements, biens, credits, ep
     immobilier:           biens.includes('rp') || biens.includes('locatif') || biens.includes('indivision'),
     capitauxMobiliers:    placements.includes('dividendes') || placements.includes('pv'),
     crypto:               placements.includes('crypto'),
+    livrets:              ep.includes('livrets'),
+    pel:                  ep.includes('pel'),
+    pea:                  ep.includes('pea'),
+    assuranceVie:         ep.includes('assurance_vie'),
+    cto:                  ep.includes('cto'),
     epargneSalariale:     ep.includes('epargne_salariale'),
     perVolontaire:        ep.includes('per'),
     pensionsAlimentaires: credits.includes('pension'),
@@ -176,7 +186,7 @@ export default function OnboardingWizard({ onComplete, onSkip, initialMode = 'so
       : 'Quelle est la source de revenus de chaque déclarant ?',
     'Avez-vous des revenus de placements ?',
     'Avez-vous des biens immobiliers ?',
-    'Épargne et retraite ?',
+    'Quels placements et épargne détenez-vous ?',
     'Avez-vous des dépenses ouvrant droit à crédit d\'impôt ?',
   ];
 

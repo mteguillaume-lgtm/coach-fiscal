@@ -68,19 +68,30 @@ describe('documentsForFlags', () => {
   it('inclut toujours les documents sans condition (socle/universel)', () => {
     const ids = documentsForFlags({}).map(d => d.id);
     expect(ids).toContain('avis_ir');
-    expect(ids).toContain('releve_assurance_vie');
+    expect(ids).toContain('donations_anterieures');
   });
 
   it('exclut les documents conditionnels non activés', () => {
     const ids = documentsForFlags({}).map(d => d.id);
     expect(ids).not.toContain('export_crypto');
     expect(ids).not.toContain('taxe_fonciere');
+    // Les enveloppes d'épargne sont désormais guidées par module (onboarding)
+    expect(ids).not.toContain('releve_assurance_vie');
+    expect(ids).not.toContain('releve_pea');
+    expect(ids).not.toContain('releve_livrets');
   });
 
   it('révèle un document quand son flag est actif', () => {
     const ids = documentsForFlags({ crypto: true, foncier: true }).map(d => d.id);
     expect(ids).toContain('export_crypto');
     expect(ids).toContain('bail_quittances');
+  });
+
+  it('révèle les enveloppes d\'épargne quand leur module est actif', () => {
+    const ids = documentsForFlags({ assuranceVie: true, pea: true, cto: true }).map(d => d.id);
+    expect(ids).toContain('releve_assurance_vie');
+    expect(ids).toContain('releve_pea');
+    expect(ids).toContain('releve_cto');
   });
 });
 

@@ -33,7 +33,7 @@
       "id": "releve_assurance_vie",
       "label": "Relevé d'assurance-vie",
       "tier": "enveloppes",
-      "condition": null,
+      "condition": "assuranceVie",
       "detect": ["assurance[- ]vie", "contrat d'assurance vie", "valeur de rachat", "unit[ée]s de compte", "fonds en euros"],
       "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
       "extract": ["avEncours", "avDate", "avVersements"]
@@ -42,7 +42,7 @@
       "id": "releve_pea",
       "label": "Relevé PEA / PEA-PME",
       "tier": "enveloppes",
-      "condition": null,
+      "condition": "pea",
       "detect": ["plan d'[ée]pargne en actions", "\\bPEA\\b", "PEA-PME"],
       "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
       "extract": ["peaValo", "peaDate", "peaPvLatente"]
@@ -78,7 +78,7 @@
       "id": "releve_livrets",
       "label": "Relevés livrets (A / LDDS / LEP / CEL)",
       "tier": "enveloppes",
-      "condition": null,
+      "condition": "livrets",
       "detect": ["livret A", "\\bLDDS\\b", "livret de d[ée]veloppement durable", "\\bLEP\\b", "livret d'[ée]pargne populaire", "\\bCEL\\b"],
       "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
       "extract": ["livretA", "ldds", "lep", "cel"]
@@ -87,7 +87,7 @@
       "id": "releve_pel",
       "label": "Relevé PEL",
       "tier": "enveloppes",
-      "condition": null,
+      "condition": "pel",
       "detect": ["plan d'[ée]pargne logement", "\\bPEL\\b"],
       "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
       "extract": ["pelSolde", "pelDate", "pelTaux"]
@@ -96,7 +96,7 @@
       "id": "releve_cto",
       "label": "Relevé compte-titres (CTO)",
       "tier": "enveloppes",
-      "condition": "capitauxMobiliers",
+      "condition": "cto",
       "detect": ["compte[- ]titres", "\\bCTO\\b", "portefeuille titres"],
       "anonymizeGroups": ["identite", "adresse", "banque", "admin"],
       "extract": ["ctoValo"]
