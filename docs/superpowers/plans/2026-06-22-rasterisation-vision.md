@@ -21,16 +21,52 @@
 
 ---
 
-### Task 1 : Helper de coordonnées + constantes (`pdfRasterizer`)
+### Task 1 : Outillage canvas de test + helper de coordonnées (`pdfRasterizer`)
 
 **Files:**
 - Create: `src/lib/pdfRasterizer.js`
+- Create: `vitest.setup.js`
+- Modify: `package.json` (devDependency `@napi-rs/canvas`)
+- Modify: `vite.config.js` (champ `test.setupFiles`)
 - Test: `src/lib/__tests__/pdfRasterizer.test.js`
 
 **Interfaces:**
-- Produces : `RASTER_SCALE`, `MAX_LONG_EDGE`, `RASTER_FORMAT`, `RASTER_QUALITY` (constantes) ; `zoneToPixelRect(zone, scale) → { x, y, w, h }` où `zone = { x0, x1, top, bottom }`.
+- Produces : `RASTER_SCALE`, `MAX_LONG_EDGE`, `RASTER_FORMAT`, `RASTER_QUALITY` (constantes) ; `zoneToPixelRect(zone, scale) → { x, y, w, h }` où `zone = { x0, x1, top, bottom }`. Outillage `@napi-rs/canvas` disponible pour toutes les tâches suivantes (rendu canvas en env node).
 
-- [ ] **Step 1: Écrire le test qui échoue**
+- [ ] **Step 1: Ajouter la dépendance de test**
+
+Run:
+```bash
+npm install --save-dev @napi-rs/canvas
+```
+Expected: `@napi-rs/canvas` ajouté à `devDependencies` de `package.json`.
+
+- [ ] **Step 2: Créer le fichier de setup vitest**
+
+```js
+// vitest.setup.js
+// jsdom/node ne fournissent pas de canvas natif : on expose les globals dont
+// pdfjs a besoin pour rendre en environnement de test, via @napi-rs/canvas.
+import { Path2D, DOMMatrix, ImageData } from '@napi-rs/canvas';
+
+if (typeof globalThis.Path2D === 'undefined')    globalThis.Path2D    = Path2D;
+if (typeof globalThis.DOMMatrix === 'undefined') globalThis.DOMMatrix = DOMMatrix;
+if (typeof globalThis.ImageData === 'undefined') globalThis.ImageData = ImageData;
+```
+
+- [ ] **Step 3: Brancher le setup dans vite.config.js**
+
+Modifier le bloc `test` de `vite.config.js` :
+
+```js
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.{js,ts}'],
+    setupFiles: ['./vitest.setup.js'],
+  },
+```
+
+- [ ] **Step 4: Écrire le test qui échoue**
 
 ```js
 // src/lib/__tests__/pdfRasterizer.test.js
@@ -49,12 +85,12 @@ describe('zoneToPixelRect', () => {
 });
 ```
 
-- [ ] **Step 2: Lancer le test → échec**
+- [ ] **Step 5: Lancer le test → échec**
 
 Run: `npx vitest run src/lib/__tests__/pdfRasterizer.test.js`
 Expected: FAIL (`zoneToPixelRect is not a function` / module introuvable).
 
-- [ ] **Step 3: Implémentation minimale**
+- [ ] **Step 6: Implémentation minimale**
 
 ```js
 // src/lib/pdfRasterizer.js
@@ -84,16 +120,16 @@ export function zoneToPixelRect(zone, scale) {
 }
 ```
 
-- [ ] **Step 4: Lancer le test → succès**
+- [ ] **Step 7: Lancer le test → succès**
 
 Run: `npx vitest run src/lib/__tests__/pdfRasterizer.test.js`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/lib/pdfRasterizer.js src/lib/__tests__/pdfRasterizer.test.js
-git commit -m "feat(raster): helper zoneToPixelRect + constantes rasterisation
+git add src/lib/pdfRasterizer.js src/lib/__tests__/pdfRasterizer.test.js package.json package-lock.json vitest.setup.js vite.config.js
+git commit -m "feat(raster): outillage @napi-rs/canvas + helper zoneToPixelRect + constantes
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -112,7 +148,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Écrire le test qui échoue**
 
-Ce test prouve la propriété de sécurité côté assemblage : un PDF construit à partir d'images ne contient **aucun texte extractible**. Il fabrique un vrai JPEG via canvas @napi-rs (dépendance ajoutée en Task 3 ; si exécuté isolément avant, lancer Task 3 d'abord).
+Ce test prouve la propriété de sécurité côté assemblage : un PDF construit à partir d'images ne contient **aucun texte extractible**. Il fabrique un vrai JPEG via `@napi-rs/canvas` (installé en Task 1).
 
 ```js
 // Ajouter dans src/lib/__tests__/pdfRasterizer.test.js
@@ -180,7 +216,7 @@ export async function imagesToPdf(images) {
 - [ ] **Step 4: Lancer le test → succès**
 
 Run: `npx vitest run src/lib/__tests__/pdfRasterizer.test.js -t imagesToPdf`
-Expected: PASS. (Nécessite `@napi-rs/canvas` ; si absent, exécuter Task 3 Step 3 d'abord puis revenir.)
+Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -193,57 +229,21 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 3 : Rendu canvas des pages (`rasterizePages`, `pagesToImages`, `pdfToImages`) + outillage test
+### Task 3 : Rendu canvas des pages (`rasterizePages`, `pagesToImages`, `pdfToImages`)
 
 **Files:**
 - Modify: `src/lib/pdfRasterizer.js`
-- Modify: `package.json` (devDependency `@napi-rs/canvas`)
-- Create: `vitest.setup.js`
-- Modify: `vite.config.js` (champ `test.setupFiles`)
 - Test: `src/lib/__tests__/pdfRasterizer.test.js`
 
 **Interfaces:**
-- Consumes : `getDocument`, `GlobalWorkerOptions` (`pdfjs-dist`) ; worker via `?url`.
+- Consumes : `getDocument`, `GlobalWorkerOptions` (`pdfjs-dist`) ; worker via `?url` ; outillage `@napi-rs/canvas` (installé en Task 1).
 - Produces :
   - `rasterizePages(file, { scale?, createCanvas? }) → Promise<Array<{ canvas, ctx, width, height, scale }>>`
   - `pagesToImages(pages, { format?, quality? }) → Promise<Array<{ blob, mediaType, width, height }>>`
   - `pdfToImages(file, { scale?, format?, quality?, createCanvas? }) → Promise<Array<{ blob, mediaType, width, height }>>`
   - `createCanvas` injectable : signature `(width:number, height:number) => CanvasLike` (browser par défaut, `@napi-rs/canvas` en test).
 
-- [ ] **Step 1: Ajouter la dépendance de test**
-
-Run:
-```bash
-npm install --save-dev @napi-rs/canvas
-```
-Expected: `@napi-rs/canvas` ajouté à `devDependencies` de `package.json`.
-
-- [ ] **Step 2: Créer le fichier de setup vitest**
-
-```js
-// vitest.setup.js
-// jsdom/node ne fournissent pas de canvas natif : on expose les globals dont
-// pdfjs a besoin pour rendre en environnement de test, via @napi-rs/canvas.
-import { Path2D, DOMMatrix, ImageData } from '@napi-rs/canvas';
-
-if (typeof globalThis.Path2D === 'undefined')    globalThis.Path2D    = Path2D;
-if (typeof globalThis.DOMMatrix === 'undefined') globalThis.DOMMatrix = DOMMatrix;
-if (typeof globalThis.ImageData === 'undefined') globalThis.ImageData = ImageData;
-```
-
-- [ ] **Step 3: Brancher le setup dans vite.config.js**
-
-Modifier le bloc `test` de `vite.config.js` :
-
-```js
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.{js,ts}'],
-    setupFiles: ['./vitest.setup.js'],
-  },
-```
-
-- [ ] **Step 4: Écrire le test qui échoue**
+- [ ] **Step 1: Écrire le test qui échoue**
 
 ```js
 // Ajouter dans src/lib/__tests__/pdfRasterizer.test.js
@@ -279,12 +279,12 @@ describe('pdfToImages', () => {
 });
 ```
 
-- [ ] **Step 5: Lancer le test → échec**
+- [ ] **Step 2: Lancer le test → échec**
 
 Run: `npx vitest run src/lib/__tests__/pdfRasterizer.test.js -t pdfToImages`
 Expected: FAIL (`pdfToImages is not a function`).
 
-- [ ] **Step 6: Implémentation**
+- [ ] **Step 3: Implémentation**
 
 Ajouter en tête de `src/lib/pdfRasterizer.js` (après l'import `pdf-lib`) :
 
@@ -366,16 +366,16 @@ export async function pdfToImages(file, opts = {}) {
 }
 ```
 
-- [ ] **Step 7: Lancer toute la suite du module → succès**
+- [ ] **Step 4: Lancer toute la suite du module → succès**
 
 Run: `npx vitest run src/lib/__tests__/pdfRasterizer.test.js`
 Expected: PASS (zoneToPixelRect, imagesToPdf, pdfToImages — tout vert).
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/lib/pdfRasterizer.js src/lib/__tests__/pdfRasterizer.test.js package.json package-lock.json vitest.setup.js vite.config.js
-git commit -m "feat(raster): rendu canvas des pages + outillage test @napi-rs/canvas
+git add src/lib/pdfRasterizer.js src/lib/__tests__/pdfRasterizer.test.js
+git commit -m "feat(raster): rendu canvas des pages (rasterizePages, pdfToImages)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
