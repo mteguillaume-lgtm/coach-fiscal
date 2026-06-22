@@ -61,18 +61,21 @@ function defaultCreateCanvas(width, height) {
 
 // Encode un canvas (OffscreenCanvas | HTMLCanvas | @napi-rs/canvas) en Blob.
 async function canvasToBlob(canvas, format, quality) {
-  if (typeof canvas.convertToBlob === 'function') {       // OffscreenCanvas
-    return canvas.convertToBlob({ type: format, quality });
-  }
-  if (typeof canvas.toBlob === 'function') {              // HTMLCanvasElement
-    return new Promise((res, rej) =>
-      canvas.toBlob(b => (b ? res(b) : rej(new Error("Échec d'encodage du canvas"))), format, quality));
-  }
-  if (typeof canvas.toBuffer === 'function') {            // @napi-rs/canvas
+  // @napi-rs/canvas : toBuffer respecte le format (JPEG ou PNG) et renvoie les
+  // bons octets. Son convertToBlob ignore le type et sort toujours du PNG — on
+  // préfère donc toBuffer quand il est disponible.
+  if (typeof canvas.toBuffer === 'function') {            // @napi-rs/canvas (Node)
     // Quality must be passed as a bare number (not an object) — @napi-rs/canvas
     // ignores the object form { quality }. Only JPEG accepts a quality arg.
     const buf = format === 'image/jpeg' ? canvas.toBuffer(format, quality) : canvas.toBuffer(format);
     return new Blob([buf], { type: format });
+  }
+  if (typeof canvas.convertToBlob === 'function') {       // OffscreenCanvas (browser)
+    return canvas.convertToBlob({ type: format, quality });
+  }
+  if (typeof canvas.toBlob === 'function') {              // HTMLCanvasElement (browser)
+    return new Promise((res, rej) =>
+      canvas.toBlob(b => (b ? res(b) : rej(new Error("Échec d'encodage du canvas"))), format, quality));
   }
   throw new Error("Canvas sans méthode d'encodage disponible");
 }

@@ -1,7 +1,7 @@
 // Port de run_pdf() + find_zones() + detect_period() depuis PDF_Anonymiseur_v8/app.py
-// Utilise pdfjs-dist pour l'extraction et pdf-lib pour le dessin des rectangles noirs.
+// Utilise pdfjs-dist pour l'extraction et canvas pour le masquage pixel (vraie rédaction).
 
-import { PDFDocument, rgb } from 'pdf-lib';
+import { rasterizePages, pagesToImages, imagesToPdf, zoneToPixelRect, RASTER_FORMAT, RASTER_QUALITY } from './pdfRasterizer';
 import { extractWordsWithPositions } from './pdfReader';
 import { buildPatterns, applyEnabledLabels, labelsForGroups, LOGO_ZONE } from './patterns';
 import { detectType, getType } from '../data/documentTypes/index.js';
@@ -274,70 +274,52 @@ export async function anonymizePdf(file, options = {}) {
   // Le logo (zone fixe) n'a de sens que sur les documents employeur (bulletins).
   const logoApplies = logoEnabled && (!type || type.anonymizeGroups.includes('employeur'));
 
-  // 3. Chargement du PDF pour modification (pdf-lib)
-  const arrayBuffer  = await file.arrayBuffer();
-  const pdfDoc       = await PDFDocument.load(arrayBuffer);
+  // 3. Rendu pixel des pages (détruit la couche texte → vraie rédaction)
+  const rasterPages = await rasterizePages(file, { createCanvas: options.createCanvas });
 
-  let totalZones     = 0;
-  const detections   = [];
+  let totalZones   = 0;
+  const detections = [];
+  const period     = detectPeriod(fullText);
 
-  // Période (mois/année) pour le nom de fichier — parsing inchangé.
-  const period = detectPeriod(fullText);
+  // 4. Masquage : on peint les zones en noir SUR les pixels de chaque page.
+  for (let idx = 0; idx < pages.length; idx++) {
+    const { lines } = pages[idx];
+    const rp = rasterPages[idx];
+    if (!rp) continue;
+    const ctx = rp.ctx;
+    ctx.fillStyle = '#000000';
 
-  for (const { pageNumber, lines } of pages) {
-    const pageIdx = pageNumber - 1;
-    const pdfPage = pdfDoc.getPage(pageIdx);
-    const { height: pdfHeight } = pdfPage.getSize(); // coordonnées pdf-lib (bottom-origin)
-
-    // Trouver les zones à noircir sur chaque ligne
     const allZones = [];
     for (const lineWords of lines) {
       allZones.push(...findZones(lineWords, patterns, padding));
     }
-
-    // Zone logo (fixe, définie dans LOGO_ZONE)
-    if (logoApplies && (LOGO_ZONE.page === -1 || LOGO_ZONE.page === pageIdx)) {
+    if (logoApplies && (LOGO_ZONE.page === -1 || LOGO_ZONE.page === idx)) {
       allZones.push({
-        label:  'Logo employeur',
-        text:   '(image)',
-        x0:     LOGO_ZONE.x0,
-        x1:     LOGO_ZONE.x1,
-        top:    LOGO_ZONE.top,
-        bottom: LOGO_ZONE.bottom,
+        label: 'Logo employeur', text: '(image)',
+        x0: LOGO_ZONE.x0, x1: LOGO_ZONE.x1, top: LOGO_ZONE.top, bottom: LOGO_ZONE.bottom,
       });
+    }
+
+    for (const zone of allZones) {
+      const r = zoneToPixelRect(zone, rp.scale);
+      ctx.fillRect(r.x, r.y, r.w, r.h);
     }
 
     totalZones += allZones.length;
-    detections.push({ page: pageNumber, zones: allZones });
-
-    // 4. Dessin des rectangles noirs avec pdf-lib
-    // ⚠️ Conversion système de coordonnées :
-    //   - Nos zones : top/bottom depuis le HAUT de la page (top-origin, comme pdfplumber)
-    //   - pdf-lib  : y depuis le BAS de la page (bottom-origin, comme PDF spec / reportlab)
-    //   Formule identique à reportlab Python :
-    //     c.rect(z["x0"], ph - z["bottom"], z["x1"]-z["x0"], z["bottom"]-z["top"])
-    for (const zone of allZones) {
-      pdfPage.drawRectangle({
-        x:      zone.x0,
-        y:      pdfHeight - zone.bottom,   // bas du rectangle (bottom-origin)
-        width:  zone.x1 - zone.x0,
-        height: zone.bottom - zone.top,
-        color:  rgb(0, 0, 0),
-      });
-    }
+    detections.push({ page: idx + 1, zones: allZones });
   }
 
-  // 5. Sauvegarde et retour du Blob
-  const bytes = await pdfDoc.save();
-  const blob  = new Blob([bytes], { type: 'application/pdf' });
+  // 5. Encodage des pages → images, puis PDF image-only pour le téléchargement.
+  const pageImages = await pagesToImages(rasterPages, { format: RASTER_FORMAT, quality: RASTER_QUALITY });
+  const blob = await imagesToPdf(pageImages);
 
   return {
     blob,
+    pageImages,
     suggestedFilename: period.suggestedFilename,
     zonesCount: totalZones,
     detections,
     period,
-    // Couche 2/3 : type détecté (registre) + extraction locale
     typeId,
     typeLabel:  type?.label ?? null,
     confidence: detected.confidence,
