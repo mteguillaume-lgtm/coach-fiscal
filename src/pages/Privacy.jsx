@@ -11,7 +11,8 @@ const STORAGE_KEY = 'kapio.state';
 
 const LOCAL_STORED = [
   { key: 'state → mode',        what: 'Situation du foyer (solo / couple)' },
-  { key: 'state → model',       what: 'Modèle Claude sélectionné (Sonnet ou Opus)' },
+  { key: 'state → provider',    what: 'Fournisseur IA choisi (Anthropic / Mistral)' },
+  { key: 'state → model',       what: 'Niveau de modèle sélectionné (auto / intermédiaire / avancé)' },
   { key: 'state → formData',    what: 'Données du formulaire de collecte (revenus, épargne, déductions, immobilier)' },
   { key: 'state → d1Data',      what: 'Données déclarant 1 (mode couple)' },
   { key: 'state → d2Data',      what: 'Données déclarant 2 (mode couple)' },

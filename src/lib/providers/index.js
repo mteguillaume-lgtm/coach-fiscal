@@ -17,6 +17,9 @@ const ADAPTERS = {
  * `placeholder` et `consoleUrl` pilotent le champ clé ; `note` est un court
  * avertissement contextuel.
  */
+// `tiers` : noms d'affichage des modèles par tier logique ('haiku'|'sonnet'|'opus').
+//   short — libellé court (boutons), full — libellé complet (badges),
+//   emoji — pictogramme, cost — ordre de grandeur de coût ('' si non communiqué).
 export const PROVIDERS = [
   {
     id: 'anthropic',
@@ -26,6 +29,11 @@ export const PROVIDERS = [
     placeholder: 'sk-ant-api03-...',
     keyHint: 'sk-ant-',
     note: 'Premium — meilleur raisonnement. Analyse PDF + images.',
+    tiers: {
+      haiku:  { short: 'Haiku',  full: 'Haiku 4.5',  emoji: '⚡', cost: '~< 0,01 $' },
+      sonnet: { short: 'Sonnet', full: 'Sonnet 4.6', emoji: '🧠', cost: '~0,01–0,03 $' },
+      opus:   { short: 'Opus',   full: 'Opus 4.7',   emoji: '🔮', cost: '~0,05–0,10 $' },
+    },
   },
   {
     id: 'mistral',
@@ -35,6 +43,11 @@ export const PROVIDERS = [
     placeholder: 'Votre clé Mistral…',
     keyHint: 'clé alphanumérique',
     note: 'Européen, souverain, tier gratuit. Analyse d’images uniquement (pas de PDF).',
+    tiers: {
+      haiku:  { short: 'Small',  full: 'Mistral Small',  emoji: '⚡', cost: '' },
+      sonnet: { short: 'Medium', full: 'Mistral Medium', emoji: '🧠', cost: '' },
+      opus:   { short: 'Large',  full: 'Mistral Large',  emoji: '🔮', cost: '' },
+    },
   },
 ];
 

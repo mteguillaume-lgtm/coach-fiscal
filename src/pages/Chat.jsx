@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useApp } from '../context/AppContext';
-import { chat, detectComplexity } from '../lib/providers';
+import { chat, detectComplexity, getProviderMeta } from '../lib/providers';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
 import { MASTER_PROMPT } from '../data/masterPrompt';
 import PERBandeau from '../components/PERBandeau';
@@ -186,6 +186,9 @@ export default function Chat() {
   const { state, dispatch, getApiKey } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Noms d'affichage des modèles selon le fournisseur courant (Claude / Mistral).
+  const tiers = getProviderMeta(state.provider).tiers;
 
   const [messages, setMessages] = useState(() => state.chatHistory || []);
   const [input, setInput] = useState(location.state?.prefill || '');
@@ -466,21 +469,21 @@ export default function Chat() {
                 label: 'Auto',
                 Icon: Bot,
                 activeClass: 'bg-emerald-600/90 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]',
-                title: 'Adaptatif — Haiku / Sonnet / Opus selon la question',
+                title: `Adaptatif — ${tiers.haiku.short} / ${tiers.sonnet.short} / ${tiers.opus.short} selon la question`,
               },
               {
                 key: 'sonnet',
-                label: 'Sonnet',
+                label: tiers.sonnet.short,
                 Icon: Zap,
                 activeClass: 'bg-kapio-gradient text-ink-900 shadow-glow-soft',
-                title: 'Sonnet 4.6 minimum (monte en Opus si complexe)',
+                title: `${tiers.sonnet.full} minimum (monte en ${tiers.opus.short} si complexe)`,
               },
               {
                 key: 'opus',
-                label: 'Opus',
+                label: tiers.opus.short,
                 Icon: Sparkles,
                 activeClass: 'bg-violet-600 text-white shadow-[0_0_16px_rgba(139,92,246,0.4)]',
-                title: 'Opus 4.7 — toujours le meilleur modèle',
+                title: `${tiers.opus.full} — toujours le meilleur modèle`,
               },
             ].map(({ key, label, Icon, activeClass, title }) => (
               <button
@@ -704,9 +707,10 @@ export default function Chat() {
                         )
                       }
                     >
-                      {(!msg.model || msg.model === 'haiku') ? '⚡ Haiku 4.5' : null}
-                      {msg.model === 'sonnet' ? '🧠 Sonnet 4.6' : null}
-                      {msg.model === 'opus'   ? '🔮 Opus 4.7'   : null}
+                      {(() => {
+                        const t = tiers[msg.model] || tiers.haiku;
+                        return `${t.emoji} ${t.full}`;
+                      })()}
                     </motion.span>
                   ) : null}
                 </motion.div>
@@ -745,10 +749,11 @@ export default function Chat() {
                   />
                   <div className="relative">
                     <p className="text-sm font-bold text-violet-400">
-                      🔮 Opus 4.7 activé automatiquement
+                      {tiers.opus.emoji} {tiers.opus.full} activé automatiquement
                     </p>
                     <p className="text-xs text-violet-300/80 mt-0.5 leading-relaxed">
-                      Question complexe détectée ({inputComplexity?.reason}) · ~0,05–0,10 $ sur votre crédit API.
+                      Question complexe détectée ({inputComplexity?.reason})
+                      {tiers.opus.cost ? ` · ${tiers.opus.cost} sur votre crédit API` : ''}.
                     </p>
                   </div>
                   <div className="relative flex items-center gap-2">
@@ -758,7 +763,7 @@ export default function Chat() {
                       disabled={streaming}
                       className="px-3 py-1.5 text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
-                      Envoyer avec Opus
+                      Envoyer avec {tiers.opus.short}
                     </button>
                     <button
                       type="button"
@@ -766,7 +771,7 @@ export default function Chat() {
                       disabled={streaming}
                       className="px-3 py-1.5 text-xs font-medium text-violet-400 bg-white/[0.04] border border-violet-500/30 hover:bg-violet-500/10 rounded-lg transition-colors disabled:opacity-50"
                     >
-                      Forcer Sonnet
+                      Forcer {tiers.sonnet.short}
                     </button>
                     <button
                       type="button"
@@ -774,7 +779,7 @@ export default function Chat() {
                       disabled={streaming}
                       className="px-3 py-1.5 text-xs font-medium text-ink-300 bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.05] rounded-lg transition-colors disabled:opacity-50"
                     >
-                      ⚡ Haiku
+                      {tiers.haiku.emoji} {tiers.haiku.short}
                     </button>
                   </div>
                 </motion.div>
@@ -798,7 +803,10 @@ export default function Chat() {
                       ? 'bg-ink-700/60 text-ink-300 border-white/[0.08]'
                       : 'bg-kapio-500/[0.10] text-kapio-300 border-kapio-500/20')
                   }>
-                    {effectiveModel === 'haiku' ? '⚡ Haiku · ~< 0,01 $' : '🧠 Sonnet · ~0,01–0,03 $'}
+                    {(() => {
+                      const t = tiers[effectiveModel] || tiers.haiku;
+                      return `${t.emoji} ${t.short}${t.cost ? ` · ${t.cost}` : ''}`;
+                    })()}
                   </span>
                   <span className="text-xs text-ink-400">adaptatif</span>
                 </motion.div>
