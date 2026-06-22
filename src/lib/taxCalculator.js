@@ -24,6 +24,8 @@ import pvImmoRaw         from '../data/paperasse/fiscaliste/data/plus-values-imm
 import ifiRaw            from '../data/paperasse/fiscaliste/data/ifi-bareme.json';
 import defiscRaw         from '../data/paperasse/fiscaliste/data/defiscalisation.json';
 import intlRaw           from '../data/paperasse/fiscaliste/data/fiscalite-internationale.json';
+import transmissionRaw    from '../data/paperasse/notaire/data/abattements-succession-donation.json';
+import { deriveLifeStage } from './lifeStage';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
 // Pour ajouter un millésime : déposer bareme-ir-YYYY.json dans le même dossier.
@@ -179,6 +181,24 @@ export const PLAFOND_NICHES_MAJORE      = nichesRaw.plafonnement_global.plafond_
 export const INTL_METHODES        = intlRaw.methodes_elimination_double_imposition;
 export const INTL_CASES           = intlRaw.cases_revenus_etrangers;
 export const INTL_ROUTAGE         = intlRaw.regimes_routage_avocat_fiscaliste;
+
+// ─── Transmission — abattements donation / assurance-vie (depuis le JSON notaire) ──
+// Source unique : abattements-succession-donation.json. AUCUN montant en dur ailleurs
+// (lifeStage.js, Rapport.jsx, Profile.jsx) ne doit réécrire ces valeurs.
+const _abattDonation = transmissionRaw.abattements.donation;
+const _findAbatt     = (lien) => (_abattDonation.find(a => a.lien === lien) || {});
+const _donEnfant     = _findAbatt('enfant');
+const _donFamilial   = _findAbatt('don_familial_sommes_argent');
+const _avTransm      = transmissionRaw.assurance_vie_transmission;
+const _seuilsAge     = transmissionRaw.seuils_age;
+
+export const ABATTEMENT_DONATION_ENFANT    = _donEnfant.abattement;                 // 100 000 € / parent / enfant
+export const RAPPEL_FISCAL_DONATION_ANNEES = _donEnfant.renouvellement_annees;       // 15 ans (art. 784 CGI)
+export const ABATTEMENT_DON_FAMILIAL       = _donFamilial.abattement;                // 31 865 € (art. 790 G)
+export const SEUIL_AGE_DON_FAMILIAL        = _seuilsAge.don_familial_age_max_donateur; // donateur < 80 ans
+export const ABATTEMENT_AV_AVANT_70        = _avTransm.primes_versees_avant_70_ans.abattement_par_beneficiaire; // 152 500 € (art. 990 I)
+export const ABATTEMENT_AV_APRES_70        = _avTransm.primes_versees_apres_70_ans.abattement_global;           // 30 500 € (art. 757 B)
+export const SEUIL_AGE_AV_TRANSMISSION     = _avTransm.seuil_age_pivot;              // 70 ans (bascule 990 I → 757 B)
 
 /**
  * Calcule les frais kilométriques (voiture thermique ou électrique).
@@ -1554,5 +1574,10 @@ export function computeFoyerSummary(profile) {
     soldeApresCredits,
     tmi,
     isCouple,
+    // Cycle de vie : âge & phase patrimoniale exposés depuis la source de vérité
+    // (parsedProfile), pour le conseil personnalisé. Voir lifeStage.deriveLifeStage.
+    ageD1: profile.ageD1 || 0,
+    ageD2: profile.ageD2 || 0,
+    lifeStage: deriveLifeStage(profile),
   };
 }

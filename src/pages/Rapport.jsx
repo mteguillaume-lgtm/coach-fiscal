@@ -5,9 +5,15 @@ import { Download, ArrowLeft, ArrowRight, Sparkles, Wand2, FileText, ShieldAlert
 import { motion } from 'framer-motion';
 import Button from '../components/Button';
 import DisclaimerBanner from '../components/DisclaimerBanner';
-import { TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, MAX_PLAFOND_PER, computePerOptimumCascade, calcCEHR, computeFoyerSummary } from '../lib/taxCalculator';
+import {
+  TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, MAX_PLAFOND_PER,
+  computePerOptimumCascade, calcCEHR, computeFoyerSummary,
+  ABATTEMENT_DONATION_ENFANT, RAPPEL_FISCAL_DONATION_ANNEES, ABATTEMENT_DON_FAMILIAL,
+  ABATTEMENT_AV_AVANT_70, ABATTEMENT_AV_APRES_70, SEUIL_AGE_AV_TRANSMISSION,
+} from '../lib/taxCalculator';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { genererSynthese } from '../lib/conseilPatrimonial';
+import { deriveRoadmapContext } from '../lib/lifeStage';
 
 import AuroraBackground from '../components/motion/AuroraBackground';
 import SpotlightCursor from '../components/motion/SpotlightCursor';
@@ -2190,6 +2196,13 @@ function FeuilleRouteModule({ p, d }) {
   const peaD2 = p.peaD2 || 0;
   const epargneLiquide = p.epargneLiquide || 0;
 
+  // ── Cycle de vie : pilote la personnalisation des conseils par phase ──
+  // Source de vérité unique : deriveRoadmapContext(parsedProfile). Aucun parsing d'âge ici.
+  const {
+    lifeStage: ls, enConstitution, enRetraite,
+    transmissionPertinente, securisationRequise, peaHorlogeUtile, horizon,
+  } = deriveRoadmapContext(p);
+
   const currentYear = new Date().getFullYear();
   const fParts = p.parts || (isCouple ? 2 : 1);
   const tmiRetraite = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11));
@@ -2234,33 +2247,55 @@ function FeuilleRouteModule({ p, d }) {
     }
   }
 
+  // Mode dégradé : âge non renseigné → conseils génériques inchangés + vigilance explicite.
+  if (ls.degrade) {
+    ct.push({
+      title: 'Âge non renseigné',
+      levier: ls.vigilance,
+      gain: 'Conseil non personnalisé par cycle de vie',
+      deadline: 'Compléter l\'âge',
+      color: 'gray',
+    });
+  }
+
   // ── Moyen terme (1–5 ans) ──
   const mt = [];
 
-  if (peaD1 === 0 && peaD2 === 0) {
+  if (peaD1 === 0 && peaD2 === 0 && peaHorlogeUtile) {
+    // En CONSTITUTION : priorité forte (« prendre date » tôt). En RETRAITE avec un
+    // horizon de liquidité court, l'horloge 5 ans est peu utile → on ne le pousse pas.
     mt.push({
       title: 'Ouvrir un PEA' + (isCouple ? ' (deux pour le couple)' : ''),
-      levier: 'Démarrer l\'horloge fiscale 5 ans — exonération IR sur plus-values après 5 ans',
-      gain: 'Exonération IR à terme',
-      deadline: 'Dès que possible',
+      levier: enConstitution
+        ? 'Priorité : ouvrir tôt pour démarrer l\'horloge fiscale 5 ans — l\'antériorité court dès l\'ouverture, même avec un versement symbolique'
+        : 'Démarrer l\'horloge fiscale 5 ans — exonération IR sur plus-values après 5 ans',
+      gain: enConstitution ? 'Antériorité fiscale acquise au plus tôt' : 'Exonération IR à terme',
+      deadline: enConstitution ? 'En priorité' : 'Dès que possible',
       color: 'teal',
     });
   }
 
   if (epargneLiquide > 10000) {
+    // Réallocation cohérente avec le glidepath : part actions décroissante avec l'âge.
+    const cibleActions = securisationRequise
+      ? 'sécuriser une large part en fonds € / supports prudents et n\'exposer aux actions qu\'une fraction réduite (glidepath)'
+      : enConstitution
+        ? 'viser une part actions élevée (PEA / AV UC) — l\'horizon long absorbe la volatilité'
+        : 'investir le surplus en PEA ou AV UC pour améliorer le rendement net long terme';
     mt.push({
       title: 'Réallouer l\'épargne liquide dormante',
-      levier: 'Investir le surplus en PEA ou AV UC pour améliorer le rendement net long terme',
+      levier: cibleActions,
       gain: `${e0(epargneLiquide)} à déployer`,
       deadline: 'Dans les 12 mois',
-      color: 'gray',
+      color: securisationRequise ? 'amber' : 'gray',
     });
   }
 
   if ((p.avD1 || 0) + (p.avD2 || 0) === 0 && epargneLiquide > 5000) {
     mt.push({
       title: 'Ouvrir une assurance-vie',
-      levier: 'Prendre date pour bénéficier de l\'abattement de 4 600 € / 9 200 € après 8 ans',
+      levier: 'Prendre date pour bénéficier de l\'abattement de 4 600 € / 9 200 € après 8 ans'
+        + (transmissionPertinente ? ' — et préparer la transmission hors succession' : ''),
       gain: 'Abattement et souplesse de transmission',
       deadline: 'Dans les 12 mois',
       color: 'teal',
@@ -2279,11 +2314,22 @@ function FeuilleRouteModule({ p, d }) {
     const gap = Math.max(0, capitalFire - patrimoineActuel);
     const epargneAnnuelle = p.capaciteEpargneFoyer ? p.capaciteEpargneFoyer * 12 : revenuMensuel * 12 * (tauxEpargne / 100);
     const anneesEstimees = epargneAnnuelle > 0 ? Math.ceil(gap / epargneAnnuelle) : null;
+    // Horizon réel jusqu'à la retraite (deriveLifeStage) plutôt qu'un horizon implicite.
+    // S'il est connu, on confronte le rythme d'épargne à cet horizon.
+    const horizonTexte = horizon != null
+      ? `horizon retraite : ${horizon} an(s)`
+      : 'Horizon > 5 ans';
+    let leverFire = `Capital cible (règle des 25×) : ${e0(capitalFire)} — patrimoine actuel : ${e0(patrimoineActuel)}${gap > 0 ? ` — gap : ${e0(gap)}` : ' ✓ objectif atteint'}`;
+    if (horizon != null && anneesEstimees != null && gap > 0) {
+      leverFire += anneesEstimees <= horizon
+        ? ` — atteignable avant la retraite (${horizon} an(s))`
+        : ` — au-delà de la retraite estimée (${horizon} an(s)) au rythme actuel : augmenter l'effort d'épargne`;
+    }
     lt.push({
       title: 'Trajectoire indépendance financière (FIRE)',
-      levier: `Capital cible (règle des 25×) : ${e0(capitalFire)} — patrimoine actuel : ${e0(patrimoineActuel)}${gap > 0 ? ` — gap : ${e0(gap)}` : ' ✓ objectif atteint'}`,
+      levier: leverFire,
       gain: anneesEstimees != null && gap > 0 ? `~${anneesEstimees} ans au rythme actuel` : gap === 0 ? 'Objectif atteint' : 'Calculer l\'effort net',
-      deadline: 'Horizon > 5 ans',
+      deadline: horizonTexte,
       color: 'violet',
     });
   }
@@ -2295,6 +2341,32 @@ function FeuilleRouteModule({ p, d }) {
       gain: `Spread TMI : ${d.tmi - tmiRetraite} pts`,
       deadline: 'Avant départ en retraite',
       color: 'teal',
+    });
+  }
+
+  // ── Conseils SPÉCIFIQUES par phase de cycle de vie ──
+  // Montants/abattements issus de Paperasse (taxCalculator), jamais en dur ici.
+  const patrimoineTransmissible = (p.patrimoineNet || 0);
+  if (transmissionPertinente && patrimoineTransmissible > ABATTEMENT_DONATION_ENFANT) {
+    lt.push({
+      title: 'Amorcer la transmission',
+      levier: `Donation en ligne directe : abattement de ${e0(ABATTEMENT_DONATION_ENFANT)} par parent et par enfant, renouvelable tous les ${RAPPEL_FISCAL_DONATION_ANNEES} ans (art. 779 CGI) — commencer tôt multiplie les cycles. Don familial de sommes d'argent : ${e0(ABATTEMENT_DON_FAMILIAL)} supplémentaires (art. 790 G). Étudier le démembrement (donation de la nue-propriété, art. 669 CGI) pour transmettre à moindre coût.`,
+      gain: 'Droits de mutation réduits sur le long terme',
+      deadline: enRetraite ? 'Transmission active dès maintenant' : 'À amorcer dès maintenant',
+      color: 'violet',
+    });
+  }
+
+  if (securisationRequise) {
+    const avAnterioriteOk = (p.avDateD1 || p.avDateD2 || (p.avD1 || 0) + (p.avD2 || 0) > 0);
+    lt.push({
+      title: ls.flags.av70Proche
+        ? `Optimiser l'assurance-vie AVANT ${SEUIL_AGE_AV_TRANSMISSION} ans`
+        : 'Sécuriser et préparer la transmission de l\'assurance-vie',
+      levier: `Verser sur l'assurance-vie tant que l'assuré a moins de ${SEUIL_AGE_AV_TRANSMISSION} ans : abattement de ${e0(ABATTEMENT_AV_AVANT_70)} par bénéficiaire (art. 990 I CGI). Après ${SEUIL_AGE_AV_TRANSMISSION} ans, l'abattement tombe à ${e0(ABATTEMENT_AV_APRES_70)} global (art. 757 B CGI). Vérifier l'antériorité des 8 ans${avAnterioriteOk ? '' : ' (ouvrir un contrat pour prendre date si ce n\'est pas fait)'} et rédiger soigneusement la clause bénéficiaire. Poursuivre le glidepath : sécuriser progressivement en fonds €.`,
+      gain: ls.flags.av70Proche ? `Fenêtre 990 I avant ${SEUIL_AGE_AV_TRANSMISSION} ans` : 'Transmission optimisée + capital sécurisé',
+      deadline: ls.flags.av70Proche ? `Avant le ${SEUIL_AGE_AV_TRANSMISSION}ᵉ anniversaire` : 'Avant / pendant la retraite',
+      color: 'amber',
     });
   }
 

@@ -177,5 +177,30 @@
       "maximum_pct": 69,
       "note": "Usufruit temporaire : 23% par tranche de 10 ans, plafonné à la valeur de l'usufruit viager"
     }
+  },
+  "assurance_vie_transmission": {
+    "description": "Abattement de transmission de l'assurance-vie (capitaux versés aux bénéficiaires désignés, hors succession civile). Le régime dépend de l'âge de l'assuré au moment du VERSEMENT des primes.",
+    "seuil_age_pivot": 70,
+    "primes_versees_avant_70_ans": {
+      "abattement_par_beneficiaire": 152500,
+      "taux_apres_abattement": [
+        { "de": 0, "a": 700000, "taux": 20 },
+        { "de": 700000, "a": null, "taux": 31.25 }
+      ],
+      "note": "Abattement de 152 500 € par bénéficiaire, puis prélèvement de 20 % jusqu'à 700 000 € et 31,25 % au-delà",
+      "base_legale": "Art. 990 I CGI"
+    },
+    "primes_versees_apres_70_ans": {
+      "abattement_global": 30500,
+      "note": "Abattement global de 30 500 € tous bénéficiaires confondus, portant uniquement sur les primes versées ; le surplus de primes est soumis aux droits de succession de droit commun. Les gains (intérêts/plus-values) restent exonérés.",
+      "base_legale": "Art. 757 B CGI"
+    }
+  },
+  "seuils_age": {
+    "description": "Seuils d'âge structurants pour le conseil patrimonial et la transmission.",
+    "av_transmission_pivot_versement": 70,
+    "av_transmission_base_legale": "Art. 990 I CGI (avant 70 ans) / Art. 757 B CGI (après 70 ans)",
+    "don_familial_age_max_donateur": 80,
+    "don_familial_base_legale": "Art. 790 G CGI"
   }
 }

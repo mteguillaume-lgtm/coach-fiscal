@@ -15,6 +15,7 @@ import OpportunitiesPanel from '../components/OpportunitiesPanel';
 import { chatWithClaude } from '../lib/claudeApi';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
 import { MASTER_PROMPT } from '../data/masterPrompt';
+import { deriveLifeStage } from '../lib/lifeStage';
 
 import AnimatedNumber from '../components/motion/AnimatedNumber';
 import ScrollReveal from '../components/motion/ScrollReveal';
@@ -25,9 +26,37 @@ import SpotlightCursor from '../components/motion/SpotlightCursor';
 import Grain from '../components/motion/Grain';
 import SplitText from '../components/motion/SplitText';
 
-const ENRICHMENT_PROMPT = `Le profil fiscal ci-dessus contient les données brutes et les calculs vérifiés (RNI, IR, PER, régularisation). Les montants sont exacts — ne les recalcule pas.
+// Décrit le cycle de vie du foyer pour le prompt IA. L'âge et l'horizon proviennent
+// EXCLUSIVEMENT de deriveLifeStage(parsedProfile) — jamais réinventés ici.
+function buildLifeStageContext(parsedProfile) {
+  const ls = deriveLifeStage(parsedProfile);
+  if (ls.degrade) {
+    return `CYCLE DE VIE DU FOYER : âge non renseigné.
+- Ne personnalise PAS l'allocation ni la stratégie par phase de vie.
+- Ajoute dans « POINTS D'ATTENTION » un point [🟡 À CONFIRMER] : « ${ls.vigilance} »`;
+  }
+  const describe = (band, who) =>
+    band ? `- ${who} : phase ${band.label.toUpperCase()} (${band.id}). ${band.resume}` : null;
+  const lignes = [describe(ls.bandD1, 'Déclarant 1'), describe(ls.bandD2, 'Déclarant 2')].filter(Boolean);
+  const horizon = ls.horizonInvestissement != null
+    ? `${ls.horizonInvestissement} an(s) avant la retraite la plus proche du foyer`
+    : 'non déterminé';
+  const flags = [];
+  if (ls.flags.glidepathRequis) flags.push('glidepath requis (réduire progressivement la part actions)');
+  if (ls.flags.av70Proche) flags.push('un déclarant approche 70 ans → arbitrer les versements AV AVANT la bascule 990 I → 757 B');
+  if (ls.flags.donFamilialPossible) flags.push('don familial de sommes d\'argent envisageable (art. 790 G, donateur < 80 ans)');
+  return `CYCLE DE VIE DU FOYER (déterminé à partir de l'âge réel du profil, ne le recalcule pas) :
+${lignes.join('\n')}
+- Horizon d'investissement : ${horizon}.
+${flags.length ? '- Signaux : ' + flags.join(' ; ') + '.' : ''}`;
+}
 
-En tant que fiscaliste expert, analyse CE profil spécifique et génère les 4 sections suivantes. Appuie-toi sur les skills fiscaliste, notaire, comptable et GCP injectés dans ce prompt pour identifier tout ce qui est pertinent. Ne mentionne que ce qui est réellement présent ou déductible des données du profil — n'invente aucune situation.
+function buildEnrichmentPrompt(parsedProfile) {
+  return `Le profil fiscal ci-dessus contient les données brutes et les calculs vérifiés (RNI, IR, PER, régularisation). Les montants sont exacts — ne les recalcule pas.
+
+${buildLifeStageContext(parsedProfile)}
+
+En tant que fiscaliste expert, analyse CE profil spécifique et génère les 5 sections suivantes. Appuie-toi sur les skills fiscaliste, notaire, comptable et GCP injectés dans ce prompt pour identifier tout ce qui est pertinent. Ne mentionne que ce qui est réellement présent ou déductible des données du profil — n'invente aucune situation.
 
 == DÉCLARATION — CASES FORMULAIRE 2042 ==
 Liste toutes les cases à remplir pour ce foyer avec le montant exact du profil.
@@ -46,7 +75,15 @@ Si le profil ne contient aucune situation particulière sur un thème, ne l'abor
 
 == OBJECTIFS PRIORITAIRES ==
 3 à 8 actions concrètes pour ce foyer, classées par impact décroissant.
-Pour chaque action : quoi faire, avant quelle date, gain estimé en €, et pourquoi c'est prioritaire compte tenu de la situation de ce foyer.`;
+Pour chaque action : quoi faire, avant quelle date, gain estimé en €, et pourquoi c'est prioritaire compte tenu de la situation de ce foyer.
+
+== STRATÉGIE PATRIMONIALE ==
+Construis une stratégie patrimoniale ADAPTÉE AU CYCLE DE VIE du foyer décrit ci-dessus. Raisonne sur l'âge du TITULAIRE pour les enveloppes individuelles (PEA, AV, PER) et sur l'horizon du déclarant le plus proche de la retraite pour la sécurisation globale.
+- ALLOCATION CIBLE : propose une répartition (actions / fonds € — obligations / immobilier / liquidités) cohérente avec un glidepath, c'est-à-dire une part actions qui DÉCROÎT avec l'âge et l'approche de la retraite.
+- HIÉRARCHIE DES ENVELOPPES : classe PEA vs PER vs AV selon l'horizon et la phase. Ne recommande JAMAIS un blocage long (PER) incohérent avec un horizon court ; en phase de constitution, privilégie « prendre date » (PEA 5 ans, AV 8 ans) avant tout blocage.
+- TRANSMISSION : dès la phase CONSOLIDATION, aborde l'amorçage des donations (abattement de 100 000 € par parent/enfant renouvelable 15 ans, art. 779 ; don familial art. 790 G) et la réflexion sur le démembrement (art. 669). En PRÉ-RETRAITE et RETRAITE, insiste sur le seuil des 70 ans en assurance-vie (abattement 152 500 € par bénéficiaire art. 990 I avant 70 ans, 30 500 € global art. 757 B après) et la rédaction de la clause bénéficiaire.
+Ne traite que ce qui est réellement présent ou pertinent compte tenu du profil ; n'invente aucun actif.`;
+}
 
 // ============================================================================
 // COMPOSANT ACTION BUTTON
@@ -159,12 +196,13 @@ export default function Profile() {
     try {
       const skills = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation transmission succession');
       const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'opus' });
+      const enrichmentPrompt = buildEnrichmentPrompt(state.parsedProfile || {});
       let enrichedText = '';
       await chatWithClaude({
         apiKey,
         model: 'opus',
         system,
-        messages: [{ role: 'user', content: ENRICHMENT_PROMPT }],
+        messages: [{ role: 'user', content: enrichmentPrompt }],
         onChunk: chunk => { enrichedText += chunk; },
       });
       if (enrichedText.trim()) {
