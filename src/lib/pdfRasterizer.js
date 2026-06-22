@@ -69,7 +69,10 @@ async function canvasToBlob(canvas, format, quality) {
       canvas.toBlob(b => (b ? res(b) : rej(new Error("Échec d'encodage du canvas"))), format, quality));
   }
   if (typeof canvas.toBuffer === 'function') {            // @napi-rs/canvas
-    return new Blob([canvas.toBuffer(format)], { type: format });
+    // Quality must be passed as a bare number (not an object) — @napi-rs/canvas
+    // ignores the object form { quality }. Only JPEG accepts a quality arg.
+    const buf = format === 'image/jpeg' ? canvas.toBuffer(format, quality) : canvas.toBuffer(format);
+    return new Blob([buf], { type: format });
   }
   throw new Error("Canvas sans méthode d'encodage disponible");
 }
@@ -82,12 +85,9 @@ async function canvasToBlob(canvas, format, quality) {
  */
 export async function rasterizePages(file, { scale = RASTER_SCALE, createCanvas = defaultCreateCanvas } = {}) {
   const data = new Uint8Array(await file.arrayBuffer());
-  let pdf;
-  try {
-    pdf = await getDocument({ data }).promise;
-  } catch (err) {
-    throw new Error('PDF vide ou invalide — aucune page à convertir.');
-  }
+  // Let pdfjs errors propagate naturally — they are already informative.
+  // A generic catch-all would mask real errors and make test assertions dishonest.
+  const pdf = await getDocument({ data }).promise;
   const pages = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
