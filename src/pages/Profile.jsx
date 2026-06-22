@@ -12,7 +12,7 @@ import { useApp } from '../context/AppContext';
 import { parseProfile } from '../lib/profileParser';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
 import OpportunitiesPanel from '../components/OpportunitiesPanel';
-import { chatWithClaude } from '../lib/claudeApi';
+import { chat, getProviderMeta } from '../lib/providers';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
 import { MASTER_PROMPT } from '../data/masterPrompt';
 import { deriveLifeStage } from '../lib/lifeStage';
@@ -192,13 +192,13 @@ export default function Profile() {
       return;
     }
     setEnriching(true);
-    toast('Analyse approfondie avec Claude Opus 4.7…', { icon: '🔮' });
+    toast(`Analyse approfondie avec ${getProviderMeta(state.provider).label}…`, { icon: '🔮' });
     try {
       const skills = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation transmission succession');
       const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'opus' });
       const enrichmentPrompt = buildEnrichmentPrompt(state.parsedProfile || {});
       let enrichedText = '';
-      await chatWithClaude({
+      await chat(state.provider, {
         apiKey,
         model: 'opus',
         system,

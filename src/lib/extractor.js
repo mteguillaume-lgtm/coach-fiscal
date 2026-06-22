@@ -1,10 +1,18 @@
-// Extraction IA de données fiscales depuis un document (PDF ou image).
-// Port de analyzeDoc() + mapExtracted() depuis collecte-fiscal-v3.jsx.
+// Analyse IA de données fiscales depuis un document (PDF ou image).
+//
+// Ce module porte les éléments PROVIDER-AGNOSTIC de l'extraction par vision :
+//   • EXTRACT_PROMPT — l'instruction fiscale envoyée au modèle (identique quel
+//     que soit le fournisseur) ;
+//   • toBase64       — utilitaire d'encodage du fichier ;
+//   • mapExtracted   — parsing de la réponse texte vers un objet formulaire.
+// L'appel réseau lui-même (format Anthropic vs Mistral) vit dans
+// src/lib/providers/* et est exposé via le registre providers/index.js
+// (analyzeDoc(provider, file, apiKey)).
+//
+// ⚠️ À ne pas confondre avec src/lib/docExtract.js, qui fait l'extraction 100 %
+//    LOCALE par regex (aucun appel IA) utilisée à l'anonymisation.
 
-// Extraction structurée simple → Haiku (rapide + économique, pas besoin de raisonnement)
-const MODEL = 'claude-haiku-4-5-20251001';
-
-const PROMPT = `Tu es expert fiscal français. Analyse ce document (bulletin de salaire ou avis d'imposition).
+export const EXTRACT_PROMPT = `Tu es expert fiscal français. Analyse ce document (bulletin de salaire ou avis d'imposition).
 
 RÈGLE CRITIQUE — CUMULS ANNUELS :
 Ce document est idéalement le bulletin de décembre (ou le dernier bulletin de l'employeur si changement en cours d'année).
@@ -26,51 +34,17 @@ Si une donnée est absente du document, ne pas l'inclure dans la réponse.
 NE PAS inclure : noms, prénoms, adresses, numéros de sécurité sociale, IBAN, références employeur.`;
 
 /**
- * Lit un fichier en base64.
+ * Lit un fichier en base64 (sans le préfixe data URL).
  * @param {File} file
  * @returns {Promise<string>}
  */
-function toBase64(file) {
+export function toBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload  = () => resolve(reader.result.split(',')[1]);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-/**
- * Envoie un document (PDF ou image) à Claude pour extraction des données fiscales.
- * Port de analyzeDoc() — ajoute les headers API manquants dans l'original.
- *
- * @param {File}   file   - Fichier PDF ou image
- * @param {string} apiKey - Clé API Anthropic (sk-ant-...)
- * @returns {Promise<string>} Texte brut retourné par Claude
- */
-export async function analyzeDoc(file, apiKey) {
-  const isImg = file.type.startsWith('image/');
-  const isPDF = file.type === 'application/pdf';
-  if (!isImg && !isPDF) throw new Error('Format non supporté (uniquement images et PDF)');
-
-  const b64 = await toBase64(file);
-  const content = isImg
-    ? [{ type: 'image',    source: { type: 'base64', media_type: file.type,            data: b64 } }, { type: 'text', text: PROMPT }]
-    : [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf',    data: b64 } }, { type: 'text', text: PROMPT }];
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({ model: MODEL, max_tokens: 1000, messages: [{ role: 'user', content }] }),
-  });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'Erreur API Claude');
-  return data.content?.find(b => b.type === 'text')?.text || 'Aucune donnée extraite';
 }
 
 /**

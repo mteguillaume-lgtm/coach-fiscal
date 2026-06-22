@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useApp } from '../context/AppContext';
-import { chatWithClaude, detectComplexity } from '../lib/claudeApi';
+import { chat, detectComplexity } from '../lib/providers';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
 import { MASTER_PROMPT } from '../data/masterPrompt';
 import PERBandeau from '../components/PERBandeau';
@@ -273,7 +273,7 @@ export default function Chat() {
     ];
 
     try {
-      await chatWithClaude({
+      await chat(state.provider, {
         apiKey, messages: historyForApi, system, model: modelToUse,
         onChunk: chunk => setMessages(prev => {
           const u = [...prev];
@@ -302,7 +302,7 @@ export default function Chat() {
       setStreaming(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, streaming, messages, state.profile, state.model, getApiKey, dispatch]);
+  }, [input, streaming, messages, state.profile, state.model, state.provider, getApiKey, dispatch]);
 
   const handleKeyDown = e => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -539,7 +539,7 @@ export default function Chat() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-violet-200">Mode démo</p>
               <p className="text-xs text-violet-300/80 mt-0.5 leading-relaxed">
-                Le chat IA n'est pas disponible sans clé API Anthropic.
+                Le chat IA n'est pas disponible sans clé API.
                 Vous pouvez parcourir l'interface et consulter le profil de démonstration.
               </p>
               <p className="text-xs text-violet-400 mt-1.5">

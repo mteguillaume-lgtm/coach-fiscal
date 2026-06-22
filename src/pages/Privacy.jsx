@@ -4,9 +4,10 @@ import {
 } from 'lucide-react';
 import Button from '../components/Button';
 import { useApp } from '../context/AppContext';
+import { keyStorageId, LEGACY_API_KEY } from '../lib/apiKeyStore';
+import { PROVIDERS } from '../lib/providers';
 
-const STORAGE_KEY     = 'kapio.state';
-const API_KEY_STORAGE = 'kapio.apiKey';
+const STORAGE_KEY = 'kapio.state';
 
 const LOCAL_STORED = [
   { key: 'state → mode',        what: 'Situation du foyer (solo / couple)' },
@@ -16,7 +17,7 @@ const LOCAL_STORED = [
   { key: 'state → d2Data',      what: 'Données déclarant 2 (mode couple)' },
   { key: 'state → profile',     what: 'Profil fiscal synthétique généré (texte brut)' },
   { key: 'state → chatHistory', what: 'Historique de la conversation avec Claude' },
-  { key: 'apiKey',              what: 'Clé API Anthropic (stockée séparément, jamais dans kapio.state)' },
+  { key: 'apiKey.<fournisseur>', what: 'Clé API du fournisseur choisi — Anthropic ou Mistral (stockée séparément par fournisseur, jamais dans kapio.state)' },
 ];
 
 const LOCAL_NOT_STORED = [
@@ -67,7 +68,9 @@ export default function Privacy() {
     dispatch({ type: 'RESET_ALL' });
     try {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(API_KEY_STORAGE);
+      localStorage.removeItem(LEGACY_API_KEY);
+      // Clés API par fournisseur (Anthropic, Mistral…)
+      for (const p of PROVIDERS) localStorage.removeItem(keyStorageId(p.id));
     } catch {
       // Ignore (mode privé, quota)
     }

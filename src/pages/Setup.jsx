@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Eye, EyeOff, ExternalLink, AlertTriangle, CheckCircle2,
@@ -12,12 +12,7 @@ import AuroraBackground from '../components/motion/AuroraBackground';
 import MagneticButton from '../components/motion/MagneticButton';
 import GlowCard from '../components/motion/GlowCard';
 import ScrollReveal from '../components/motion/ScrollReveal';
-
-const API_CONSOLE_URL = 'https://console.anthropic.com/settings/keys';
-
-function isValidKey(k) {
-  return typeof k === 'string' && k.startsWith('sk-ant-') && k.length > 20;
-}
+import { PROVIDERS, getProviderMeta, isValidKey } from '../lib/providers';
 
 const MODES = [
   { value: 'solo',   label: 'Célibataire', sub: 'Une déclaration', Icon: User },
@@ -28,23 +23,30 @@ export default function Setup() {
   const navigate = useNavigate();
   const { state, dispatch, getApiKey, setApiKey } = useApp();
 
-  const [apiKey, setLocalApiKey] = useState('');
+  const initialProvider = state.provider || 'anthropic';
+  const [provider, setProvider] = useState(initialProvider);
+  const [apiKey, setLocalApiKey] = useState(() => getApiKey(initialProvider));
   const [mode, setMode] = useState(state.mode || 'solo');
   const [showKey, setShowKey] = useState(false);
   const [touched, setTouched] = useState(false);
 
-  useEffect(() => {
-    const stored = getApiKey();
-    if (stored) setLocalApiKey(stored);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const meta = getProviderMeta(provider);
 
-  const valid = isValidKey(apiKey);
+  // Changer de fournisseur recharge la clé stockée correspondante.
+  function selectProvider(id) {
+    if (id === provider) return;
+    setProvider(id);
+    setLocalApiKey(getApiKey(id));
+    setTouched(false);
+  }
+
+  const valid = isValidKey(provider, apiKey);
   const showError = touched && apiKey.length > 0 && !valid;
 
   function handleContinue() {
     if (!valid) return;
-    setApiKey(apiKey);
+    setApiKey(apiKey, provider);
+    dispatch({ type: 'SET_PROVIDER', payload: provider });
     dispatch({ type: 'SET_MODE', payload: mode });
     navigate('/anonymize');
   }
@@ -119,6 +121,68 @@ export default function Setup() {
         {/* CONTENT */}
         <div className="flex flex-col gap-5">
 
+          {/* CARD FOURNISSEUR IA */}
+          <ScrollReveal delay={0.42}>
+            <GlowCard className="p-7" liftOnHover={false}>
+              <div className="mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-kapio-500/10 border border-kapio-500/30 flex items-center justify-center">
+                  <Sparkles size={16} className="text-kapio-300" />
+                </div>
+                <div>
+                  <p className="font-bold text-ink-0 text-base">Fournisseur IA</p>
+                  <p className="text-xs text-ink-200 mt-0.5">Le moteur qui génère vos conseils</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {PROVIDERS.map(({ id, label, vendor }) => {
+                  const isActive = provider === id;
+                  return (
+                    <motion.button
+                      key={id}
+                      type="button"
+                      onClick={() => selectProvider(id)}
+                      whileHover={{ y: -3 }}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                      className={
+                        'relative flex flex-col items-start gap-1.5 p-5 rounded-2xl text-left transition-all duration-300 overflow-hidden ' +
+                        (isActive
+                          ? 'border-2 border-kapio-500/50 bg-kapio-500/[0.06] shadow-glow-soft'
+                          : 'border-2 border-white/[0.06] bg-ink-700/40 hover:border-white/[0.12] hover:bg-ink-700/60')
+                      }
+                    >
+                      <p className={
+                        'font-bold text-sm transition-colors ' +
+                        (isActive ? 'text-kapio-300' : 'text-ink-0')
+                      }>
+                        {label}
+                      </p>
+                      <p className="text-xs text-ink-200">{vendor}</p>
+
+                      <AnimatePresence>
+                        {isActive ? (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.5 }}
+                            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                            className="absolute top-3 right-3 w-5 h-5 rounded-full bg-kapio-gradient flex items-center justify-center"
+                          >
+                            <CheckCircle2 size={11} className="text-ink-900" />
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Note contextuelle (souveraineté / formats supportés) */}
+              <p className="text-xs text-ink-200 mt-4 leading-relaxed">{meta.note}</p>
+            </GlowCard>
+          </ScrollReveal>
+
           {/* CARD CLÉ API avec GlowCard */}
           <ScrollReveal delay={0.5}>
             <GlowCard className="p-7" liftOnHover={false}>
@@ -166,12 +230,12 @@ export default function Setup() {
                     <Key size={18} aria-hidden="true" />
                   </motion.div>
                   <div>
-                    <p className="font-bold text-ink-0 text-base">Clé API Anthropic</p>
+                    <p className="font-bold text-ink-0 text-base">Clé API {meta.vendor}</p>
                     <p className="text-xs text-ink-200 mt-0.5">Étape Conseil uniquement · jamais partagée</p>
                   </div>
                 </div>
                 <a
-                  href={API_CONSOLE_URL}
+                  href={meta.consoleUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="shrink-0 inline-flex items-center gap-1 text-xs text-kapio-300 hover:text-kapio-200 font-medium transition-colors mt-2 hover:gap-1.5"
@@ -185,7 +249,7 @@ export default function Setup() {
                 <input
                   type={showKey ? 'text' : 'password'}
                   value={apiKey}
-                  placeholder="sk-ant-api03-..."
+                  placeholder={meta.placeholder}
                   autoComplete="off"
                   spellCheck={false}
                   onChange={e => {
@@ -238,7 +302,11 @@ export default function Setup() {
                     className="flex items-center gap-1.5 text-xs text-danger-400 mt-3"
                   >
                     <AlertTriangle size={12} />
-                    Doit commencer par <code className="font-mono bg-danger-500/10 px-1.5 py-0.5 rounded">sk-ant-</code>
+                    {provider === 'anthropic' ? (
+                      <>Doit commencer par <code className="font-mono bg-danger-500/10 px-1.5 py-0.5 rounded">sk-ant-</code></>
+                    ) : (
+                      <>Clé alphanumérique d'au moins 20 caractères</>
+                    )}
                   </motion.p>
                 ) : null}
 

@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 
 import { useApp }                   from '../context/AppContext';
-import { analyzeDoc, mapExtracted } from '../lib/extractor';
+import { mapExtracted }             from '../lib/extractor';
+import { analyzeDoc }               from '../lib/providers';
 import { mapExtractToForm }         from '../lib/docExtract';
 import { parseProfile }             from '../lib/profileParser';
 import { buildProfile }             from '../lib/profileGenerator';
@@ -1318,7 +1319,7 @@ export default function Collect() {
     setDocs(p => [...p, ...newDocs]);
     for (const doc of newDocs) {
       try {
-        const extracted = await analyzeDoc(doc.file, apiKey);
+        const extracted = await analyzeDoc(state.provider, doc.file, apiKey);
         const { map: mapped, warning } = mapExtracted(extracted);
         setDocs(p => p.map(d => d.id === doc.id ? { ...d, status: 'done', extracted, warning } : d));
         if (Object.keys(mapped).length > 0) {
@@ -1332,7 +1333,7 @@ export default function Collect() {
       }
     }
     setUploading(false);
-  }, [getApiKey]);
+  }, [getApiKey, state.provider]);
 
   // Progress (visible fields only, including capacité keys)
   const { filled: totalF, total: totalAll, pct } = (() => {

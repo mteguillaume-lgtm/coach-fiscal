@@ -1,8 +1,9 @@
 import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { parseProfile } from '../lib/profileParser';
+import { getStoredApiKey, setStoredApiKey, migrateLegacyApiKey } from '../lib/apiKeyStore';
+import { DEFAULT_PROVIDER } from '../lib/providers';
 
 const STORAGE_KEY = 'kapio.state';
-const API_KEY_STORAGE = 'kapio.apiKey';
 
 const COLLECT_PROFILE_DEFAULT = {
   foyer: { statut: '', parts: 1, enfants: 0, enfantsGardeAlternee: 0 },
@@ -66,6 +67,7 @@ function migrateCollectProfile(cp, ...dataBags) {
 
 const initialState = {
   mode: 'solo',         // "solo" | "couple"
+  provider: DEFAULT_PROVIDER, // "anthropic" | "mistral" — fournisseur IA choisi
   model: 'auto',        // "auto" | "sonnet" | "opus"  — auto = adaptatif par complexité
   formData: {},          // données foyer (formulaire collecte)
   d1Data: {},            // déclarant 1 (mode couple)
@@ -89,6 +91,8 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_MODE':
       return { ...state, mode: action.payload };
+    case 'SET_PROVIDER':
+      return { ...state, provider: action.payload };
     case 'SET_MODEL':
       return { ...state, model: action.payload };
     case 'SET_FORM_DATA':
@@ -192,6 +196,8 @@ export function AppProvider({ children }) {
 
   // Hydratation initiale depuis localStorage
   useEffect(() => {
+    // Migration rétro-compat : ancienne clé unique → clé Anthropic.
+    try { migrateLegacyApiKey(); } catch { /* mode privé / quota */ }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -224,9 +230,10 @@ export function AppProvider({ children }) {
     return () => clearTimeout(timerRef.current);
   }, [state]);
 
-  // La clé API est traitée séparément pour isolation et traçabilité
-  const getApiKey = () => {
-    const key = localStorage.getItem(API_KEY_STORAGE) || '';
+  // La clé API est traitée séparément pour isolation et traçabilité.
+  // Une clé par fournisseur ; par défaut, le fournisseur courant de l'état.
+  const getApiKey = (provider = state.provider) => {
+    const key = getStoredApiKey(provider);
     if (key) {
       console.warn(
         '[Kapio] Clé API chargée depuis localStorage. ' +
@@ -236,16 +243,14 @@ export function AppProvider({ children }) {
     return key;
   };
 
-  const setApiKey = (key) => {
+  const setApiKey = (key, provider = state.provider) => {
     if (key) {
       console.warn(
         '[Kapio] Clé API stockée dans localStorage. ' +
         'Ne partagez pas cet onglet ni vos outils de développement.'
       );
-      localStorage.setItem(API_KEY_STORAGE, key);
-    } else {
-      localStorage.removeItem(API_KEY_STORAGE);
     }
+    setStoredApiKey(provider, key);
   };
 
   return (
