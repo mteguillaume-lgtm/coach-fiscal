@@ -1,7 +1,7 @@
 // Adaptateur fournisseur — Mistral AI (européen, souverain, tier gratuit).
 // Même contrat que providers/anthropic.js :
 //   chat({ apiKey, messages, system, onChunk, model }) => Promise<string>
-//   analyzeDoc(file, apiKey) => Promise<string>
+//   analyzeDoc({ images, apiKey }) => Promise<string>
 //   isValidKey(key) => boolean
 //
 // Différences avec Anthropic gérées ici :
@@ -101,33 +101,21 @@ function extractDelta(event) {
 }
 
 /**
- * Analyse un document via la vision Mistral (modèle multimodal).
+ * Analyse une ou plusieurs images (pages rasterisées) via la vision Mistral.
+ * reçoit des images de page (PDF déjà rasterisé en amont).
  *
- * ⚠️ Limitation : l'endpoint chat/completions de Mistral n'accepte que des
- * IMAGES (data URL `image_url`), pas les PDF. Pour un PDF, on lève une erreur
- * explicite invitant à fournir une image ou à utiliser Claude.
- *
- * @param {File}   file   - Fichier image
- * @param {string} apiKey - Clé API Mistral
- * @returns {Promise<string>} Texte brut retourné par Mistral
+ * @param {{ images: Array<{blob:Blob, mediaType:string}>, apiKey:string }} args
+ * @returns {Promise<string>}
  */
-export async function analyzeDoc(file, apiKey) {
-  const isImg = file.type.startsWith('image/');
-  const isPDF = file.type === 'application/pdf';
-  if (isPDF) {
-    throw new Error(
-      "Mistral n'analyse pas les PDF par vision : convertissez le document en " +
-      'image (JPG/PNG), ou sélectionnez Claude comme fournisseur pour les PDF.'
-    );
-  }
-  if (!isImg) throw new Error('Format non supporté (uniquement images avec Mistral)');
+export async function analyzeDoc({ images, apiKey }) {
+  if (!images?.length) throw new Error('Aucune image à analyser.');
 
-  const b64 = await toBase64(file);
-  const dataUrl = `data:${file.type};base64,${b64}`;
-  const content = [
-    { type: 'text', text: EXTRACT_PROMPT },
-    { type: 'image_url', image_url: dataUrl },
-  ];
+  const content = [];
+  for (const img of images) {
+    const b64 = await toBase64(img.blob);
+    content.push({ type: 'image_url', image_url: `data:${img.mediaType};base64,${b64}` });
+  }
+  content.push({ type: 'text', text: EXTRACT_PROMPT });
 
   const res = await fetch(API_URL, {
     method: 'POST',

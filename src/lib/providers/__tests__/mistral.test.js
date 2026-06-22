@@ -175,23 +175,13 @@ describe('mistral.chat — erreurs HTTP', () => {
 // ── analyzeDoc (vision) ───────────────────────────────────────────────────────
 
 describe('mistral.analyzeDoc', () => {
-  // FileReader n'existe pas en environnement node : on le stub pour toBase64.
   function stubFileReader() {
     vi.stubGlobal('FileReader', class {
-      readAsDataURL() {
-        this.result = 'data:image/jpeg;base64,QUJD';
-        queueMicrotask(() => this.onload?.());
-      }
+      readAsDataURL() { this.result = 'data:image/jpeg;base64,QUJD'; queueMicrotask(() => this.onload?.()); }
     });
   }
 
-  it('refuse les PDF avec un message explicite', async () => {
-    const file = { type: 'application/pdf' };
-    await expect(analyzeDoc(file, 'key1234567890abcdefgh'))
-      .rejects.toThrow(/Mistral n'analyse pas les PDF/);
-  });
-
-  it('envoie une image en data URL et renvoie le contenu', async () => {
+  it('envoie N blocs image_url et renvoie le contenu', async () => {
     stubFileReader();
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -199,13 +189,22 @@ describe('mistral.analyzeDoc', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const file = { type: 'image/jpeg' };
-    const out = await analyzeDoc(file, 'key1234567890abcdefgh');
+    const images = [
+      { blob: new Blob(['a']), mediaType: 'image/jpeg' },
+      { blob: new Blob(['b']), mediaType: 'image/jpeg' },
+    ];
+    const out = await analyzeDoc({ images, apiKey: 'key1234567890abcdefgh' });
     expect(out).toBe('Net imposable annuel : 30000');
 
     const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(sent.model).toBe('mistral-small-latest');
-    const img = sent.messages[0].content.find(c => c.type === 'image_url');
-    expect(img.image_url).toBe('data:image/jpeg;base64,QUJD');
+    const imgs = sent.messages[0].content.filter(c => c.type === 'image_url');
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0].image_url).toBe('data:image/jpeg;base64,QUJD');
+  });
+
+  it('lève une erreur si aucune image', async () => {
+    await expect(analyzeDoc({ images: [], apiKey: 'key1234567890abcdefgh' }))
+      .rejects.toThrow(/Aucune image/);
   });
 });
