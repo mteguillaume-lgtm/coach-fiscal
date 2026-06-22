@@ -3,21 +3,8 @@
 
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
 
-// In test environment, workerUrl might not resolve correctly. Provide a fallback.
-let resolvedWorkerSrc = workerUrl;
-if (typeof workerUrl === 'string' && !workerUrl.startsWith('http') && !workerUrl.startsWith('file://')) {
-  // In Node test env, workerUrl might be a path like '/node_modules/...' which is incorrect.
-  // Use file:// URL instead
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const workerFile = resolve(__dirname, '../..', 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs');
-  resolvedWorkerSrc = `file://${workerFile}`;
-}
-
-GlobalWorkerOptions.workerSrc = resolvedWorkerSrc;
+GlobalWorkerOptions.workerSrc = workerUrl;
 
 // Tolérance en points pour regrouper les mots sur la même ligne visuelle.
 // Équivalent de round(w["top"]) dans build_lines() Python.
