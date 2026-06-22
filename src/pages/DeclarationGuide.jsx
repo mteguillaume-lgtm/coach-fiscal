@@ -21,8 +21,8 @@ import ScrollReveal     from '../components/motion/ScrollReveal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SAVE_KEY  = 'coachFiscal.declaration.done';
-const VAL_KEY   = 'coachFiscal.declaration.vals';
+const SAVE_KEY  = 'kapio.declaration.done';
+const VAL_KEY   = 'kapio.declaration.vals';
 const IMPOTS    = 'https://www.impots.gouv.fr';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

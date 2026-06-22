@@ -4,7 +4,7 @@
 # Usage : npm run sync:skills
 #
 # IMPORTANT : ne touche PAS à src/data/skills/gcp.md
-#   → le skill GCP est spécifique à coach-fiscal, il n'a pas d'équivalent dans paperasse.
+#   → le skill GCP est spécifique à kapio, il n'a pas d'équivalent dans paperasse.
 
 set -euo pipefail
 
@@ -42,7 +42,7 @@ for skill in "${!SKILL_MAP[@]}"; do
 done
 
 echo ""
-echo "  ℹ️  src/data/skills/gcp.md non touché (skill spécifique coach-fiscal)"
+echo "  ℹ️  src/data/skills/gcp.md non touché (skill spécifique kapio)"
 echo ""
 echo "✅  Sync terminé. Vérifiez les changements avec :"
 echo "    git diff src/data/skills/"

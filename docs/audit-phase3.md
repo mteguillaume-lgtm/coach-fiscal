@@ -1,4 +1,4 @@
-# Audit Phase 3 — coach-fiscal
+# Audit Phase 3 — kapio
 
 > Généré le 2026-05-17. Basé sur l'état exact du dépôt après les commits PR3 (`49a1d5b`) et PR4 (`bd678b1`).
 >

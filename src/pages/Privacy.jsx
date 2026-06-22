@@ -5,8 +5,8 @@ import {
 import Button from '../components/Button';
 import { useApp } from '../context/AppContext';
 
-const STORAGE_KEY     = 'coachFiscal.state';
-const API_KEY_STORAGE = 'coachFiscal.apiKey';
+const STORAGE_KEY     = 'kapio.state';
+const API_KEY_STORAGE = 'kapio.apiKey';
 
 const LOCAL_STORED = [
   { key: 'state → mode',        what: 'Situation du foyer (solo / couple)' },
@@ -16,7 +16,7 @@ const LOCAL_STORED = [
   { key: 'state → d2Data',      what: 'Données déclarant 2 (mode couple)' },
   { key: 'state → profile',     what: 'Profil fiscal synthétique généré (texte brut)' },
   { key: 'state → chatHistory', what: 'Historique de la conversation avec Claude' },
-  { key: 'apiKey',              what: 'Clé API Anthropic (stockée séparément, jamais dans coachFiscal.state)' },
+  { key: 'apiKey',              what: 'Clé API Anthropic (stockée séparément, jamais dans kapio.state)' },
 ];
 
 const LOCAL_NOT_STORED = [
@@ -102,7 +102,7 @@ export default function Privacy() {
           {LOCAL_STORED.map(({ key, what }) => (
             <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 px-5 py-3">
               <code className="shrink-0 text-xs bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-lg font-mono w-fit">
-                coachFiscal.{key}
+                kapio.{key}
               </code>
               <p className="text-sm text-gray-500 leading-relaxed">{what}</p>
             </div>

@@ -71,7 +71,7 @@ function OpportunityCard({ opp }) {
           className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-kapio-500/30 text-kapio-300 text-xs font-semibold hover:bg-kapio-500/[0.08] transition-colors"
         >
           <MessageCircle size={13} />
-          En discuter avec Coach Fiscal
+          En discuter avec Kapio
         </button>
 
       </div>

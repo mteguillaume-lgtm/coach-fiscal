@@ -1,4 +1,4 @@
-# 🚀 Prompts V2 — Features Coach Fiscal
+# 🚀 Prompts V2 — Features Kapio
 
 > **Avant de commencer** : fais un commit de sauvegarde de ta V1 stable :
 > ```
@@ -467,7 +467,7 @@ Layout :
    - Description courte
    - Badge impact en euros (vert si gain, rouge si risque)
    - Urgence : "À faire avant le 31/12" / "Long terme"
-   - Bouton "💬 En discuter avec Coach Fiscal" 
+   - Bouton "💬 En discuter avec Kapio" 
      → ouvre /chat avec questionChat pré-remplie
 5. Total des gains potentiels détectés en haut : 
    "💰 Gains potentiels identifiés : X €"
@@ -788,7 +788,7 @@ Crée src/lib/annualTracking.js :
 
 Structure localStorage :
 {
-  "coachFiscal.history": {
+  "kapio.history": {
     "2024": { profile: "...", snapshot: { patrimoine, TMI, IR } },
     "2025": { profile: "...", snapshot: { patrimoine, TMI, IR } },
     "2026": { profile: "...", snapshot: { patrimoine, TMI, IR } }
@@ -901,7 +901,7 @@ Crée src/pages/Share.jsx (route /share) :
 1. Génère un lien unique temporaire (valable 48h)
    - Le profil est chiffré avec une clé aléatoire
    - La clé est dans l'URL fragment (#) → jamais envoyée au serveur
-   - Format : https://coach-fiscal.vercel.app/view#[clé-chiffrement]
+   - Format : https://kapio.vercel.app/view#[clé-chiffrement]
 
 2. Page /view : déchiffre et affiche le profil en lecture seule
    - Pas de formulaire, pas de chat
@@ -911,7 +911,7 @@ Crée src/pages/Share.jsx (route /share) :
 3. Bouton "📤 Partager avec mon conseiller" dans Dashboard
    - Génère le lien
    - Copie dans le presse-papier
-   - Message type : "Voici mon bilan fiscal Coach Fiscal [lien]"
+   - Message type : "Voici mon bilan fiscal Kapio [lien]"
 
 Note technique : utilise Web Crypto API (natif navigateur)
 pour le chiffrement AES-GCM. Zéro serveur impliqué.

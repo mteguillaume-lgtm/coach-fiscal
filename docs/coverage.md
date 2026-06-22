@@ -1,4 +1,4 @@
-# Couverture des cas fiscaux — coach-fiscal
+# Couverture des cas fiscaux — kapio
 
 Dernière MAJ : 2026-06-02 — **PHASE 1** : charges déductibles (pensions alim., frais accueil) + réductions/crédits grand public (dons, emploi domicile, garde, scolarité, syndicales) + dividendes CTO & arbitrage PFU/barème + leviers détecteur
 PHASE 0 (socle) : CTO + moteur IR complet (plafonnement QF case T/L/invalidité, step niches, CEHR) + situation familiale dérivée (calcParts)

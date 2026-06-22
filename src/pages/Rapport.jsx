@@ -3091,7 +3091,7 @@ export default function Rapport() {
         <div className="rp-header hidden">
           <div>
             <p className="rp-header-title">Rapport Fiscal — Déclaration 2025 · Feuille de route 2026</p>
-            <p className="rp-header-meta">Coach Fiscal · Généré le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · Confidentiel</p>
+            <p className="rp-header-meta">Kapio · Généré le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} · Confidentiel</p>
           </div>
           <p className="rp-header-meta">Document personnel — ne pas diffuser</p>
         </div>

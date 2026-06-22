@@ -22,7 +22,7 @@ npx vitest run src/plugins/income/__tests__/salaires.test.js
 
 ## Architecture overview
 
-Coach Fiscal is a **100% client-side** French tax coaching SPA (React + Vite + Tailwind). No backend. The Claude API is called directly from the browser using `anthropic-dangerous-direct-browser-access: true`.
+Kapio is a **100% client-side** French tax coaching SPA (React + Vite + Tailwind). No backend. The Claude API is called directly from the browser using `anthropic-dangerous-direct-browser-access: true`.
 
 ### Data flow (the key invariant)
 
@@ -43,7 +43,7 @@ Collect.jsx (form) → profileGenerator.js → TXT profil (source of truth)
 - `formData / d1Data / d2Data`: raw form inputs
 - `profile`: the generated plain-text profile
 - `parsedProfile`: auto-synced result of `parseProfile(profile)` — never set manually
-- `apiKey`: stored separately in `localStorage` (`coachFiscal.apiKey`)
+- `apiKey`: stored separately in `localStorage` (`kapio.apiKey`)
 
 State is persisted to `localStorage` with a 500ms debounce. `anonymizedFiles` (Blob URLs) are session-only and not persisted.
 

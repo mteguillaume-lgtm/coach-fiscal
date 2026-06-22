@@ -1,4 +1,4 @@
-# Audit PR1 + PR2 — coach-fiscal
+# Audit PR1 + PR2 — kapio
 
 > Généré le 2026-05-17. Basé sur l'état exact des fichiers après PR1 (commit `0411e9d`) + PR2 (non commité, 4 fichiers modifiés).
 > PR1 commité sur `main`. PR2 : modifications non encore commitées.

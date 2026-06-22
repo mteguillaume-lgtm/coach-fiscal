@@ -24,7 +24,7 @@ import MagneticButton from '../components/motion/MagneticButton';
 import ScrollReveal from '../components/motion/ScrollReveal';
 import AnimatedNumber from '../components/motion/AnimatedNumber';
 
-const STORAGE_KEY = 'coachFiscal.checklist';
+const STORAGE_KEY = 'kapio.checklist';
 
 // ─── Priorité config ───────────────────────────────────────────────────────────
 

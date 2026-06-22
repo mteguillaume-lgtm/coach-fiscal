@@ -1,4 +1,4 @@
-# Coach Fiscal
+# Kapio
 
 ![Tests](https://img.shields.io/badge/tests-150%20✅-brightgreen)
 ![Plugins](https://img.shields.io/badge/plugins-16%20(4%20actifs)-blue)
@@ -17,7 +17,7 @@ est transmis à l'API Claude (Anthropic) lors du conseil expert.
 
 ## Architecture
 
-Coach Fiscal repose sur une architecture en pipeline avec un registre de plugins de revenus :
+Kapio repose sur une architecture en pipeline avec un registre de plugins de revenus :
 
 ```
 Collect.jsx → profileGenerator → TXT → profileParser → v1 → migrateur → v2 → Claude
@@ -47,8 +47,8 @@ Les plugins de revenus (`src/plugins/income/`) sont découverts automatiquement 
 
 ```bash
 # Prérequis : Node.js 20+
-git clone https://github.com/<votre-pseudo>/coach-fiscal.git
-cd coach-fiscal
+git clone https://github.com/<votre-pseudo>/kapio.git
+cd kapio
 npm install
 npm run dev
 # → http://localhost:5173
@@ -66,8 +66,8 @@ npm run preview    # prévisualise le build sur http://localhost:4173
 ## Données & vie privée
 
 **Stocké uniquement dans votre navigateur (localStorage) :**
-- Clé API Anthropic (`coachFiscal.apiKey`)
-- Formulaire de collecte, profil fiscal généré, historique de conversation (`coachFiscal.state`)
+- Clé API Anthropic (`kapio.apiKey`)
+- Formulaire de collecte, profil fiscal généré, historique de conversation (`kapio.state`)
 
 **Envoyé à `api.anthropic.com` uniquement lors du conseil (étape 4) :**
 - Votre profil fiscal synthétique (texte généré à l'étape 3)
@@ -132,7 +132,7 @@ plus-values mobilières/immobilières, régimes fonciers, niches fiscales.
 
 ```bash
 # Avec gh CLI et vercel CLI
-gh repo create coach-fiscal --public --source=. --remote=origin --push
+gh repo create kapio --public --source=. --remote=origin --push
 vercel --prod
 ```
 

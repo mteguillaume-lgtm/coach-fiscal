@@ -178,7 +178,7 @@ const ENVELOPES = [
 
 const DURATIONS = [5, 10, 20, 30];
 const RATES     = [0.03, 0.05, 0.07, 0.09];
-const SAVE_KEY  = 'coachFiscal.simulations';
+const SAVE_KEY  = 'kapio.simulations';
 
 // ─── Décomposition de l'économie PER par tranche ─────────────────────────────
 // La déduction PER réduit le revenu depuis le haut — elle traverse d'abord la
@@ -793,7 +793,7 @@ function RateExplainerTooltip() {
             d'environ +1,4 %.
           </p>
           <p className="mt-2 text-kapio-300 font-medium">
-            Coach-fiscal privilégie la rigueur : le taux saisi est le taux réel.
+            Kapio privilégie la rigueur : le taux saisi est le taux réel.
           </p>
         </div>
       )}

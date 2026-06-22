@@ -9,7 +9,7 @@ import {
 import Button from './Button';
 import { useApp } from '../context/AppContext';
 
-const STORAGE_KEY = 'coachFiscal.immobilier';
+const STORAGE_KEY = 'kapio.immobilier';
 const fmt = n => Math.round(n).toLocaleString('fr-FR');
 
 const LOAN_TYPES = [

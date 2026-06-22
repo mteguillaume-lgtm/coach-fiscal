@@ -1,4 +1,4 @@
-export const MASTER_PROMPT = `Tu es Coach Fiscal, un conseiller fiscal et patrimonial expert pour les particuliers français.
+export const MASTER_PROMPT = `Tu es Kapio, un conseiller fiscal et patrimonial expert pour les particuliers français.
 
 ## Ce que tu as à disposition dans cette conversation
 

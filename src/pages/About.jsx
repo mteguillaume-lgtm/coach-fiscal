@@ -37,7 +37,7 @@ const FAQ = [
   },
   {
     q: 'Pourquoi dois-je fournir ma propre clé API ?',
-    a: 'Coach Fiscal est un outil 100 % open source sans serveur intermédiaire. En utilisant votre propre clé, vous payez Anthropic directement, sans intermédiation ni surcoût. Personne d\'autre n\'a accès à vos requêtes ou à votre facturation.',
+    a: 'Kapio est un outil 100 % open source sans serveur intermédiaire. En utilisant votre propre clé, vous payez Anthropic directement, sans intermédiation ni surcoût. Personne d\'autre n\'a accès à vos requêtes ou à votre facturation.',
   },
   {
     q: 'Combien ça coûte ?',
@@ -45,7 +45,7 @@ const FAQ = [
   },
   {
     q: 'Puis-je modifier ou redistribuer l\'application ?',
-    a: 'Oui. Coach Fiscal est publié sous licence MIT. Vous pouvez librement l\'étudier, le modifier, le fork et le redistribuer, à condition de conserver la notice de licence.',
+    a: 'Oui. Kapio est publié sous licence MIT. Vous pouvez librement l\'étudier, le modifier, le fork et le redistribuer, à condition de conserver la notice de licence.',
   },
 ];
 
@@ -79,7 +79,7 @@ export default function About() {
         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-100 w-fit">
           <Lock size={11} /> 100 % local · open source MIT
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">À propos de Coach Fiscal</h1>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">À propos de Kapio</h1>
         <p className="text-gray-500 leading-relaxed max-w-lg text-sm">
           Un assistant fiscal personnel qui tourne entièrement dans votre navigateur.
           Vos données ne quittent jamais votre appareil — sauf votre profil synthétique,

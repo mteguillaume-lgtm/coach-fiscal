@@ -144,7 +144,7 @@ export default function Opportunites() {
                 </motion.div>
                 <p className="text-base font-bold text-ink-0 mb-2">Aucune opportunité détectée automatiquement</p>
                 <p className="text-sm text-ink-100 leading-relaxed max-w-sm mx-auto mb-6">
-                  Votre profil ne déclenche pas de détection automatique. Posez directement vos questions au Coach Fiscal.
+                  Votre profil ne déclenche pas de détection automatique. Posez directement vos questions à Kapio.
                 </p>
                 <MagneticButton
                   onClick={() => navigate('/chat')}

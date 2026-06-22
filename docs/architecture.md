@@ -1,4 +1,4 @@
-# Architecture — Coach Fiscal
+# Architecture — Kapio
 
 > Document de référence pour les sprints futurs et les contributions IA.  
 > Dernière mise à jour : Phase 3-C (refactoring parser/generator/Collect + plugin registry).
@@ -7,7 +7,7 @@
 
 ## Section 1 — Vue d'ensemble du flux de données
 
-Coach Fiscal transforme des données brutes (formulaires, PDF) en conseil fiscal expert via un pipeline en cinq temps.
+Kapio transforme des données brutes (formulaires, PDF) en conseil fiscal expert via un pipeline en cinq temps.
 
 ```mermaid
 flowchart TD

@@ -1,10 +1,10 @@
 # Audit PER 2026 — Rapport de correction
 
-> Généré le 2026-05-27 — Coach Fiscal
+> Généré le 2026-05-27 — Kapio
 
 ## Résumé
 
-Audit complet de la chaîne de calcul PER (Plan d'Épargne Retraite) dans Coach Fiscal. Huit incohérences identifiées et corrigées. La formule officielle est désormais implémentée de bout en bout : générateur → profil TXT → parseur → calculateur → UI (Simulator, Rapport, Opportunités) → chat (masterPrompt, skills).
+Audit complet de la chaîne de calcul PER (Plan d'Épargne Retraite) dans Kapio. Huit incohérences identifiées et corrigées. La formule officielle est désormais implémentée de bout en bout : générateur → profil TXT → parseur → calculateur → UI (Simulator, Rapport, Opportunités) → chat (masterPrompt, skills).
 
 **Tests :** 425/425 ✅ — **Build :** ✓ propre ✅
 

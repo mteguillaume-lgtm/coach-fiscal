@@ -4,8 +4,8 @@ import { GitFork, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageS
 import Stepper from './Stepper';
 import { useApp } from '../context/AppContext';
 
-const STORAGE_KEY = 'coachFiscal.state';
-const GITHUB_URL = 'https://github.com/coach-fiscal/coach-fiscal';
+const STORAGE_KEY = 'kapio.state';
+const GITHUB_URL = 'https://github.com/mteguillaume-lgtm/kapio';
 const VERSION = '0.1.0';
 const HIDE_STEPPER = ['/', '/about', '/privacy'];
 const FULL_WIDTH_PAGES = ['/', '/dashboard', '/profile', '/setup', '/rapport', '/opportunites', '/checklist', '/simulator', '/declaration'];

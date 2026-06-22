@@ -164,7 +164,7 @@ export function buildSystemPrompt({ skills, profile, masterPrompt, model }) {
     : '';
 
   const modelBlock = model
-    ? `\n\n## IDENTITÉ\nTu es Coach Fiscal, un conseiller fiscal IA. Le routeur de complexité a sélectionné le niveau : **${MODEL_LABELS[model] ?? model}**.\nSi l'utilisateur te demande quel modèle tu utilises, réponds : "Je suis Coach Fiscal. Pour cette question, le niveau **${MODEL_LABELS[model] ?? model}** a été sélectionné automatiquement." Ne mentionne jamais de numéros de version (3.7, 4.5…) ni le nom "Claude" seul.`
+    ? `\n\n## IDENTITÉ\nTu es Kapio, un conseiller fiscal IA. Le routeur de complexité a sélectionné le niveau : **${MODEL_LABELS[model] ?? model}**.\nSi l'utilisateur te demande quel modèle tu utilises, réponds : "Je suis Kapio. Pour cette question, le niveau **${MODEL_LABELS[model] ?? model}** a été sélectionné automatiquement." Ne mentionne jamais de numéros de version (3.7, 4.5…) ni le nom "Claude" seul.`
     : '';
 
   return `${masterPrompt.trim()}\n\n${skillsBlock}${profileBlock}${modelBlock}`.trim();

@@ -55,7 +55,7 @@ const SOURCES = [
 
 function fetchText(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'CoachFiscal/1.0' } }, res => {
+    https.get(url, { headers: { 'User-Agent': 'Kapio/1.0' } }, res => {
       let body = '';
       res.on('data', chunk => { body += chunk; });
       res.on('end', () => resolve(body));

@@ -2,7 +2,7 @@
 
 ## Contexte
 
-Les données et skills fiscaux de coach-fiscal proviennent du dépôt **paperasse**
+Les données et skills fiscaux de kapio proviennent du dépôt **paperasse**
 (cloné dans `_sources/paperasse/`). Deux catégories de fichiers sont synchronisées :
 
 | Catégorie | Source | Destination |
@@ -11,7 +11,7 @@ Les données et skills fiscaux de coach-fiscal proviennent du dépôt **paperass
 | Prompts skills (SKILL.md) | `_sources/paperasse/*/SKILL.md` | `src/data/skills/*.md` |
 
 > **Exception** : `src/data/skills/gcp.md` n'est **jamais** synchronisé —
-> il n'a pas d'équivalent dans paperasse. C'est un skill spécifique à coach-fiscal.
+> il n'a pas d'équivalent dans paperasse. C'est un skill spécifique à kapio.
 
 ---
 
@@ -79,7 +79,7 @@ git commit -m "chore(data): sync paperasse — [date ou millésime]"
 ## Fichiers NOT synchronisés (intentionnel)
 
 Ces fichiers existent dans `_sources/paperasse/` mais ne sont pas copiés
-dans `src/` car ils ne sont pas nécessaires au runtime de coach-fiscal :
+dans `src/` car ils ne sont pas nécessaires au runtime de kapio :
 
 | Catégorie | Exemples |
 |---|---|

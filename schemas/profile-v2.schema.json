@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://coach-fiscal/schemas/profile-v2.schema.json",
-  "title": "Profil fiscal coach-fiscal v2",
+  "$id": "https://kapio/schemas/profile-v2.schema.json",
+  "title": "Profil fiscal kapio v2",
   "description": "Schéma versionné du profil fiscal — format structuré issu de la migration v1.",
   "type": "object",
   "required": ["$version", "mode", "foyer", "declarants", "revenus", "calculs"],

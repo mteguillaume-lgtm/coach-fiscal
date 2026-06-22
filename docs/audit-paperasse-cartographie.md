@@ -1,4 +1,4 @@
-# Audit cartographique — Relation coach-fiscal × paperasse
+# Audit cartographique — Relation kapio × paperasse
 
 > Audit en lecture seule réalisé le 2026-05-18.  
 > Aucun fichier modifié. Aucun code écrit.
@@ -31,7 +31,7 @@ Il contient 6 skills + un répertoire `data/` commun, du code Python/JS de scrip
 | `commissaire-aux-comptes/SKILL.md` | 273 | (nc) | (nc) | `name: commissaire-aux-comptes` — NEP, audit légal |
 | `syndic/SKILL.md` | 245 | (nc) | (nc) | `name: syndic` — copropriété, AG, loi 1965 |
 
-> **Absent dans paperasse** : aucun skill `gcp` — ce skill est propre à coach-fiscal.
+> **Absent dans paperasse** : aucun skill `gcp` — ce skill est propre à kapio.
 
 ### Fichiers de données structurées (JSON)
 
@@ -238,7 +238,7 @@ Pour chaque tour de conversation :
 <!-- TODO : copier ici le contenu de _sources/gcp.md quand disponible -->
 <!-- Ce fichier est un placeholder — skill non encore fourni -->
 ```
-Il n'existe aucun `gcp` dans `_sources/paperasse/`. Ce skill est spécifique à coach-fiscal et doit être rédigé. Il est chargé et injecté dans tous les system prompts (toujours actif), mais son contenu est vide de substance.
+Il n'existe aucun `gcp` dans `_sources/paperasse/`. Ce skill est spécifique à kapio et doit être rédigé. Il est chargé et injecté dans tous les system prompts (toujours actif), mais son contenu est vide de substance.
 
 ---
 
@@ -246,7 +246,7 @@ Il n'existe aucun `gcp` dans `_sources/paperasse/`. Ce skill est spécifique à 
 
 ### Diagnostic général
 
-Contrairement à l'hypothèse initiale, **paperasse est bien connecté à coach-fiscal**. La relation est :
+Contrairement à l'hypothèse initiale, **paperasse est bien connecté à kapio**. La relation est :
 
 ```
 _sources/paperasse/  →  (copie manuelle)  →  src/data/skills/     (SKILL.md)

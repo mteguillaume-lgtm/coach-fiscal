@@ -1,5 +1,5 @@
 /**
- * Types JSDoc pour le système de plugins coach-fiscal.
+ * Types JSDoc pour le système de plugins kapio.
  * Importé par les plugins pour l'autocomplétion IDE et par le registre pour la validation.
  */
 

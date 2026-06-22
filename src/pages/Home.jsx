@@ -17,7 +17,7 @@ import AuroraBackground from '../components/motion/AuroraBackground';
 import SpotlightCursor from '../components/motion/SpotlightCursor';
 import SplitText from '../components/motion/SplitText';
 
-const STORAGE_KEY = 'coachFiscal.state';
+const STORAGE_KEY = 'kapio.state';
 
 function hasActiveSession() {
   try {

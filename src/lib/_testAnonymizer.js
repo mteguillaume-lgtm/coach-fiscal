@@ -92,7 +92,7 @@ if (import.meta.env.DEV) {
   window.testPatterns  = buildPatterns;
 
   console.info(
-    '[Coach Fiscal] Outils de test chargés :\n' +
+    '[Kapio] Outils de test chargés :\n' +
     '  window.testAnonymize(file, { prenom, nom, employeur })\n' +
     '  window.testPatterns(prenom, nom, employeur)'
   );

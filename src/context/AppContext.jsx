@@ -1,8 +1,8 @@
 import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { parseProfile } from '../lib/profileParser';
 
-const STORAGE_KEY = 'coachFiscal.state';
-const API_KEY_STORAGE = 'coachFiscal.apiKey';
+const STORAGE_KEY = 'kapio.state';
+const API_KEY_STORAGE = 'kapio.apiKey';
 
 const COLLECT_PROFILE_DEFAULT = {
   foyer: { statut: '', parts: 1, enfants: 0, enfantsGardeAlternee: 0 },
@@ -229,7 +229,7 @@ export function AppProvider({ children }) {
     const key = localStorage.getItem(API_KEY_STORAGE) || '';
     if (key) {
       console.warn(
-        '[Coach Fiscal] Clé API chargée depuis localStorage. ' +
+        '[Kapio] Clé API chargée depuis localStorage. ' +
         'Ne partagez pas cet onglet ni vos outils de développement.'
       );
     }
@@ -239,7 +239,7 @@ export function AppProvider({ children }) {
   const setApiKey = (key) => {
     if (key) {
       console.warn(
-        '[Coach Fiscal] Clé API stockée dans localStorage. ' +
+        '[Kapio] Clé API stockée dans localStorage. ' +
         'Ne partagez pas cet onglet ni vos outils de développement.'
       );
       localStorage.setItem(API_KEY_STORAGE, key);
