@@ -42,7 +42,7 @@ export const PROVIDERS = [
     consoleUrl: 'https://console.mistral.ai/api-keys',
     placeholder: 'Votre clé Mistral…',
     keyHint: 'clé alphanumérique',
-    note: 'Européen, souverain, tier gratuit. Analyse d’images uniquement (pas de PDF).',
+    note: 'Européen, souverain, tier gratuit. Analyse PDF + images.',
     tiers: {
       haiku:  { short: 'Small',  full: 'Mistral Small',  emoji: '⚡', cost: '' },
       sonnet: { short: 'Medium', full: 'Mistral Medium', emoji: '🧠', cost: '' },
@@ -72,14 +72,14 @@ export function chat(provider, opts) {
 }
 
 /**
- * Analyse d'un document (vision) auprès du fournisseur choisi.
+ * Analyse d'images (pages rasterisées) auprès du fournisseur choisi.
  * @param {'anthropic'|'mistral'} provider
- * @param {File}   file
+ * @param {Array<{blob:Blob, mediaType:string}>} images
  * @param {string} apiKey
  * @returns {Promise<string>}
  */
-export function analyzeDoc(provider, file, apiKey) {
-  return resolve(provider).analyzeDoc(file, apiKey);
+export function analyzeDoc(provider, images, apiKey) {
+  return resolve(provider).analyzeDoc({ images, apiKey });
 }
 
 /** Valide une clé selon le format attendu par le fournisseur. */
