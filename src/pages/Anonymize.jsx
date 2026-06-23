@@ -307,7 +307,7 @@ export default function Anonymize() {
       type: 'SET_ANONYMIZED_FILES',
       payload: done.map(f => ({
         name: f.suggestedFilename, objectUrl: f.objectUrl, blob: f.blob,
-        target: f.target, typeId: f.typeId,
+        pageImages: f.pageImages, target: f.target, typeId: f.typeId,
       })),
     });
     // Couche 3 — extraction locale transmise à la collecte (pré-remplissage)
@@ -344,7 +344,7 @@ export default function Anonymize() {
     const newItems = validFiles.map(file => ({
       id: crypto.randomUUID(), name: file.name, file, target,
       status: 'processing', zonesCount: 0, suggestedFilename: '', blob: null, objectUrl: null, error: null,
-      typeId: null, typeLabel: null, extracted: null,
+      pageImages: null, typeId: null, typeLabel: null, extracted: null,
     }));
     setFileItems(prev => [...prev, ...newItems]);
 
@@ -360,6 +360,7 @@ export default function Anonymize() {
           f.id === item.id
             ? { ...f, status: 'done', zonesCount: result.zonesCount,
                 suggestedFilename: result.suggestedFilename, blob: result.blob, objectUrl,
+                pageImages: result.pageImages,
                 typeId: result.typeId, typeLabel: result.typeLabel, extracted: result.extracted }
             : f
         ));
@@ -391,6 +392,7 @@ export default function Anonymize() {
         f.id === id
           ? { ...f, status: 'done', zonesCount: result.zonesCount,
               suggestedFilename: result.suggestedFilename, blob: result.blob, objectUrl,
+              pageImages: result.pageImages,
               typeId: result.typeId, typeLabel: result.typeLabel, extracted: result.extracted }
           : f
       ));
