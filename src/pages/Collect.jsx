@@ -10,6 +10,7 @@ import {
 import { useApp }                   from '../context/AppContext';
 import { mapExtracted }             from '../lib/extractor';
 import { analyzeDoc }               from '../lib/providers';
+import { pdfToImages }              from '../lib/pdfRasterizer';
 import { mapExtractToForm }         from '../lib/docExtract';
 import { parseProfile }             from '../lib/profileParser';
 import { buildProfile }             from '../lib/profileGenerator';
@@ -1299,27 +1300,36 @@ export default function Collect() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.extractedDocs, isCouple]);
 
-  const handleFiles = useCallback(async (files, target = 'solo') => {
-    if (!files || !files.length) return;
+  const handleFiles = useCallback(async (input, target = 'solo') => {
+    if (!input || !input.length) return;
     const apiKey = getApiKey();
     if (!apiKey) {
       toast.error('Clé API manquante — configure-la dans Réglages.');
       return;
     }
     setUploading(true);
-    const newDocs = Array.from(files).map(f => ({
+
+    // Normalise : un File brut ou un descripteur { name, images } (fichier anonymisé).
+    const sources = Array.from(input).map(x =>
+      x instanceof File ? { name: x.name, file: x } : x);
+
+    const newDocs = sources.map(s => ({
       id: Math.random().toString(36).slice(2),
-      name: f.name,
-      status: 'loading',
-      extracted: null,
-      warning: null,
-      file: f,
-      target,
+      name: s.name,
+      status: 'loading', extracted: null, warning: null,
+      file: s.file ?? null, images: s.images ?? null, target,
     }));
     setDocs(p => [...p, ...newDocs]);
+
     for (const doc of newDocs) {
       try {
-        const extracted = await analyzeDoc(state.provider, doc.file, apiKey);
+        let images = doc.images;
+        if (!images) {
+          images = doc.file.type.startsWith('image/')
+            ? [{ blob: doc.file, mediaType: doc.file.type }]
+            : await pdfToImages(doc.file);   // PDF brut → rasterisé
+        }
+        const extracted = await analyzeDoc(state.provider, images, apiKey);
         const { map: mapped, warning } = mapExtracted(extracted);
         setDocs(p => p.map(d => d.id === doc.id ? { ...d, status: 'done', extracted, warning } : d));
         if (Object.keys(mapped).length > 0) {
@@ -1377,24 +1387,21 @@ export default function Collect() {
 
   const anonymizedFiles = state.anonymizedFiles || [];
   const handleUseAnonymized = useCallback(() => {
-    if (anonymizedFiles.filter(f => f.blob).length === 0) {
+    const usable = anonymizedFiles.filter(f => f.pageImages?.length);
+    if (usable.length === 0) {
       toast.error('Les fichiers ne sont plus disponibles — uploader manuellement.');
       return;
     }
 
     if (!isCouple) {
-      const files = anonymizedFiles
-        .filter(f => f.blob)
-        .map(f => new File([f.blob], f.name, { type: 'application/pdf' }));
-      handleFiles(files, 'solo');
+      handleFiles(usable.map(f => ({ name: f.name, images: f.pageImages })), 'solo');
       return;
     }
 
-    // Mode couple : router selon le target enregistré dans l'étape Anonymize
     const byTarget = { d1: [], d2: [] };
-    for (const f of anonymizedFiles.filter(f => f.blob)) {
-      const t = f.target === 'd2' ? 'd2' : 'd1'; // fallback → d1 si pas de target
-      byTarget[t].push(new File([f.blob], f.name, { type: 'application/pdf' }));
+    for (const f of usable) {
+      const t = f.target === 'd2' ? 'd2' : 'd1';
+      byTarget[t].push({ name: f.name, images: f.pageImages });
     }
     if (byTarget.d1.length > 0) handleFiles(byTarget.d1, 'd1');
     if (byTarget.d2.length > 0) handleFiles(byTarget.d2, 'd2');

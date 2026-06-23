@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import * as mistral from '../mistral';
 import {
-  PROVIDERS, DEFAULT_PROVIDER, getProviderMeta, isValidKey, detectComplexity,
+  PROVIDERS, DEFAULT_PROVIDER, getProviderMeta, isValidKey, detectComplexity, analyzeDoc,
 } from '../index';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('registre des fournisseurs', () => {
   it('expose Claude (anthropic, défaut) et Mistral', () => {
@@ -27,5 +30,18 @@ describe('registre des fournisseurs', () => {
 
   it('ré-exporte detectComplexity (provider-agnostic)', () => {
     expect(detectComplexity('Bonjour').model).toBeDefined();
+  });
+});
+
+describe('registre — analyzeDoc', () => {
+  it('aiguille vers le provider en passant { images, apiKey }', async () => {
+    const spy = vi.spyOn(mistral, 'analyzeDoc').mockResolvedValue('ok');
+    const images = [{ blob: new Blob(['x']), mediaType: 'image/jpeg' }];
+    await analyzeDoc('mistral', images, 'key1234567890abcdefgh');
+    expect(spy).toHaveBeenCalledWith({ images, apiKey: 'key1234567890abcdefgh' });
+  });
+
+  it('annonce le support PDF côté Mistral (métadonnée)', () => {
+    expect(getProviderMeta('mistral').note).toMatch(/PDF/);
   });
 });

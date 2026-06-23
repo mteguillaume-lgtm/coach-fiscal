@@ -1,7 +1,7 @@
 // Adaptateur fournisseur — Anthropic (Claude).
 // Contrat commun (cf. providers/index.js) :
 //   chat({ apiKey, messages, system, onChunk, model }) => Promise<string>
-//   analyzeDoc(file, apiKey) => Promise<string>
+//   analyzeDoc({ images, apiKey }) => Promise<string>
 //   isValidKey(key) => boolean
 // `model` reste 'haiku'|'sonnet'|'opus' — le mapping vers les modèles réels est
 // interne à cet adaptateur.
@@ -96,22 +96,20 @@ function extractDelta(event) {
 }
 
 /**
- * Envoie un document (PDF ou image) à Claude pour extraction des données fiscales.
+ * Envoie une ou plusieurs images (pages rasterisées) à Claude pour extraction.
  * Vision non-streaming, modèle Haiku.
- *
- * @param {File}   file   - Fichier PDF ou image
- * @param {string} apiKey - Clé API Anthropic (sk-ant-...)
- * @returns {Promise<string>} Texte brut retourné par Claude
+ * @param {{ images: Array<{blob:Blob, mediaType:string}>, apiKey:string }} args
+ * @returns {Promise<string>}
  */
-export async function analyzeDoc(file, apiKey) {
-  const isImg = file.type.startsWith('image/');
-  const isPDF = file.type === 'application/pdf';
-  if (!isImg && !isPDF) throw new Error('Format non supporté (uniquement images et PDF)');
+export async function analyzeDoc({ images, apiKey }) {
+  if (!images?.length) throw new Error('Aucune image à analyser.');
 
-  const b64 = await toBase64(file);
-  const content = isImg
-    ? [{ type: 'image',    source: { type: 'base64', media_type: file.type,            data: b64 } }, { type: 'text', text: EXTRACT_PROMPT }]
-    : [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf',    data: b64 } }, { type: 'text', text: EXTRACT_PROMPT }];
+  const content = [];
+  for (const img of images) {
+    const b64 = await toBase64(img.blob);
+    content.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: b64 } });
+  }
+  content.push({ type: 'text', text: EXTRACT_PROMPT });
 
   const res = await fetch(API_URL, {
     method: 'POST',

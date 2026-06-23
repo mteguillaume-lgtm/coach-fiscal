@@ -7,7 +7,7 @@
 //   • mapExtracted   — parsing de la réponse texte vers un objet formulaire.
 // L'appel réseau lui-même (format Anthropic vs Mistral) vit dans
 // src/lib/providers/* et est exposé via le registre providers/index.js
-// (analyzeDoc(provider, file, apiKey)).
+// (analyzeDoc(provider, images, apiKey)).
 //
 // ⚠️ À ne pas confondre avec src/lib/docExtract.js, qui fait l'extraction 100 %
 //    LOCALE par regex (aucun appel IA) utilisée à l'anonymisation.
