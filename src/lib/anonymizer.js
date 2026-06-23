@@ -228,7 +228,12 @@ export function findZones(lineWords, patterns, padding = DEFAULT_PADDING) {
  *   @param {boolean}  [options.logoEnabled=true]   - Noircir la zone logo
  *   @param {number}   [options.padding=3]           - Marge autour des zones (points)
  *
- * @returns {Promise<{blob: Blob, suggestedFilename: string, zonesCount: number, detections: object[]}>}
+ * @returns {Promise<{blob: Blob, pageImages: Array<{blob: Blob, mediaType: string, width: number, height: number}>, suggestedFilename: string, zonesCount: number, detections: object[]}>}
+ *   blob: PDF rasterisé (image uniquement, pas de couche texte extractible)
+ *   pageImages: pages du PDF converties en images JPEG
+ *   suggestedFilename: nom de fichier propre, sans espace ni accent
+ *   zonesCount: nombre de zones sensibles détectées
+ *   detections: détail des zones et labels appliqués
  */
 export async function anonymizePdf(file, options = {}) {
   const {

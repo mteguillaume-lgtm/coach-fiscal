@@ -1,7 +1,7 @@
 // Adaptateur fournisseur — Anthropic (Claude).
 // Contrat commun (cf. providers/index.js) :
 //   chat({ apiKey, messages, system, onChunk, model }) => Promise<string>
-//   analyzeDoc(file, apiKey) => Promise<string>
+//   analyzeDoc({ images, apiKey }) => Promise<string>
 //   isValidKey(key) => boolean
 // `model` reste 'haiku'|'sonnet'|'opus' — le mapping vers les modèles réels est
 // interne à cet adaptateur.

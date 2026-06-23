@@ -1,3 +1,4 @@
+// 1) Polyfills canvas pour pdfjs en env node
 // jsdom/node ne fournissent pas de canvas natif : on expose les globals dont
 // pdfjs a besoin pour rendre en environnement de test, via @napi-rs/canvas.
 import { Path2D, DOMMatrix, ImageData } from '@napi-rs/canvas';
@@ -9,6 +10,7 @@ if (typeof globalThis.ImageData === 'undefined') globalThis.ImageData = ImageDat
 import { beforeAll } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
+// 2) Worker pdfjs — chemin fichier réel en env node (test-only)
 beforeAll(async () => {
   // En env node, pointer le worker pdfjs sur le fichier réel (le main-thread
   // fake-worker l'importe). Posé après l'import de pdfReader → gagne l'ordre.

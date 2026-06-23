@@ -72,7 +72,7 @@ export function chat(provider, opts) {
 }
 
 /**
- * Analyse d'images (pages rasterisées) auprès du fournisseur choisi.
+ * Analyse d'images (pages PDF rasterisées ou images téléchargées) auprès du fournisseur choisi.
  * @param {'anthropic'|'mistral'} provider
  * @param {Array<{blob:Blob, mediaType:string}>} images
  * @param {string} apiKey

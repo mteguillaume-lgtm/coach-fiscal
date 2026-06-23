@@ -51,6 +51,10 @@ describe('pdfToImages', () => {
     // 300 pt × 1.85 = 555 px de large (exact, pour détecter un mauvais scale)
     expect(images[0].width).toBe(Math.ceil(300 * 1.85));
     expect(images[0].blob.size).toBeGreaterThan(0);
+    // Vérifier que le blob est un vrai JPEG (magic bytes 0xFF 0xD8)
+    const buf = new Uint8Array(await images[0].blob.arrayBuffer());
+    expect(buf[0]).toBe(0xFF);
+    expect(buf[1]).toBe(0xD8);
   });
 
   it('rejette un PDF corrompu avec une erreur pdfjs naturelle', async () => {
