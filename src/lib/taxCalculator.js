@@ -1059,12 +1059,25 @@ export function calcCreditImpotEtranger({ montant8TK = 0, quotePartIRFrancais = 
 
 // ─── CEHR — Contribution Exceptionnelle Hauts Revenus ────────────────────────
 
+// Barème CEHR — source unique : bareme-ir-YYYY.json → cehr (art. 223 sexies CGI).
+export const CEHR_BAREME = baremeRaw.cehr;
+
+function _cehrSurTranches(tranches, rfr) {
+  let total = 0;
+  for (const t of tranches) {
+    if (t.au_dela != null) {
+      if (rfr > t.au_dela) total += (rfr - t.au_dela) * t.taux;
+    } else if (rfr > t.de) {
+      total += (Math.min(rfr, t.a) - t.de) * t.taux;
+    }
+  }
+  return total;
+}
+
 /**
  * Calcule la CEHR (art. 223 sexies CGI).
  * Base = RFR (pas le RNI). S'ajoute à l'IR net.
- *
- * Célibataire : 3 % sur [250k–500k€], 4 % au-delà de 500k€
- * Couple      : 3 % sur [500k–1M€],   4 % au-delà de 1M€
+ * Seuils et taux : voir le bloc `cehr` du JSON barème (seuils doublés en couple).
  *
  * @param {number}  rfr       - Revenu Fiscal de Référence
  * @param {boolean} isCouple
@@ -1072,14 +1085,8 @@ export function calcCreditImpotEtranger({ montant8TK = 0, quotePartIRFrancais = 
  */
 export function calcCEHR(rfr, isCouple = false) {
   if (!rfr || rfr <= 0) return 0;
-  if (!isCouple) {
-    const t1 = Math.max(0, Math.min(rfr, 500_000) - 250_000) * 0.03;
-    const t2 = Math.max(0, rfr - 500_000) * 0.04;
-    return Math.round(t1 + t2);
-  }
-  const t1 = Math.max(0, Math.min(rfr, 1_000_000) - 500_000) * 0.03;
-  const t2 = Math.max(0, rfr - 1_000_000) * 0.04;
-  return Math.round(t1 + t2);
+  const tranches = isCouple ? CEHR_BAREME.seuils_couple : CEHR_BAREME.seuils_celibataire;
+  return Math.round(_cehrSurTranches(tranches, rfr));
 }
 
 // ─── IR brut (barème progressif) ─────────────────────────────────────────────
