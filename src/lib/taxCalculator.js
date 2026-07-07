@@ -63,6 +63,9 @@ const TRANCHES = baremeRaw.bareme_ir.tranches.map(t => [
 // ─── Décote (depuis le JSON) ───────────────────────────────────────────────────
 
 const DECOTE = baremeRaw.decote;
+if (typeof DECOTE.taux !== 'number') {
+  throw new Error('[taxCalculator] decote.taux manquant dans bareme-ir-YYYY.json — ajouter le champ machine (ex. 0.4525).');
+}
 
 // ─── Abattement 10% salaires (depuis le JSON) ─────────────────────────────────
 
@@ -1108,7 +1111,7 @@ function applyDecote(brut, isCouple) {
   const seuil   = isCouple ? DECOTE.seuil_couple          : DECOTE.seuil_celibataire;
   const plafond = isCouple ? DECOTE.plafond_couple        : DECOTE.plafond_celibataire;
   if (brut >= seuil) return 0;
-  return Math.max(0, Math.round(plafond - 0.4525 * brut));
+  return Math.max(0, Math.round(plafond - DECOTE.taux * brut));
 }
 
 // ─── Plafonnement QF (art. 197-2 CGI) ────────────────────────────────────────

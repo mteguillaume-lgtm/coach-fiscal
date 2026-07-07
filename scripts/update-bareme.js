@@ -119,6 +119,7 @@ function validate(data, year) {
   const t = data.bareme_ir?.tranches;
   if (!Array.isArray(t) || t.length < 5) throw new Error('Tranches invalides');
   if (!data.decote?.seuil_celibataire)    throw new Error('Décote manquante');
+  if (typeof data.decote?.taux !== 'number') throw new Error('decote.taux manquant (champ machine requis)');
   if (!data.abattement_salaires_10pct)    throw new Error('Abattement manquant');
   console.log(`✅ JSON validé — ${t.length} tranches, décote présente`);
 }
@@ -155,6 +156,7 @@ Retourne UNIQUEMENT un JSON valide avec cette structure exacte (sans commentaire
     "description": "Avantage fiscal maximum par demi-part supplémentaire liée aux enfants à charge."
   },
   "decote": {
+    "taux": 0.4525,
     "seuil_celibataire": XXXX,
     "seuil_couple": XXXX,
     "plafond_celibataire": XXXX,

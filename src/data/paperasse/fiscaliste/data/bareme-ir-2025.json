@@ -65,6 +65,7 @@
   },
 
   "decote": {
+    "taux": 0.4525,
     "seuil_celibataire": 1982,
     "seuil_couple": 3277,
     "plafond_celibataire": 897,
