@@ -1,5 +1,5 @@
 import { n, f, s, oui, signed, section } from './profileParserUtils.js';
-import { getTMI, abattement10Auto, TAUX_PS_CAPITAL, PLAFOND_LIVRET_A, PLAFOND_VERSEMENTS_PEA } from './taxCalculator';
+import { getTMI, abattement10Auto, abattement10Pension, ABT_PENSION, TAUX_PS_CAPITAL, PLAFOND_LIVRET_A, PLAFOND_VERSEMENTS_PEA } from './taxCalculator';
 import { RDT_LIVRET_A, RDT_LIVRET_PLUS_PROMO } from './hypothesesRendement';
 import { registry } from '../plugins/registry.js';
 
@@ -92,8 +92,17 @@ function _rni(pd, profil, text) {
   // inclut la rente 1BS après abat. 10%). Sinon recalculer depuis les composantes
   // (salaire net imposable + rente × 0,9) pour éviter de manquer la rente quand
   // le profil n'expose qu'une ligne "après abat. salaires" partielle.
-  const renteAbatD1 = Math.round((pd.rente1BsD1 || 0) * 0.9);
-  const renteAbatD2 = Math.round((pd.rente1BsD2 || 0) * 0.9);
+  // Abattement 10 % pensions sur les rentes 1BS : plancher 450 €, plafond
+  // 4 446 € PAR FOYER (art. 158-5-a CGI) — paramètres ABT_PENSION (JSON barème).
+  // Le plafond foyer est consommé par D1 puis D2 (jamais 2 × 4 446 €).
+  // Limite connue : le plafond foyer n'est pas mutualisé avec les pensions 1AS
+  // traitées par abattement10Auto (cas mixte rare — voir audit §2.3).
+  const renteD1 = pd.rente1BsD1 || 0;
+  const renteD2 = pd.rente1BsD2 || 0;
+  const abatD1  = renteD1 - abattement10Pension(renteD1);
+  const abatD2  = Math.max(0, Math.min(renteD2 - abattement10Pension(renteD2), ABT_PENSION.maximum - abatD1));
+  const renteAbatD1 = renteD1 - abatD1;
+  const renteAbatD2 = renteD2 - abatD2;
   const salRniD1    = abattement10Auto(pd.salaireNetImposableD1, profil.typeRevenuD1, profil.pensionNetImpD1);
   const salRniD2    = abattement10Auto(pd.salaireNetImposableD2, profil.typeRevenuD2, profil.pensionNetImpD2);
 
