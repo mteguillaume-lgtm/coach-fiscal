@@ -2984,11 +2984,14 @@ function AiSectionCard({ section }) {
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
+// Fallback stable : même référence à chaque rendu (react-hooks/exhaustive-deps).
+const PROFIL_VIDE = {};
+
 export default function Rapport() {
   const { state } = useApp();
   const navigate  = useNavigate();
   const profile   = state.profile;
-  const p         = state.parsedProfile ?? {};
+  const p         = state.parsedProfile ?? PROFIL_VIDE;
 
   const d = useMemo(() => computeData(profile, p), [profile, p]);
 

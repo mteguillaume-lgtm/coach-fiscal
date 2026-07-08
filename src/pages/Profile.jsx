@@ -152,7 +152,6 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const opportunities = useMemo(
     () => detectOpportunities(state.parsedProfile || {}),
     [state.parsedProfile],

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 export default function AuroraBackground({
@@ -7,11 +7,8 @@ export default function AuroraBackground({
   intensity = 1,
   className = '',
 }) {
-  // Évalué après le mount pour éviter les faux positifs avec React 19 StrictMode + Babel
-  const [isTouch, setIsTouch] = useState(false);
-  useEffect(() => {
-    setIsTouch(window.matchMedia('(hover: none)').matches);
-  }, []);
+  // Init paresseuse (SPA : window disponible au premier rendu) — pas de setState en effet.
+  const [isTouch] = useState(() => window.matchMedia('(hover: none)').matches);
 
   return (
     <div

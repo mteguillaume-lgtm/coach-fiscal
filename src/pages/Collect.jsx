@@ -1086,6 +1086,9 @@ function CapaciteSection({ formData, onChange, d1Data, d2Data, isCouple, activeA
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
+// Fallback stable : même référence à chaque rendu (react-hooks/exhaustive-deps).
+const AUCUN_FICHIER = [];
+
 export default function Collect() {
   const { state, dispatch, getApiKey } = useApp();
   const navigate = useNavigate();
@@ -1255,7 +1258,7 @@ export default function Collect() {
     navigate('/profile');
   };
 
-  const anonymizedFiles = state.anonymizedFiles || [];
+  const anonymizedFiles = state.anonymizedFiles || AUCUN_FICHIER;
   const handleUseAnonymized = useCallback(() => {
     const usable = anonymizedFiles.filter(f => f.pageImages?.length);
     if (usable.length === 0) {

@@ -391,7 +391,7 @@ function SimPER({ data }) {
     const rendement = totalVerse > 0 ? Math.round((economie / totalVerse) * 100) : 0;
     const bracketBreakdown = computeBracketBreakdown(rniFoyer, totalVerse, parts);
     return { irAvant, rniApres, economie, economieD1, economieD2, effort, newTMI, rendement, bracketBreakdown };
-  }, [versementD1, versementD2, rniFoyer, parts, isCouple, totalVerse]);
+  }, [versementD1, rniFoyer, parts, isCouple, totalVerse]);
 
   // Economy curve chart data
   const chartData = useMemo(() => {

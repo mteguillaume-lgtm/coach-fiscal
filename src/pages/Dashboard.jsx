@@ -738,10 +738,13 @@ function QuickLink({ to, Icon, label, desc, accent }) {
 // DASHBOARD (composant principal)
 // ============================================================================
 
+// Fallback stable : même référence à chaque rendu (react-hooks/exhaustive-deps).
+const PROFIL_VIDE = {};
+
 export default function Dashboard() {
   const { state } = useApp();
   const navigate = useNavigate();
-  const p = state.parsedProfile || {};
+  const p = state.parsedProfile || PROFIL_VIDE;
   const isCouple = p.mode === 'couple';
 
   const [activeTab, setActiveTab] = useState('foyer');

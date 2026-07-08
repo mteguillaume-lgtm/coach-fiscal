@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import DEMO_PROFILE from '../lib/__tests__/fixtures/profil-fiscal-ref.txt?raw';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -202,11 +202,8 @@ function MockDashboard() {
 export default function Home() {
   const navigate = useNavigate();
   const { dispatch } = useApp();
-  const [sessionActive, setSessionActive] = useState(false);
-
-  useEffect(() => {
-    setSessionActive(hasActiveSession());
-  }, []);
+  // Init paresseuse — pas de setState en effet (audit E6).
+  const [sessionActive] = useState(() => hasActiveSession());
 
   const handleStart = () => {
     dispatch({ type: 'RESET_ALL' });
