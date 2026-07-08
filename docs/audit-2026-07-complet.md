@@ -137,27 +137,29 @@ Positif : `docExtract` local avant masquage, `EXTRACT_PROMPT` interdit les PII e
 
 ### Critique (correctifs fiscaux / légaux / intégrité des principes)
 
-| # | Item | Scope |
-|---|---|---|
-| C1 | CEHR : lire le bloc `cehr` du JSON au lieu des valeurs en dur | small |
-| C2 | Taux décote 0,4525 → champ JSON + update-bareme | small |
-| C3 | Abattement pensions dans `profileParser` (plafond 4 446 €/foyer, via `abattement10Pension`) | small |
-| C4 | PS 17,2 % et micro-foncier 0,70 en dur (parser, detector, `baseIRFoyer`) → constantes JSON | small |
-| C5 | Garde-fou anonymisation : PDF sans couche texte = avertissement bloquant avant envoi API | small |
-| C6 | Garde-fou étape 0 : « couple » = marié/pacsé uniquement (concubinage → 2 déclarations) | small |
+| # | Item | Scope | État |
+|---|---|---|---|
+| C1 | CEHR : lire le bloc `cehr` du JSON au lieu des valeurs en dur | small | ✅ 08/07/2026 (8b19824) |
+| C2 | Taux décote 0,4525 → champ JSON + update-bareme | small | ✅ 08/07/2026 (1738afb) |
+| C3 | Abattement pensions dans `profileParser` (plafond 4 446 €/foyer, via `abattement10Pension`) | small | ✅ 08/07/2026 (ad9b39d) |
+| C4 | PS 17,2 %, micro-foncier 0,70, taux PER 10 %, plafonds PEA/AV/livrets, simulateur → constantes JSON | small | ✅ 08/07/2026 (3b2a953, caa6d44, dcfe745) |
+| C5 | Garde-fou anonymisation : PDF sans couche texte = avertissement bloquant avant envoi API | small | ✅ 08/07/2026 (e799849) |
+| C6 | Garde-fou étape 0 : « couple » = marié/pacsé uniquement (concubinage → 2 déclarations) | small | ✅ 08/07/2026 (2cace04) |
+
+> ⚠️ Les champs machine ajoutés aux JSON paperasse (`decote.taux`, `per_individuel.taux_calcul`, `assurance_vie_rachats.taux_ir_pfl_apres_8_ans` + `seuil_primes_nettes_taux_reduit`) ont été répliqués dans `_sources/paperasse/` (gitignoré) — **à proposer upstream sur romainsimon/paperasse** pour survivre à un re-clone.
 
 ### Élevée
 
-| # | Item | Scope |
-|---|---|---|
-| E1 | CI GitHub Actions : lint + vitest sur PR | small |
-| E2 | CSP + security headers dans `vercel.json` ; console.log gatés en DEV | small |
-| E3 | Arbitre 2OP global (dividendes + PV ensemble) remplaçant les 2 recommandations indépendantes | medium |
-| E4 | Chiffres `computeFoyerSummary` injectés dans le system prompt (Claude cite, ne recalcule pas) ; enrichissement IA restreint aux sections narratives | medium |
-| E5 | Reformulation CIF-safe des `action` du detector + validation avocat avant commercialisation | small (code) |
-| E6 | Passe accessibilité sur Collect (labels, focus, aria) + `useReducedMotion` | medium |
-| E7 | Lazy-loading des données skills (chunk 2 Mo → chargement par skill actif) | medium |
-| E8 | Test d'architecture anti-hardcode (grep des littéraux fiscaux) | small |
+| # | Item | Scope | État |
+|---|---|---|---|
+| E1 | CI GitHub Actions : lint + vitest sur PR | small | ✅ 08/07/2026 (ab2ba14) — inclut fix rules-of-hooks Rapport.jsx |
+| E2 | CSP + security headers dans `vercel.json` ; console.log gatés en DEV | small | ✅ 08/07/2026 (7a13645) — CSP à valider sur un déploiement preview Vercel |
+| E3 | Arbitre 2OP global (dividendes + PV ensemble) remplaçant les 2 recommandations indépendantes | medium | à planifier |
+| E4 | Chiffres `computeFoyerSummary` injectés dans le system prompt (Claude cite, ne recalcule pas) ; enrichissement IA restreint aux sections narratives | medium | à planifier |
+| E5 | Reformulation CIF-safe des `action` du detector + validation avocat avant commercialisation | small (code) | à planifier |
+| E6 | Passe accessibilité sur Collect (labels, focus, aria) + `useReducedMotion` — inclut les 25 warnings React Compiler laissés en warn | medium | à planifier |
+| E7 | Lazy-loading des données skills (chunk 2 Mo → chargement par skill actif) | medium | à planifier |
+| E8 | Test d'architecture anti-hardcode (grep des littéraux fiscaux) | small | ✅ 08/07/2026 (52a3cc5) |
 
 ### Moyenne
 
