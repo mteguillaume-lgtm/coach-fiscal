@@ -369,7 +369,8 @@ export default function Anonymize() {
         setFileItems(prev => prev.map(f =>
           f.id === item.id ? { ...f, status: 'error', error: err?.message || 'Erreur' } : f
         ));
-        toast.error(`Échec : ${item.name}`);
+        if (err?.code === 'NO_TEXT_LAYER') toast.error(err.message, { duration: 9000 });
+        else toast.error(`Échec : ${item.name}`);
       }
     }));
   }, [fileItems, prenom, nom, employeur, enabledLabels, disabledLabels, isCouple]);
@@ -400,7 +401,8 @@ export default function Anonymize() {
       setFileItems(prev => prev.map(f =>
         f.id === id ? { ...f, status: 'error', error: err?.message || 'Erreur' } : f
       ));
-      toast.error('Échec du changement de type');
+      if (err?.code === 'NO_TEXT_LAYER') toast.error(err.message, { duration: 9000 });
+      else toast.error('Échec du changement de type');
     }
   }, [fileItems, prenom, nom, employeur, enabledLabels, disabledLabels]);
 

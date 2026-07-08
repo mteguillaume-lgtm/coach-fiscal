@@ -217,6 +217,32 @@ export function findZones(lineWords, patterns, padding = DEFAULT_PADDING) {
 // ─────────────────────────────────────────────────────────────────
 
 /**
+ * Garde-fou anti-fuite : un PDF sans couche texte (scan, photo) ne peut pas
+ * être anonymisé par détection de zones — rien ne serait masqué et le document
+ * partirait EN CLAIR vers l'API vision. On refuse le traitement.
+ *
+ * @param {Array<{lines: Array<Array<object>>}>} pages - sortie d'extractWordsWithPositions
+ * @returns {number} nombre total de mots extraits
+ * @throws {Error} err.code = 'NO_TEXT_LAYER' si aucun mot
+ */
+export function assertTextLayer(pages) {
+  const wordCount = (pages || []).reduce(
+    (sum, p) => sum + p.lines.reduce((acc, line) => acc + line.length, 0), 0,
+  );
+  if (wordCount === 0) {
+    const err = new Error(
+      "Ce PDF ne contient aucun texte extractible (document scanné ou photo). "
+      + "L'anonymisation automatique est impossible : le document N'A PAS été traité. "
+      + "Utilisez le PDF d'origine téléchargé en ligne (impots.gouv.fr, espace RH…) "
+      + "ou caviardez-le manuellement avant de le déposer.",
+    );
+    err.code = 'NO_TEXT_LAYER';
+    throw err;
+  }
+  return wordCount;
+}
+
+/**
  * Port de run_pdf() — anonymise un PDF en noircissant les zones sensibles.
  *
  * @param {File} file - Fichier PDF d'entrée
@@ -248,6 +274,7 @@ export async function anonymizePdf(file, options = {}) {
 
   // 1. Extraction texte + positions (100 % LOCAL — pdf.js, aucun réseau)
   const pages = await extractWordsWithPositions(file);
+  assertTextLayer(pages);
 
   // Texte complet reconstitué pour la détection de type et l'extraction LOCALE,
   // exécutées AVANT tout masquage. Aucune donnée ne quitte le navigateur.
