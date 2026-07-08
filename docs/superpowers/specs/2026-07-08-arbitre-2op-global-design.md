@@ -75,8 +75,11 @@ arbitrage2OP({
 Ajouts :
 
 - Passer `d.div_2dc` et `d.int_mob_2tr` (déjà dans le formData `d`).
-- Si `dividendes + interets + pvNetImposable > 0` : appeler `arbitrage2OP` et émettre, dans la
+- **Si `hasPvMob`** (PV mobilières présentes) : appeler `arbitrage2OP` et émettre, dans la
   section « PLUS-VALUES & CAPITAL » :
+  *(Sans PV, le fallback aval — `arbitragePfuBareme` sur dividendes + intérêts — est déjà
+  l'arbitrage global exact : PV = 0. Les lignes TXT ne sont donc émises que lorsque les PV
+  rendent l'arbitrage partiel potentiellement faux.)*
 
 ```
 Arbitrage 2OP foyer : PFU {X} € | barème {Y} € | recommandé : {PFU|barème} | économie {Z} €
