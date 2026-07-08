@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { chat, detectComplexity, getProviderMeta } from '../lib/providers';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
+import { loadSkills } from '../data/skillsLoader';
 import { computeFoyerSummary } from '../lib/taxCalculator';
 import { MASTER_PROMPT } from '../data/masterPrompt';
 import PERBandeau from '../components/PERBandeau';
@@ -270,16 +271,18 @@ export default function Chat() {
     setMessages(prev => [...prev, userMsg, draftMsg]);
     setStreaming(true);
 
-    const system = buildSystemPrompt({
-      skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: modelToUse,
-      summary: computeFoyerSummary(state.parsedProfile), parsedProfile: state.parsedProfile,
-    });
     const historyForApi = [
       ...prevMessages.map(({ role, content }) => ({ role, content })),
       { role: 'user', content: text },
     ];
 
     try {
+      // Chargement à la demande des skills actifs (chunks séparés, cache) — E7.
+      const skillsContent = await loadSkills(skills);
+      const system = buildSystemPrompt({
+        skills, skillsContent, profile: state.profile, masterPrompt: MASTER_PROMPT, model: modelToUse,
+        summary: computeFoyerSummary(state.parsedProfile), parsedProfile: state.parsedProfile,
+      });
       await chat(state.provider, {
         apiKey, messages: historyForApi, system, model: modelToUse,
         onChunk: chunk => setMessages(prev => {
