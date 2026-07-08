@@ -24,6 +24,7 @@ const FORBIDDEN = [
   { re: /\b150_000\b/,                       why: 'plafond PEA / seuil AV → PLAFOND_VERSEMENTS_PEA / AV_SEUIL_PRIMES_TAUX_REDUIT' },
   { re: /\b(?:4_600|9_200)\b/,               why: 'abattements AV 8 ans → AV_ABATTEMENT_8ANS_* (pea-assurance-vie.json)' },
   { re: /\b0\.075\b/,                        why: 'taux IR AV après 8 ans → AV_TAUX_IR_APRES_8ANS' },
+  { re: /\b(?:34_?393|22_?419)\b/,           why: 'seuils RFR LEP → SEUIL_RFR_LEP_* (epargne-reglementee.json)' },
 ];
 
 function jsFilesUnder(dir) {

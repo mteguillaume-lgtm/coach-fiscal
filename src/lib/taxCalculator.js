@@ -102,6 +102,8 @@ export const TAUX_PLAFOND_PER = perRaw.per_individuel.taux_calcul;   // 10 % du 
 export const PLAFOND_LIVRET_A       = epargneRegRaw.livret_a.plafond_versements;
 export const PLAFOND_LDDS           = epargneRegRaw.ldds.plafond_versements;
 export const PLAFOND_LEP            = epargneRegRaw.lep.plafond_versements;
+export const SEUIL_RFR_LEP_SOLO     = epargneRegRaw.lep.seuil_rfr_celibataire;
+export const SEUIL_RFR_LEP_COUPLE   = epargneRegRaw.lep.seuil_rfr_couple_2_parts;
 export const PLAFOND_VERSEMENTS_PEA = peaAvRaw.pea_classique.plafond_versements;
 
 // ─── Assurance-vie — rachats après 8 ans (depuis pea-assurance-vie.json) ─────

@@ -6,5 +6,10 @@
   },
   "livret_a": { "plafond_versements": 22950 },
   "ldds":     { "plafond_versements": 12000 },
-  "lep":      { "plafond_versements": 10000 }
+  "lep": {
+    "plafond_versements": 10000,
+    "seuil_rfr_celibataire": 22419,
+    "seuil_rfr_couple_2_parts": 34393,
+    "_source_seuils": "Éligibilité LEP RFR N-2, valeurs revenus 2025 (2 parts pour un couple) — art. L221-15 CMF / service-public F2367"
+  }
 }

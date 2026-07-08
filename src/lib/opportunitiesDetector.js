@@ -1,7 +1,7 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto, plafonnementNichesDeuxEtages, TAUX_PS_CAPITAL, PLAFOND_LDDS, PLAFOND_LEP } from './taxCalculator';
+import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto, plafonnementNichesDeuxEtages, TAUX_PS_CAPITAL, PLAFOND_LDDS, PLAFOND_LEP, SEUIL_RFR_LEP_SOLO, SEUIL_RFR_LEP_COUPLE } from './taxCalculator';
 import { GAIN_DIFF_LDDS, GAIN_DIFF_LEP, GAIN_DIFF_AV_LT, GAIN_DIFF_PEA_LT, GAIN_DIFF_DEFAUT } from './hypothesesRendement';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
@@ -400,7 +400,7 @@ export function detectOpportunities(parsedProfile) {
     const liquidityFloor = isCouple ? 24_000 : 12_000; // 3-6 mois de charges
 
     const excess = Math.max(0, livretTotal - liquidityFloor);
-    const plafondLEPRfr = isCouple ? 34_393 : 22_419;
+    const plafondLEPRfr = isCouple ? SEUIL_RFR_LEP_COUPLE : SEUIL_RFR_LEP_SOLO;
     const eligibleLEP = rfr > 0 && rfr <= plafondLEPRfr;
 
     // Construction du plan
@@ -535,7 +535,7 @@ export function detectOpportunities(parsedProfile) {
 
   // LEP accessible : RFR éligible et LEP non ouvert
   if (!hasLEP && rfr > 0) {
-    const plafondRFR = isPacseOuMarie ? 34_393 : 22_419;
+    const plafondRFR = isPacseOuMarie ? SEUIL_RFR_LEP_COUPLE : SEUIL_RFR_LEP_SOLO;
     if (rfr <= plafondRFR) {
       opps.push({
         id: 'lep_non_ouvert',
