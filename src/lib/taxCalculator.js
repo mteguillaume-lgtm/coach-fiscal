@@ -66,7 +66,7 @@ const TRANCHES = baremeRaw.bareme_ir.tranches.map(t => [
 
 const DECOTE = baremeRaw.decote;
 if (typeof DECOTE.taux !== 'number') {
-  throw new Error('[taxCalculator] decote.taux manquant dans bareme-ir-YYYY.json — ajouter le champ machine (ex. 0.4525).');
+  throw new Error('[taxCalculator] decote.taux manquant dans bareme-ir-YYYY.json — ajouter le champ machine (taux de la formule de décote, cf. BOI-IR-LIQ-20-20-30).');
 }
 
 // ─── Abattement 10% salaires (depuis le JSON) ─────────────────────────────────

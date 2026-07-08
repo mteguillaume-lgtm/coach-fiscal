@@ -15,8 +15,8 @@ import {
 } from '../taxCalculator';
 import { RDT_LIVRET_A } from '../hypothesesRendement';
 
-// 0.128 + 0.172 = 0.30000000000000004 en flottant → arrondi à 3 décimales pour
-// conserver exactement les résultats historiques (0.30).
+// La somme IR + PS du PFU produit une traîne flottante (…00000000004) → arrondi
+// à 3 décimales pour conserver exactement les résultats historiques.
 const PFU_TOTAL = Math.round((PFU_TAUX_IR + TAUX_PS_CAPITAL) * 1000) / 1000;
 
 function fvMonthly(V, r, t) {

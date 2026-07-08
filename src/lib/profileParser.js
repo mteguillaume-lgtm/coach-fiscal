@@ -420,7 +420,7 @@ export function emptyProfile() {
     peaAnterioriteD1: null, peaAnterioriteD2: null,
     pelAnterioriteD1: null, pelAnterioriteD2: null,
     pelFiscalD1: null, pelFiscalD2: null,
-    peaEspaceD1: 150_000, peaEspaceD2: 150_000,
+    peaEspaceD1: PLAFOND_VERSEMENTS_PEA, peaEspaceD2: PLAFOND_VERSEMENTS_PEA,
     livretAExceedsD1: false, livretAExceedsD2: false,
     pelInteretsD1: 0, pelInteretsD2: 0,
     livretPlusGainAnnuelD1: 0, livretPlusGainAnnuelD2: 0,
