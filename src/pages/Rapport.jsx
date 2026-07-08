@@ -11,6 +11,7 @@ import {
   ABATTEMENT_DONATION_ENFANT, RAPPEL_FISCAL_DONATION_ANNEES, ABATTEMENT_DON_FAMILIAL,
   ABATTEMENT_AV_AVANT_70, ABATTEMENT_AV_APRES_70, SEUIL_AGE_AV_TRANSMISSION,
 } from '../lib/taxCalculator';
+import { isAiSection } from '../lib/aiSections';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { genererSynthese } from '../lib/conseilPatrimonial';
 import { deriveRoadmapContext } from '../lib/lifeStage';
@@ -75,8 +76,7 @@ function decote(brut, isCouple) {
 
 // ─── Sections IA ─────────────────────────────────────────────────────────────
 
-const AI_TITLES = ['DÉCLARATION', 'ANALYSE DES SITUATIONS', "POINTS D'ATTENTION", 'OBJECTIFS PRIORITAIRES', 'STRATÉGIE PATRIMONIALE'];
-const isAiSection = t => AI_TITLES.some(k => t.toUpperCase().includes(k));
+// AI_TITLES / isAiSection : module partagé src/lib/aiSections (audit E4).
 
 function parseProfileSections(text) {
   if (!text) return [];
