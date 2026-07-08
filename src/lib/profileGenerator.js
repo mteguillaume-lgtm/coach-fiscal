@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo, calcIFI, calcReductionDefisc, DEFISC_DISPOSITIFS, plafonnementNichesDeuxEtages } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo, calcIFI, calcReductionDefisc, DEFISC_DISPOSITIFS, plafonnementNichesDeuxEtages, arbitrage2OP } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -316,8 +316,20 @@ function _capitalGainsBlock(d, declarants, rniFoyer = 0, parts = 1, isCouple = f
     lignes.push(`Plus-values mobilières (3VG) : ${fmtN(pm.plusValue)}${pm.moinsValuesImputees > 0 ? ` | moins-values imputées (3VH) : ${fmtN(pm.moinsValuesImputees)}` : ''}`);
     lignes.push(`PV mobilières — gain imposable : ${fmtN(pm.gainImposable)} | régime : ${pvMobBareme ? 'barème' : 'PFU 12,8 %'}${pm.abattementDuree > 0 ? ` | abattement durée ${Math.round(pm.abattementDuree * 100)} %` : ''}`);
     lignes.push(`PV mobilières — IR : ${fmtN(pm.ir)} | base PS : ${fmtN(pm.gainImposable)}`);
-    if (pm.recommande === 'bareme' && !pvMobBareme && pm.economie > 0) {
-      lignes.push(`ℹ️ Option barème (2OP) potentiellement plus avantageuse pour les PV mobilières (~${fmtN(pm.economie)} € d'écart) — option globale capital`);
+    // Arbitrage GLOBAL 2OP (div + intérêts + PV) — source de vérité écrite au TXT,
+    // consommée par le parser → summary → detector (jamais recalculée en aval).
+    const arb = arbitrage2OP({
+      dividendes: parseFloat(d.div_2dc || 0),
+      interets:   parseFloat(d.int_mob_2tr || 0),
+      pvNetImposable: pm.gainImposable,
+      pvBaseIRBareme: pm.baseIRBareme,
+      rniFoyer, parts, isCouple,
+    });
+    const recoLabel = arb.recommande === 'bareme' ? 'barème' : 'PFU';
+    lignes.push(`Arbitrage 2OP foyer : PFU ${fmtN(arb.pfu)} | barème ${fmtN(arb.bareme)} | recommandé : ${recoLabel} | économie ${fmtN(arb.economie)}`);
+    lignes.push(`Option 2OP déclarée : ${pvMobBareme ? 'Oui' : 'Non'}`);
+    if ((arb.recommande === 'bareme') !== pvMobBareme && arb.economie > 0) {
+      lignes.push(`ℹ️ Arbitrage 2OP : l'option ${recoLabel} serait plus avantageuse (~${fmtN(arb.economie)} d'écart) — option GLOBALE et annuelle (dividendes + intérêts + PV)`);
       baremeFlag = true;
     }
   }
@@ -333,7 +345,7 @@ function _capitalGainsBlock(d, declarants, rniFoyer = 0, parts = 1, isCouple = f
       lignes.push(`Plus-values crypto (3AN) : ${fmtN(cp.plusValue)} | cessions annuelles : ${fmtN(cp.totalCessions)} | régime : ${cryptoBareme ? 'barème' : 'PFU 12,8 %'}`);
       lignes.push(`PV crypto — IR : ${fmtN(cp.ir)} | base PS : ${fmtN(cp.plusValue)}`);
       if (cp.recommande === 'bareme' && !cryptoBareme && cp.economie > 0) {
-        lignes.push(`ℹ️ Option barème potentiellement plus avantageuse pour la crypto (~${fmtN(cp.economie)} € d'écart)`);
+        lignes.push(`ℹ️ Option barème potentiellement plus avantageuse pour la crypto (~${fmtN(cp.economie)} d'écart — option distincte de la case 2OP)`);
         baremeFlag = true;
       }
     }

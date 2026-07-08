@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { arbitrage2OP, PFU_TAUX_IR, TAUX_PS_CAPITAL } from '../taxCalculator';
+import { buildProfile } from '../profileGenerator';
 
 describe('arbitrage2OP — option barème globale (dividendes + intérêts + PV)', () => {
   it('tout à zéro → neutre, aucune économie', () => {
@@ -49,5 +50,36 @@ describe('arbitrage2OP — option barème globale (dividendes + intérêts + PV)
     expect(r.detail.ps).toBe(Math.round(15_000 * TAUX_PS_CAPITAL));
     expect(r.pfu - r.detail.irPfu).toBe(r.detail.ps);
     expect(r.bareme - r.detail.irBareme).toBe(r.detail.ps);
+  });
+});
+
+describe('Générateur — lignes TXT Arbitrage 2OP (émises seulement avec des PV)', () => {
+  it('avec PV : émet l\'arbitrage global et l\'option déclarée', () => {
+    const profile = buildProfile(
+      { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000', pv_mob_gain: '1000' },
+      {}, {}, [], false,
+    );
+    expect(profile).toMatch(/Arbitrage 2OP foyer\s*:\s*PFU\s[\d\s ]+€\s*\|\s*barème\s[\d\s ]+€\s*\|\s*recommandé\s*:\s*(PFU|barème)\s*\|\s*économie\s[\d\s ]+€/);
+    expect(profile).toContain('Option 2OP déclarée : Non');
+    // L'ancienne note PV isolée a disparu
+    expect(profile).not.toContain('avantageuse pour les PV mobilières');
+  });
+
+  it('sans PV : aucune ligne 2OP (le fallback aval est déjà exact)', () => {
+    const profile = buildProfile(
+      { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000' },
+      {}, {}, [], false,
+    );
+    expect(profile).not.toContain('Arbitrage 2OP foyer');
+  });
+
+  it('option déclarée ≠ optimum → note ℹ️ globale ; option = optimum → pas de note', () => {
+    // TMI 11 % + dividendes + petite PV → barème optimal (cf. tests unitaires).
+    const base = { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000', pv_mob_gain: '1000' };
+    const pNon = buildProfile({ ...base, pv_mob_option_bareme: 'Non' }, {}, {}, [], false);
+    expect(pNon).toContain('option GLOBALE et annuelle');
+    const pOui = buildProfile({ ...base, pv_mob_option_bareme: 'Oui' }, {}, {}, [], false);
+    expect(pOui).toContain('Option 2OP déclarée : Oui');
+    expect(pOui).not.toContain('option GLOBALE et annuelle');
   });
 });
