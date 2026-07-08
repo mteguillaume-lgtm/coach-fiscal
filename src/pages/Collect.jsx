@@ -625,6 +625,8 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
     ].join(' ')}>
       <button
         type="button"
+        aria-expanded={open}
+        aria-controls={`acc-body-${section.id}`}
         onClick={() => setActiveAcc(open ? null : section.id)}
         className="w-full flex items-center justify-between px-4 py-3.5 text-left"
       >
@@ -655,7 +657,7 @@ function AccSection({ section, data, onChange, autoFKeys, activeAcc, setActiveAc
       </button>
 
       {open && (
-        <div className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
+        <div id={`acc-body-${section.id}`} role="region" aria-label={section.label} className="px-4 pb-4 bg-teal-50/20" onClick={e => e.stopPropagation()}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {baseFields.map(f => (
               <FieldRow key={f.key} f={f} value={data[f.key]} onChange={onChange} autoFKeys={autoFKeys} formData={data} />
