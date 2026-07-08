@@ -226,7 +226,7 @@ const PV_FIELDS = [
   { key: 'pv_mob_mv_reportees', label: 'Moins-values reportables (3VH) (€)', type: 'number', ph: '0', requires: 'capitauxMobiliers', advanced: true,
     dependsOn: { key: 'pv_mob_gain', check: v => parseFloat(v || 0) > 0 },
     hint: 'Moins-values de cession des 10 années précédentes non encore imputées. Elles s\'imputent en priorité sur les plus-values de même nature.' },
-  { key: 'pv_mob_option_bareme', label: 'Option barème progressif (2OP) ?', type: 'select', opts: ['Non', 'Oui'], requires: 'capitauxMobiliers', advanced: true,
+  { key: 'pv_mob_option_bareme', label: 'Option barème global 2OP (dividendes + intérêts + PV) ?', type: 'select', opts: ['Non', 'Oui'], requires: 'capitauxMobiliers', advanced: true,
     dependsOn: { key: 'pv_mob_gain', check: v => parseFloat(v || 0) > 0 },
     hint: 'L\'option barème est globale pour tous les revenus du capital de l\'année. Avantageuse à TMI faible et/ou pour les titres acquis avant 2018 (abattement durée).' },
   { key: 'pv_mob_anteriorite_2018', label: 'Titres acquis avant le 1er janvier 2018 ?', type: 'select', opts: ['Non', 'Oui'], requires: 'capitauxMobiliers', advanced: true,
