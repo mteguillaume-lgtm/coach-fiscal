@@ -2,6 +2,7 @@ import { n, f, s, oui, signed, section } from './profileParserUtils.js';
 import { getTMI, abattement10Auto, abattement10Pension, ABT_PENSION, TAUX_PS_CAPITAL, PLAFOND_LIVRET_A, PLAFOND_VERSEMENTS_PEA } from './taxCalculator';
 import { RDT_LIVRET_A, RDT_LIVRET_PLUS_PROMO } from './hypothesesRendement';
 import { registry } from '../plugins/registry.js';
+import { stripAiSections } from './aiSections.js';
 
 // ─── Local utility (not exported from profileParserUtils) ─────────────────────
 
@@ -328,25 +329,32 @@ function _patrimoine(epD1, epD2, immo, capacite, rniFoyer) {
 export function parseProfile(text) {
   if (!text) return emptyProfile();
 
-  const mode = /FOYER 2025|Mode\s*:\s*Déclaration commune|DÉCLARANT 2/i.test(text) ? 'couple' : 'solo';
-  const secs = _sections(text, mode);
+  // Blindage E4 : les extractions NUMÉRIQUES ignorent les sections rédigées par
+  // l'IA (enrichissement). Le texte complet ne sert qu'au qualitatif : isEnriched
+  // + détecteurs plein-texte (_flags) et alertes 🔴🟡🟢 (_alerts, section IA assumée).
+  const texteDet = stripAiSections(text);
+
+  const mode = /FOYER 2025|Mode\s*:\s*Déclaration commune|DÉCLARANT 2/i.test(texteDet) ? 'couple' : 'solo';
+  const secs = _sections(texteDet, mode);
+  // POINTS D'ATTENTION est une section IA : lue sur le texte COMPLET (qualitatif).
+  secs.secAttn = section(text, "== POINTS D'ATTENTION ==");
 
   const pluginData = {};
-  for (const p of registry.getAll()) Object.assign(pluginData, p.parser(text, mode));
+  for (const p of registry.getAll()) Object.assign(pluginData, p.parser(texteDet, mode));
 
-  const sit      = _situation(text);
+  const sit      = _situation(texteDet);
   const profil   = _profil(secs.secProfil);
 
   // Run calculators with parser data + profil context (typeRevenuD1/D2 needed by salaires)
   const calcCtx = { ...pluginData, ...profil };
   for (const p of registry.getAll()) Object.assign(pluginData, p.calculator(calcCtx));
 
-  const pero     = _pero(text);
-  const rni      = _rni(pluginData, profil, text);
-  const fiscal   = _fiscal(text, rni.rniFoyer, sit.parts, pluginData);
-  const per      = _per(text);
-  const nonPlug  = _nonPlugRevenues(text);
-  const acomptes = _acomptes(text);
+  const pero     = _pero(texteDet);
+  const rni      = _rni(pluginData, profil, texteDet);
+  const fiscal   = _fiscal(texteDet, rni.rniFoyer, sit.parts, pluginData);
+  const per      = _per(texteDet);
+  const nonPlug  = _nonPlugRevenues(texteDet);
+  const acomptes = _acomptes(texteDet);
   const epD1     = _epargneDecl(secs.secEpD1, 'D1');
   const epD2     = _epargneDecl(secs.secEpD2, 'D2');
   const derivD1  = _epDerived(epD1, 'D1');
@@ -354,7 +362,7 @@ export function parseProfile(text) {
   const capacite = _capacite(secs.secCapacite);
   const immo     = _immo(secs.secImmo);
   const flags    = _flags(text, epD1, epD2);
-  const transm   = _transmission(secs.secTransmission, text);
+  const transm   = _transmission(secs.secTransmission, texteDet);
   const alerts   = _alerts(secs.secAttn);
   const patrim   = _patrimoine(epD1, epD2, immo, capacite, rni.rniFoyer);
 
