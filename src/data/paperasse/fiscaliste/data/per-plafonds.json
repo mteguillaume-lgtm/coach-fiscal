@@ -14,6 +14,7 @@
   "per_individuel": {
     "description": "Plafond de déduction PER pour les versements 2026 (base : revenus 2025, PASS 2025 = 47 100 €, déclaration 2027). Utiliser le même fichier pour les versements 2025 avec PASS 2024 = 46 368 €.",
     "calcul": "10% des revenus professionnels nets N-1 (salaires après abattement 10%, BNC, BIC) OU 10% du PASS N-1 si supérieur (plancher), plafonné à 10% × 8 × PASS N-1",
+    "taux_calcul": 0.10,
     "plancher_euros": 4710,
     "plancher_base": "10% × PASS 2025 (47 100 €) — garanti même sans revenus",
     "plafond_absolu_euros": 37680,

@@ -95,6 +95,7 @@ export const PLAFOND_NICHES_OUTRE_MER = nichesRaw.plafonnement_global.plafond_in
 export const PASS_2025       = perRaw._meta.pass_2025;
 export const MIN_PLAFOND_PER = perRaw.per_individuel.plancher_euros;
 export const MAX_PLAFOND_PER = perRaw.per_individuel.plafond_absolu_euros;
+export const TAUX_PLAFOND_PER = perRaw.per_individuel.taux_calcul;   // 10 % du RNI (art. 163 quatervicies)
 
 // ─── Plafonds épargne réglementée & PEA (depuis les JSON) ─────────────────────
 
@@ -1274,7 +1275,7 @@ export function getTMI(base, parts = 1) {
  */
 export function calcPlafondPer(netImpSalaire, peroEmployeur = 0, abondPEEPERCO = 0) {
   const base       = abattement10(netImpSalaire || 0);
-  const brut       = base > 0 ? Math.round(base * 0.1) : 0;
+  const brut       = base > 0 ? Math.round(base * TAUX_PLAFOND_PER) : 0;
   const plafond    = Math.min(Math.max(brut, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
   const reductions = (peroEmployeur || 0) + (abondPEEPERCO || 0);
   return Math.max(0, plafond - reductions);
@@ -1308,7 +1309,7 @@ export function computePlafondPERDeclarant({
   reportN2 = 0,
   reportN3 = 0,
 } = {}) {
-  const brut10      = rni > 0 ? Math.round(rni * 0.1) : 0;
+  const brut10      = rni > 0 ? Math.round(rni * TAUX_PLAFOND_PER) : 0;
   const plafondBrut = Math.min(Math.max(brut10, MIN_PLAFOND_PER), MAX_PLAFOND_PER);
   const reductions  = (pero || 0) + (abondPEEPERCO || 0);
   const plafondNet  = Math.max(0, plafondBrut - reductions);
