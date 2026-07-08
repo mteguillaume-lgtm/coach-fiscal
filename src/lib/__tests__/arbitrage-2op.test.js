@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { arbitrage2OP, PFU_TAUX_IR, TAUX_PS_CAPITAL } from '../taxCalculator';
 import { buildProfile } from '../profileGenerator';
+import { parseProfile } from '../profileParser';
 
 describe('arbitrage2OP — option barème globale (dividendes + intérêts + PV)', () => {
   it('tout à zéro → neutre, aucune économie', () => {
@@ -81,5 +82,28 @@ describe('Générateur — lignes TXT Arbitrage 2OP (émises seulement avec des 
     const pOui = buildProfile({ ...base, pv_mob_option_bareme: 'Oui' }, {}, {}, [], false);
     expect(pOui).toContain('Option 2OP déclarée : Oui');
     expect(pOui).not.toContain('option GLOBALE et annuelle');
+  });
+});
+
+describe('Parser — champs arb2op* depuis le TXT', () => {
+  const profile = buildProfile(
+    { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000', pv_mob_gain: '1000' },
+    {}, {}, [], false,
+  );
+  const parsed = parseProfile(profile);
+
+  it('lit le verdict, les montants et l\'option déclarée', () => {
+    expect(['pfu', 'bareme']).toContain(parsed.arb2opRecommande);
+    expect(parsed.arb2opPfu).toBeGreaterThan(0);
+    expect(parsed.arb2opBareme).toBeGreaterThan(0);
+    expect(parsed.arb2opEconomie).toBeGreaterThanOrEqual(0);
+    expect(parsed.option2opDeclaree).toBe(false);
+  });
+
+  it('profil sans PV : champs absents/null (fallback aval)', () => {
+    const sansPv = parseProfile(buildProfile(
+      { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000' }, {}, {}, [], false,
+    ));
+    expect(sansPv.arb2opRecommande ?? null).toBe(null);
   });
 });

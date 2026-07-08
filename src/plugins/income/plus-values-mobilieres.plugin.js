@@ -24,11 +24,25 @@ export default {
     const pvCapitalPsBase = n(text, /Plus-values mobilières\/crypto — base PS foyer[^:\n]*:\s*([\d\s,]+)\s*€/i);
     const pvMobGain          = n(text, /Plus-values mobilières \(3VG\)\s*:\s*([\d\s,]+)\s*€/i);
     const pvMobGainImposable = n(text, /PV mobilières — gain imposable\s*:\s*([\d\s,]+)\s*€/i);
+
+    // Arbitrage 2OP global écrit par le générateur (une seule ligne, 4 groupes).
+    // [\s ] : espaces fines insécables des montants fmtN.
+    const mArb = text.match(
+      /Arbitrage 2OP foyer\s*:\s*PFU\s*([\d\s ]+)€\s*\|\s*barème\s*([\d\s ]+)€\s*\|\s*recommandé\s*:\s*(PFU|barème)\s*\|\s*économie\s*([\d\s ]+)€/i,
+    );
+    const toInt = (v) => parseInt(String(v).replace(/[\s ]/g, ''), 10) || 0;
+    const arb2opPfu         = mArb ? toInt(mArb[1]) : 0;
+    const arb2opBareme      = mArb ? toInt(mArb[2]) : 0;
+    const arb2opRecommande  = mArb ? (/barème/i.test(mArb[3]) ? 'bareme' : 'pfu') : null;
+    const arb2opEconomie    = mArb ? toInt(mArb[4]) : 0;
+    const option2opDeclaree = /Option 2OP déclarée\s*:\s*Oui/i.test(text);
+
     return {
       pvCapitalIR,
       pvCapitalPsBase,
       pvMobGain,
       pvMobGainImposable,
+      arb2opPfu, arb2opBareme, arb2opRecommande, arb2opEconomie, option2opDeclaree,
     };
   },
 
