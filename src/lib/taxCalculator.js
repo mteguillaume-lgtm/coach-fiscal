@@ -714,6 +714,58 @@ export function arbitragePfuBareme({ dividendes = 0, interets = 0, rniFoyer = 0,
   };
 }
 
+/**
+ * Arbitrage GLOBAL de l'option barème (case 2OP) — art. 200 A 2 CGI.
+ * L'option 2OP est globale et annuelle : elle couvre d'un bloc les dividendes
+ * (2DC), intérêts (2TR) ET plus-values mobilières (3VG). Cette fonction compare
+ * les deux SEULS scénarios déclarables : tout PFU vs tout barème.
+ * NB : la crypto (3AN) a sa propre option, distincte de 2OP → hors périmètre.
+ *
+ * Approximation (héritée d'arbitragePfuBareme, documentée) : la CSG déductible
+ * 6,8 % s'impute légalement en N+1 ; elle est approximée la même année. La
+ * déductibilité réduite de la CSG sur PV abattues n'est pas modélisée.
+ *
+ * @param {object} o
+ * @param {number} o.dividendes       - dividendes bruts (2DC)
+ * @param {number} o.interets         - intérêts bruts (2TR)
+ * @param {number} o.pvNetImposable   - PV après moins-values (gainImposable de calcPvMobiliere)
+ * @param {number} o.pvBaseIRBareme   - PV après MV et abattements durée (baseIRBareme) — défaut : pvNetImposable
+ * @param {number} o.rniFoyer
+ * @param {number} o.parts
+ * @param {boolean} o.isCouple
+ * @returns {{ pfu:number, bareme:number, recommande:'pfu'|'bareme', economie:number, detail:object }}
+ */
+export function arbitrage2OP({
+  dividendes = 0, interets = 0,
+  pvNetImposable = 0, pvBaseIRBareme = 0,
+  rniFoyer = 0, parts = 1, isCouple = false,
+} = {}) {
+  const div = Math.max(0, dividendes);
+  const int = Math.max(0, interets);
+  const pv  = Math.max(0, pvNetImposable);
+  const pvBareme = Math.min(pv, Math.max(0, pvBaseIRBareme) || pv);
+  const base = div + int + pv;
+  if (base <= 0) {
+    return { pfu: 0, bareme: 0, recommande: 'pfu', economie: 0, detail: { base: 0, irPfu: 0, irBareme: 0, ps: 0 } };
+  }
+  const ps    = _round(base * TAUX_PS_CAPITAL);   // identique dans les deux scénarios
+  const irPfu = _round(base * PFU_TAUX_IR);
+
+  const abatt    = pfuRaw.dividendes_option_bareme.abattement;
+  const csgDeduc = _round(base * pfuRaw.prelevements_sociaux.dont_csg_deductible_si_bareme);
+  const baseBareme = Math.max(0, _round(div * (1 - abatt) + int + pvBareme - csgDeduc));
+  const irBareme = Math.max(0, calcIR(rniFoyer + baseBareme, parts, isCouple) - calcIR(rniFoyer, parts, isCouple));
+
+  const pfu    = irPfu + ps;
+  const bareme = irBareme + ps;
+  return {
+    pfu, bareme,
+    recommande: bareme <= pfu ? 'bareme' : 'pfu',
+    economie: Math.abs(pfu - bareme),
+    detail: { base, baseBareme, csgDeduc, irPfu, irBareme, ps },
+  };
+}
+
 // ─── Plus-values & capital — PHASE 4 ─────────────────────────────────────────
 
 /**
