@@ -1551,12 +1551,25 @@ export function computeFoyerSummary(profile) {
   const creditGarde          = calcCreditGarde(profile.gardeDepense || 0, profile.nbEnfants || 0, profile.nbEnfantsAlternes || 0);
   const creditSyndicales     = calcCreditSyndicales(profile.syndicatCotisation || 0, rniFoyer);
 
-  // Arbitrage PFU 30 % vs option barème sur les revenus du capital (dividendes/intérêts CTO).
-  const arbitrageCapital = arbitragePfuBareme({
-    dividendes: profile.dividendes2DC || 0,
-    interets:   profile.intMob2TR || 0,
-    rniFoyer, parts, isCouple,
-  });
+  // Arbitrage 2OP — verdict GLOBAL (div + intérêts + PV) écrit au TXT par le
+  // générateur (source '2op'). Fallback anciens profils / sans PV : arbitrage
+  // partiel div + intérêts (exact quand PV = 0).
+  const arbitrageCapital = profile.arb2opRecommande
+    ? {
+        pfu:        profile.arb2opPfu || 0,
+        bareme:     profile.arb2opBareme || 0,
+        recommande: profile.arb2opRecommande,
+        economie:   profile.arb2opEconomie || 0,
+        source:     '2op',
+      }
+    : {
+        ...arbitragePfuBareme({
+          dividendes: profile.dividendes2DC || 0,
+          interets:   profile.intMob2TR || 0,
+          rniFoyer, parts, isCouple,
+        }),
+        source: 'fallback',
+      };
 
   // CEHR (art. 223 sexies CGI) — assise sur le RFR, s'ajoute à l'IR net.
   const cehr = calcCEHR(profile.rfr || rniFoyer, isCouple);

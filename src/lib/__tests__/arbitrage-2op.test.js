@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { arbitrage2OP, PFU_TAUX_IR, TAUX_PS_CAPITAL } from '../taxCalculator';
+import { arbitrage2OP, computeFoyerSummary, PFU_TAUX_IR, TAUX_PS_CAPITAL } from '../taxCalculator';
 import { buildProfile } from '../profileGenerator';
 import { parseProfile } from '../profileParser';
 
@@ -105,5 +105,27 @@ describe('Parser — champs arb2op* depuis le TXT', () => {
       { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000' }, {}, {}, [], false,
     ));
     expect(sansPv.arb2opRecommande ?? null).toBe(null);
+  });
+});
+
+describe('computeFoyerSummary — arbitrageCapital unifié', () => {
+  it('profil avec PV : consomme l\'arbitrage du TXT (source 2op), sans recalcul', () => {
+    const parsed = parseProfile(buildProfile(
+      { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000', pv_mob_gain: '1000' },
+      {}, {}, [], false,
+    ));
+    const s = computeFoyerSummary(parsed);
+    expect(s.arbitrageCapital.source).toBe('2op');
+    expect(s.arbitrageCapital.recommande).toBe(parsed.arb2opRecommande);
+    expect(s.arbitrageCapital.pfu).toBe(parsed.arb2opPfu);
+  });
+
+  it('profil sans lignes 2OP : fallback identique à l\'existant', () => {
+    const parsed = parseProfile(buildProfile(
+      { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000' }, {}, {}, [], false,
+    ));
+    const s = computeFoyerSummary(parsed);
+    expect(s.arbitrageCapital.source).toBe('fallback');
+    expect(['pfu', 'bareme']).toContain(s.arbitrageCapital.recommande);
   });
 });
