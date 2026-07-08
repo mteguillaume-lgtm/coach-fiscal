@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "description": "Plafonds de versement de l'épargne réglementée (valeurs légales, arrêtés).",
+    "source": "https://www.service-public.fr/particuliers/vosdroits/F2365",
+    "note": "Fichier app-local — candidat à une bascule dans paperasse upstream (romainsimon/paperasse)."
+  },
+  "livret_a": { "plafond_versements": 22950 },
+  "ldds":     { "plafond_versements": 12000 },
+  "lep":      { "plafond_versements": 10000 }
+}

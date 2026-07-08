@@ -1,5 +1,6 @@
 import { n, f, s, oui, signed, section } from './profileParserUtils.js';
-import { getTMI, abattement10Auto } from './taxCalculator';
+import { getTMI, abattement10Auto, TAUX_PS_CAPITAL, PLAFOND_LIVRET_A, PLAFOND_VERSEMENTS_PEA } from './taxCalculator';
+import { RDT_LIVRET_A, RDT_LIVRET_PLUS_PROMO } from './hypothesesRendement';
 import { registry } from '../plugins/registry.js';
 
 // ─── Local utility (not exported from profileParserUtils) ─────────────────────
@@ -226,9 +227,9 @@ function _epDerived(ep, sfx) {
     [`peaAnteriorite${sfx}`]:       peaAnt,
     [`pelAnteriorite${sfx}`]:       pelAnt,
     [`pelFiscal${sfx}`]:            pelAnt !== null ? (pelAnt >= 12 ? 'imposable' : 'exonéré') : null,
-    [`peaEspace${sfx}`]:            peaVal > 0 ? Math.max(0, 150_000 - (peaVerse || peaVal)) : 150_000,
-    [`livretAExceeds${sfx}`]:       (ep[`livretA${sfx}`] || 0) > 22_950,
-    [`livretPlusGainAnnuel${sfx}`]: Math.round(lvPlus * (0.07 - 0.03) * (1 - 0.172)),
+    [`peaEspace${sfx}`]:            peaVal > 0 ? Math.max(0, PLAFOND_VERSEMENTS_PEA - (peaVerse || peaVal)) : PLAFOND_VERSEMENTS_PEA,
+    [`livretAExceeds${sfx}`]:       (ep[`livretA${sfx}`] || 0) > PLAFOND_LIVRET_A,
+    [`livretPlusGainAnnuel${sfx}`]: Math.round(lvPlus * (RDT_LIVRET_PLUS_PROMO - RDT_LIVRET_A) * (1 - TAUX_PS_CAPITAL)),
   };
 }
 

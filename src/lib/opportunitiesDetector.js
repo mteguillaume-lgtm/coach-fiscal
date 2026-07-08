@@ -1,7 +1,8 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto, plafonnementNichesDeuxEtages } from './taxCalculator';
+import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto, plafonnementNichesDeuxEtages, TAUX_PS_CAPITAL, PLAFOND_LDDS, PLAFOND_LEP } from './taxCalculator';
+import { GAIN_DIFF_LDDS, GAIN_DIFF_LEP, GAIN_DIFF_AV_LT, GAIN_DIFF_PEA_LT, GAIN_DIFF_DEFAUT } from './hypothesesRendement';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 
@@ -64,7 +65,7 @@ export function detectOpportunities(parsedProfile) {
   // Taux effectif réel (IR net / RNI) — toujours plus bas que le TMI
   const irNetEstime     = irNet > 0 ? irNet : calcIR(rniFoyer || 0, parts || 1, isCouple);
   const tauxEffectif    = rniFoyer > 0 ? +((irNetEstime / rniFoyer) * 100).toFixed(1) : 0;
-  const psFoncierEstime = (foncierNet || 0) * 0.172;
+  const psFoncierEstime = (foncierNet || 0) * TAUX_PS_CAPITAL;
   const totalDuEstime   = irNetEstime + psFoncierEstime;
   const pasTot          = pasTotal || (pasD1 + pasD2);
   // Complément estimé (positif = à payer en septembre, négatif = remboursement)
@@ -369,8 +370,8 @@ export function detectOpportunities(parsedProfile) {
 
     // Plafonds par déclarant
     const NB = isCouple ? 2 : 1;
-    const PLAF_LDDS = 12_000 * NB;
-    const PLAF_LEP  = 10_000 * NB;
+    const PLAF_LDDS = PLAFOND_LDDS * NB;
+    const PLAF_LEP  = PLAFOND_LEP * NB;
     const liquidityFloor = isCouple ? 24_000 : 12_000; // 3-6 mois de charges
 
     const excess = Math.max(0, livretTotal - liquidityFloor);
@@ -385,7 +386,7 @@ export function detectOpportunities(parsedProfile) {
     const lddsRoom = Math.max(0, PLAF_LDDS - lddsTotal);
     if (lddsRoom > 0 && remaining > 1_000) {
       const move = Math.min(lddsRoom, remaining);
-      const gain = Math.round(move * 0.015);
+      const gain = Math.round(move * GAIN_DIFF_LDDS);
       plan.push(`Saturer LDDS (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux 3 % vs ~1,5 %)`);
       remaining -= move; gainTotal += gain;
     }
@@ -393,27 +394,27 @@ export function detectOpportunities(parsedProfile) {
       const lepRoom = Math.max(0, PLAF_LEP - lepTotal);
       if (lepRoom > 0 && remaining > 1_000) {
         const move = Math.min(lepRoom, remaining);
-        const gain = Math.round(move * 0.035);
+        const gain = Math.round(move * GAIN_DIFF_LEP);
         plan.push(`Saturer LEP (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux ~5 %, meilleur taux garanti)`);
         remaining -= move; gainTotal += gain;
       }
     }
     if (remaining > 5_000) {
       const move = Math.min(remaining, 30_000);
-      const gain = Math.round(move * 0.028);
+      const gain = Math.round(move * GAIN_DIFF_AV_LT);
       const avExists = (avD1 || 0) + (avD2 || 0) > 0;
       plan.push(`${avExists ? 'Renforcer' : 'Ouvrir'} AV multisupport (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (rendement ~4 % net)`);
       remaining -= move; gainTotal += gain;
     }
     if (remaining > 5_000) {
       const move = Math.min(remaining, 20_000);
-      const gain = Math.round(move * 0.045);
+      const gain = Math.round(move * GAIN_DIFF_PEA_LT);
       const peaExists = (peaD1 || 0) + (peaD2 || 0) > 0;
       plan.push(`${peaExists ? 'Renforcer' : 'Ouvrir'} PEA (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (ETF Monde ~6 %, exo IR > 5 ans)`);
       remaining -= move; gainTotal += gain;
     }
     if (remaining > 5_000) {
-      const gain = Math.round(remaining * 0.03);
+      const gain = Math.round(remaining * GAIN_DIFF_DEFAUT);
       plan.push(`Surplus ${fmt(remaining)} € → AV/PEA selon profil de risque — gain +${fmt(gain)} €/an`);
       gainTotal += gain;
     }

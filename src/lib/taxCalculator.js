@@ -25,6 +25,8 @@ import ifiRaw            from '../data/paperasse/fiscaliste/data/ifi-bareme.json
 import defiscRaw         from '../data/paperasse/fiscaliste/data/defiscalisation.json';
 import intlRaw           from '../data/paperasse/fiscaliste/data/fiscalite-internationale.json';
 import transmissionRaw    from '../data/paperasse/notaire/data/abattements-succession-donation.json';
+import peaAvRaw           from '../data/paperasse/fiscaliste/data/pea-assurance-vie.json';
+import epargneRegRaw      from '../data/epargne-reglementee.json';
 import { deriveLifeStage } from './lifeStage';
 
 // Auto-sélection du barème le plus récent dans le répertoire.
@@ -93,6 +95,13 @@ export const PLAFOND_NICHES_OUTRE_MER = nichesRaw.plafonnement_global.plafond_in
 export const PASS_2025       = perRaw._meta.pass_2025;
 export const MIN_PLAFOND_PER = perRaw.per_individuel.plancher_euros;
 export const MAX_PLAFOND_PER = perRaw.per_individuel.plafond_absolu_euros;
+
+// ─── Plafonds épargne réglementée & PEA (depuis les JSON) ─────────────────────
+
+export const PLAFOND_LIVRET_A       = epargneRegRaw.livret_a.plafond_versements;
+export const PLAFOND_LDDS           = epargneRegRaw.ldds.plafond_versements;
+export const PLAFOND_LEP            = epargneRegRaw.lep.plafond_versements;
+export const PLAFOND_VERSEMENTS_PEA = peaAvRaw.pea_classique.plafond_versements;
 
 // ─── Prélèvements sociaux et régimes fonciers (depuis les JSON) ───────────────
 
@@ -1221,7 +1230,7 @@ export function baseIRSolo(netImpSalaire) {
 export function baseIRFoyer(p) {
   const salD1   = abattement10(p.salaireNetImposableD1 || 0);
   const salD2   = abattement10(p.salaireNetImposableD2 || 0);
-  const foncier = (p.revensFonciers || 0) * (p.regimeFoncier === 'reel' ? 1 : 0.70);
+  const foncier = (p.revensFonciers || 0) * (p.regimeFoncier === 'reel' ? 1 : 1 - ABATTEMENT_MICRO_FONCIER);
   const areD1   = p.rniAreD1           || 0;
   const areD2   = p.rniAreD2           || 0;
   const appD1   = p.rniApprentissageD1 || 0;
