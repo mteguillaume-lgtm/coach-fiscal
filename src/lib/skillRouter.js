@@ -1,7 +1,6 @@
 // Routeur de skills : charge uniquement les skills pertinents pour chaque question.
 // Évite d'envoyer tous les skills à Claude à chaque tour — économise les tokens.
 
-import { SKILLS_MAP, SKILL_DATA, SKILL_REFS } from '../data/skillsLoader';
 import { buildChiffresOfficiels } from './chiffresOfficiels';
 import { debug } from './debug';
 
@@ -123,18 +122,19 @@ const MODEL_LABELS = {
   opus:   '🔮 Opus — stratégie complexe',
 };
 
-export function buildSystemPrompt({ skills, profile, masterPrompt, model, summary = null, parsedProfile = {} }) {
+export function buildSystemPrompt({ skills, skillsContent = [], profile, masterPrompt, model, summary = null, parsedProfile = {} }) {
 
+  const byId = new Map(skillsContent.map(sc => [sc.id, sc]));
   const skillsBlock = skills
     .map(id => {
-      const content = SKILLS_MAP[id];
+      const sc = byId.get(id);
+      const content = sc?.content;
       if (!content) return '';
 
       const lines = [`## SKILL : ${SKILL_LABELS[id] ?? id}`, content.trim()];
 
       // Données chiffrées (JSON) — barèmes, abattements, plafonds, etc.
-      const data = SKILL_DATA[id] ?? {};
-      const dataEntries = Object.entries(data);
+      const dataEntries = Object.entries(sc.data ?? {});
       if (dataEntries.length > 0) {
         lines.push('\n### Données de référence');
         for (const [name, raw] of dataEntries) {
@@ -143,8 +143,7 @@ export function buildSystemPrompt({ skills, profile, masterPrompt, model, summar
       }
 
       // Documentation procédurale (Markdown)
-      const refs = SKILL_REFS[id] ?? {};
-      const refEntries = Object.entries(refs);
+      const refEntries = Object.entries(sc.refs ?? {});
       if (refEntries.length > 0) {
         lines.push('\n### Documentation procédurale');
         for (const [name, raw] of refEntries) {
