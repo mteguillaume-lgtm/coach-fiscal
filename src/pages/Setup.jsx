@@ -15,8 +15,8 @@ import ScrollReveal from '../components/motion/ScrollReveal';
 import { PROVIDERS, getProviderMeta, isValidKey } from '../lib/providers';
 
 const MODES = [
-  { value: 'solo',   label: 'Célibataire', sub: 'Une déclaration', Icon: User },
-  { value: 'couple', label: 'Couple',      sub: 'PACS ou mariage', Icon: Users },
+  { value: 'solo',   label: 'Célibataire', sub: 'Une déclaration (dont concubinage)', Icon: User },
+  { value: 'couple', label: 'Couple',      sub: 'Marié·e·s ou pacsé·e·s uniquement',  Icon: Users },
 ];
 
 export default function Setup() {
@@ -429,6 +429,15 @@ export default function Setup() {
                   );
                 })}
               </div>
+
+              {mode === 'couple' && (
+                <p className="mt-3 text-xs text-ink-200 leading-relaxed rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2.5">
+                  <strong className="text-amber-300">« Couple » = marié·e·s ou pacsé·e·s</strong> (déclaration
+                  commune). En concubinage (union libre), chaque partenaire fait sa propre
+                  déclaration : choisissez « Célibataire » et créez un profil par personne —
+                  sinon le calcul d'impôt serait faux.
+                </p>
+              )}
             </GlowCard>
           </ScrollReveal>
 
