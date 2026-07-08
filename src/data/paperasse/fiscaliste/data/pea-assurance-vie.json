@@ -39,6 +39,8 @@
 
   "assurance_vie_rachats": {
     "description": "Fiscalité des rachats de vivant (distincte de la transmission — voir skill notaire)",
+    "taux_ir_pfl_apres_8_ans": 0.075,
+    "seuil_primes_nettes_taux_reduit": 150000,
 
     "principe_proportionnalite": {
       "formule": "quote_part_gains_imposable = (gains_totaux / valeur_totale_contrat) × montant_racheté",

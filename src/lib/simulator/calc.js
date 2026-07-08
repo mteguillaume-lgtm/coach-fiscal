@@ -8,6 +8,17 @@
  * Versements en FIN DE MOIS (annuité ordinaire).
  */
 
+import {
+  TAUX_PS_CAPITAL, PFU_TAUX_IR,
+  AV_ABATTEMENT_8ANS_SOLO, AV_ABATTEMENT_8ANS_COUPLE,
+  AV_TAUX_IR_APRES_8ANS, AV_SEUIL_PRIMES_TAUX_REDUIT,
+} from '../taxCalculator';
+import { RDT_LIVRET_A } from '../hypothesesRendement';
+
+// 0.128 + 0.172 = 0.30000000000000004 en flottant → arrondi à 3 décimales pour
+// conserver exactement les résultats historiques (0.30).
+const PFU_TOTAL = Math.round((PFU_TAUX_IR + TAUX_PS_CAPITAL) * 1000) / 1000;
+
 function fvMonthly(V, r, t) {
   if (V <= 0 || t <= 0) return 0;
   const i = Math.pow(1 + r, 1 / 12) - 1;
@@ -50,7 +61,7 @@ export function simulate({ C0, V, years, rate }) {
 }
 
 function _capitalBrut(id, C0, r, t, V) {
-  const rate = (id === 'livretA' || id === 'ldds') ? 0.03 : r;
+  const rate = (id === 'livretA' || id === 'ldds') ? RDT_LIVRET_A : r;
   const N = t * 12;
   const i = rate > 0 ? Math.pow(1 + rate, 1 / 12) - 1 : 0;
   const lump = C0 > 0 ? C0 * Math.pow(1 + i, N) : 0;
@@ -93,34 +104,34 @@ export function envelope(id, {
       break;
 
     case 'pea':
-      net = years >= 5 ? B - G * 0.172 : B - G * 0.30;
+      net = years >= 5 ? B - G * TAUX_PS_CAPITAL : B - G * PFU_TOTAL;
       break;
 
     case 'av':
     case 'av8': {
-      const abatt   = couple ? 9_200 : 4_600;
-      const ps      = G * 0.172;
+      const abatt   = couple ? AV_ABATTEMENT_8ANS_COUPLE : AV_ABATTEMENT_8ANS_SOLO;
+      const ps      = G * TAUX_PS_CAPITAL;
       let ir;
-      if ((avVerse + Pt) <= 150_000) {
-        ir = Math.max(0, G - abatt) * 0.075;
+      if ((avVerse + Pt) <= AV_SEUIL_PRIMES_TAUX_REDUIT) {
+        ir = Math.max(0, G - abatt) * AV_TAUX_IR_APRES_8ANS;
       } else {
-        const ratio150 = Math.min(1, Math.max(0, 150_000 - avVerse) / Math.max(1, Pt));
+        const ratio150 = Math.min(1, Math.max(0, AV_SEUIL_PRIMES_TAUX_REDUIT - avVerse) / Math.max(1, Pt));
         const G150     = G * ratio150;
         const GAbove   = G * (1 - ratio150);
-        ir = Math.max(0, G150 - abatt) * 0.075 + GAbove * 0.128;
+        ir = Math.max(0, G150 - abatt) * AV_TAUX_IR_APRES_8ANS + GAbove * PFU_TAUX_IR;
       }
       net = B - ps - ir;
       break;
     }
 
     case 'per': {
-      const netBase = B * (1 - Ts) - G * 0.172;
+      const netBase = B * (1 - Ts) - G * TAUX_PS_CAPITAL;
       if (!reinvest) { net = netBase; break; }
       const bonusLump = C0 > 0
-        ? C0 * Te * (Math.pow(1 + rate, years) * (1 - 0.172) + 0.172)
+        ? C0 * Te * (Math.pow(1 + rate, years) * (1 - TAUX_PS_CAPITAL) + TAUX_PS_CAPITAL)
         : 0;
       const bonusMensuel = V > 0 && rate > 0
-        ? V * 12 * Te * (((Math.pow(1 + rate, years) - 1) / rate) * (1 - 0.172) + years * 0.172)
+        ? V * 12 * Te * (((Math.pow(1 + rate, years) - 1) / rate) * (1 - TAUX_PS_CAPITAL) + years * TAUX_PS_CAPITAL)
         : 0;
       net = netBase + bonusLump + bonusMensuel;
       break;
@@ -128,7 +139,7 @@ export function envelope(id, {
 
     case 'cto':
     default:
-      net = B - G * 0.30;
+      net = B - G * PFU_TOTAL;
       break;
   }
 

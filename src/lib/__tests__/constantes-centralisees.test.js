@@ -3,6 +3,8 @@ import {
   PLAFOND_LIVRET_A, PLAFOND_LDDS, PLAFOND_LEP,
   PLAFOND_VERSEMENTS_PEA, TAUX_PS_CAPITAL,
   TAUX_PLAFOND_PER, computePlafondPERDeclarant, MIN_PLAFOND_PER,
+  AV_ABATTEMENT_8ANS_SOLO, AV_ABATTEMENT_8ANS_COUPLE,
+  AV_TAUX_IR_APRES_8ANS, AV_SEUIL_PRIMES_TAUX_REDUIT,
 } from '../taxCalculator';
 import { RDT_LIVRET_A, RDT_LIVRET_PLUS_PROMO, GAIN_DIFF_DEFAUT } from '../hypothesesRendement';
 
@@ -22,6 +24,13 @@ describe('Constantes centralisées (audit C4a)', () => {
     const r = computePlafondPERDeclarant({ rni: 50_000 });
     expect(r.brut10).toBe(5_000);
     expect(r.plafondBrut).toBe(Math.max(5_000, MIN_PLAFOND_PER));
+  });
+
+  it('assurance-vie rachats : abattements, taux réduit et seuil 150 k en champs machine (audit C4c)', () => {
+    expect(AV_ABATTEMENT_8ANS_SOLO).toBe(4_600);
+    expect(AV_ABATTEMENT_8ANS_COUPLE).toBe(9_200);
+    expect(AV_TAUX_IR_APRES_8ANS).toBe(0.075);
+    expect(AV_SEUIL_PRIMES_TAUX_REDUIT).toBe(150_000);
   });
 
   it('gain Livret+ : parité avec l\'ancienne formule en dur du parser', () => {

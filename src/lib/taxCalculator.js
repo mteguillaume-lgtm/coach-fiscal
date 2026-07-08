@@ -104,6 +104,13 @@ export const PLAFOND_LDDS           = epargneRegRaw.ldds.plafond_versements;
 export const PLAFOND_LEP            = epargneRegRaw.lep.plafond_versements;
 export const PLAFOND_VERSEMENTS_PEA = peaAvRaw.pea_classique.plafond_versements;
 
+// ─── Assurance-vie — rachats après 8 ans (depuis pea-assurance-vie.json) ─────
+
+export const AV_ABATTEMENT_8ANS_SOLO     = peaAvRaw.assurance_vie_rachats.abattement_annuel_apres_8_ans.celibataire_veuf_divorce;
+export const AV_ABATTEMENT_8ANS_COUPLE   = peaAvRaw.assurance_vie_rachats.abattement_annuel_apres_8_ans.couple_imposition_commune;
+export const AV_TAUX_IR_APRES_8ANS       = peaAvRaw.assurance_vie_rachats.taux_ir_pfl_apres_8_ans;
+export const AV_SEUIL_PRIMES_TAUX_REDUIT = peaAvRaw.assurance_vie_rachats.seuil_primes_nettes_taux_reduit;
+
 // ─── Prélèvements sociaux et régimes fonciers (depuis les JSON) ───────────────
 
 export const TAUX_PS_CAPITAL          = pfuRaw.prelevements_sociaux.taux_revenus_capital;
