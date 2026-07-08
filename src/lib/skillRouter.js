@@ -2,6 +2,7 @@
 // Évite d'envoyer tous les skills à Claude à chaque tour — économise les tokens.
 
 import { SKILLS_MAP, SKILL_DATA, SKILL_REFS } from '../data/skillsLoader';
+import { buildChiffresOfficiels } from './chiffresOfficiels';
 import { debug } from './debug';
 
 // ─── Mots-clés par skill ───────────────────────────────────────────────────────
@@ -122,7 +123,7 @@ const MODEL_LABELS = {
   opus:   '🔮 Opus — stratégie complexe',
 };
 
-export function buildSystemPrompt({ skills, profile, masterPrompt, model }) {
+export function buildSystemPrompt({ skills, profile, masterPrompt, model, summary = null, parsedProfile = {} }) {
 
   const skillsBlock = skills
     .map(id => {
@@ -164,9 +165,14 @@ export function buildSystemPrompt({ skills, profile, masterPrompt, model }) {
     ? `\n\n## PROFIL FISCAL CLIENT\n${profile.trim()}`
     : '';
 
+  // E4 : chiffres calculés par l'app (computeFoyerSummary) — Claude les cite,
+  // il ne les recalcule pas. Absent si pas de summary (rétro-compat).
+  const chiffresBloc  = buildChiffresOfficiels(summary, parsedProfile);
+  const chiffresBlock = chiffresBloc ? `\n\n${chiffresBloc}` : '';
+
   const modelBlock = model
     ? `\n\n## IDENTITÉ\nTu es Kapio, un conseiller fiscal IA. Le routeur de complexité a sélectionné le niveau : **${MODEL_LABELS[model] ?? model}**.\nSi l'utilisateur te demande quel modèle tu utilises, réponds : "Je suis Kapio. Pour cette question, le niveau **${MODEL_LABELS[model] ?? model}** a été sélectionné automatiquement." Ne mentionne jamais de numéros de version (3.7, 4.5…) ni le nom "Claude" seul.`
     : '';
 
-  return `${masterPrompt.trim()}\n\n${skillsBlock}${profileBlock}${modelBlock}`.trim();
+  return `${masterPrompt.trim()}\n\n${skillsBlock}${profileBlock}${chiffresBlock}${modelBlock}`.trim();
 }

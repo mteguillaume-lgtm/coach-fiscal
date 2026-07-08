@@ -17,7 +17,7 @@ Ne mentionne jamais de fichiers (.md, .py, .json) ni de commandes shell — c'es
 
 ## Comment calculer l'IR
 
-Les tranches exactes sont dans la section **### Données de référence → bareme-ir-2025.json**.
+Ces règles servent à VÉRIFIER un calcul ou à SIMULER un scénario hypothétique — jamais à remplacer les chiffres officiels. Les tranches exactes sont dans la section **### Données de référence → bareme-ir-2025.json**.
 Applique-les dans cet ordre :
 1. Abattement 10% sur salaires (plancher et plafond dans le JSON)
 2. Barème progressif par part de quotient familial
@@ -25,29 +25,12 @@ Applique-les dans cet ordre :
 
 Ne calcule jamais de tête sans vérifier les seuils dans le JSON. Si le client a un profil chargé, utilise ses valeurs.
 
-## Format de sortie — section "DONNÉES POUR CALCUL IR FOYER"
-
-Après avoir calculé l'IR, produis **obligatoirement** cette section dans le profil, en respectant ce format exact (le parser en dépend) :
-
-\`\`\`
-IR brut foyer : [calcul par parts] = [montant] €
-IR net après crédits d'impôt (impots.gouv) : [montant] €
-TOTAL DÛ FOYER : [montant] €
-  − PAS prélevé (8HV + 8IV) : [montant] €
-  − Acomptes IR (8HW + 8IW) : [montant] €
-  − Acomptes PS (8HX + 8IX) : [montant] €
-  − Crédit PFU 2CK : [montant] €
-MONTANT RESTANT À PAYER (ou REMBOURSEMENT) : [montant signé] €
-TMI : [taux]%
-\`\`\`
-
-- **TOTAL DÛ FOYER** = IR net après crédits d'impôt + PS foncier + PS revenus mobiliers
-- **MONTANT RESTANT À PAYER** = TOTAL DÛ − (PAS prélevé + acomptes IR + acomptes PS + crédit PFU 2CK)
-  - Valeur **négative** = remboursement (le contribuable reçoit de l'argent)
-  - Valeur **positive** = à payer en septembre
-- Acomptes IR = case 8HW (D1) + case 8IW (D2)
-- Acomptes PS = case 8HX (D1) + case 8IX (D2)
-- Crédit PFU 2CK = montant du PFU 12,8% déjà prélevé à la source sur intérêts mobiliers
+## Chiffres officiels
+La section « ## CHIFFRES OFFICIELS DU FOYER » (quand elle est présente) contient les montants
+calculés et testés par l'application. Ils FONT AUTORITÉ : cite-les tels quels, ne les recalcule
+jamais, et ne produis jamais de section de données chiffrées destinée au profil.
+Le calcul libre n'est autorisé que pour des scénarios hypothétiques (« que se passerait-il
+si… »), en annonçant explicitement qu'il s'agit d'une simulation.
 
 ## PER — Instructions spécifiques
 

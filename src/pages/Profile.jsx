@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { parseProfile } from '../lib/profileParser';
 import { extractAiSections } from '../lib/aiSections';
+import { computeFoyerSummary } from '../lib/taxCalculator';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
 import OpportunitiesPanel from '../components/OpportunitiesPanel';
 import { chat, getProviderMeta } from '../lib/providers';
@@ -201,7 +202,10 @@ export default function Profile() {
     toast(`Analyse approfondie avec ${getProviderMeta(state.provider).label}…`, { icon: '🔮' });
     try {
       const skills = detectRelevantSkills('déclaration impôts cases 2042 PER plafond optimisation transmission succession');
-      const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'opus' });
+      const system = buildSystemPrompt({
+        skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: 'opus',
+        summary: computeFoyerSummary(state.parsedProfile), parsedProfile: state.parsedProfile,
+      });
       const enrichmentPrompt = buildEnrichmentPrompt(state.parsedProfile || {});
       let enrichedText = '';
       await chat(state.provider, {

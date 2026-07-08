@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { chat, detectComplexity, getProviderMeta } from '../lib/providers';
 import { detectRelevantSkills, buildSystemPrompt } from '../lib/skillRouter';
+import { computeFoyerSummary } from '../lib/taxCalculator';
 import { MASTER_PROMPT } from '../data/masterPrompt';
 import PERBandeau from '../components/PERBandeau';
 
@@ -269,7 +270,10 @@ export default function Chat() {
     setMessages(prev => [...prev, userMsg, draftMsg]);
     setStreaming(true);
 
-    const system = buildSystemPrompt({ skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: modelToUse });
+    const system = buildSystemPrompt({
+      skills, profile: state.profile, masterPrompt: MASTER_PROMPT, model: modelToUse,
+      summary: computeFoyerSummary(state.parsedProfile), parsedProfile: state.parsedProfile,
+    });
     const historyForApi = [
       ...prevMessages.map(({ role, content }) => ({ role, content })),
       { role: 'user', content: text },
