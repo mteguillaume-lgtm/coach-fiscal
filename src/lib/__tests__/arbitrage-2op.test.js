@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { arbitrage2OP, computeFoyerSummary, PFU_TAUX_IR, TAUX_PS_CAPITAL } from '../taxCalculator';
 import { buildProfile } from '../profileGenerator';
 import { parseProfile } from '../profileParser';
+import { detectOpportunities } from '../opportunitiesDetector';
 
 describe('arbitrage2OP — option barème globale (dividendes + intérêts + PV)', () => {
   it('tout à zéro → neutre, aucune économie', () => {
@@ -127,5 +128,46 @@ describe('computeFoyerSummary — arbitrageCapital unifié', () => {
     const s = computeFoyerSummary(parsed);
     expect(s.arbitrageCapital.source).toBe('fallback');
     expect(['pfu', 'bareme']).toContain(s.arbitrageCapital.recommande);
+  });
+});
+
+describe('Détecteur — levier 2OP unique et bidirectionnel', () => {
+  const build = (extra) => parseProfile(buildProfile(
+    { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000', pv_mob_gain: '1000', ...extra },
+    {}, {}, [], false,
+  ));
+
+  it('option déclarée ≠ optimum → un seul levier, cohérent avec le summary', () => {
+    const parsed = build({ pv_mob_option_bareme: 'Non' });   // optimum attendu : barème (TMI 11 %)
+    const opps = detectOpportunities(parsed).filter(o => o.id === 'arbitrage_pfu_bareme');
+    expect(opps).toHaveLength(1);
+    const s = computeFoyerSummary(parsed);
+    // Anti-contradiction (cœur E3) : le levier recommande la même option que le summary.
+    const attendu = s.arbitrageCapital.recommande === 'bareme' ? /barème/i : /PFU/i;
+    expect(opps[0].titre + opps[0].action).toMatch(attendu);
+  });
+
+  it('option déclarée = optimum → aucun levier', () => {
+    const parsed = build({ pv_mob_option_bareme: 'Oui' });   // barème déjà coché
+    expect(detectOpportunities(parsed).filter(o => o.id === 'arbitrage_pfu_bareme')).toHaveLength(0);
+  });
+
+  it('sens inverse : 2OP coché mais PFU optimal → levier « repasser au PFU »', () => {
+    // TMI 45 % : le PFU gagne → avoir coché barème coûte de l'argent.
+    const parsed = parseProfile(buildProfile(
+      { statut: 'Célibataire', net_imp: '250000', div_2dc: '10000', pv_mob_gain: '5000', pv_mob_option_bareme: 'Oui' },
+      {}, {}, [], false,
+    ));
+    const opps = detectOpportunities(parsed).filter(o => o.id === 'arbitrage_pfu_bareme');
+    expect(opps).toHaveLength(1);
+    expect(opps[0].action).toMatch(/PFU/);
+  });
+
+  it('ancien profil (fallback) : comportement actuel conservé', () => {
+    const parsed = parseProfile(buildProfile(
+      { statut: 'Célibataire', net_imp: '15000', div_2dc: '10000' }, {}, {}, [], false,
+    ));
+    const opps = detectOpportunities(parsed).filter(o => o.id === 'arbitrage_pfu_bareme');
+    expect(opps.length).toBeLessThanOrEqual(1);   // levier barème seulement si économie ≥ 50 €
   });
 });

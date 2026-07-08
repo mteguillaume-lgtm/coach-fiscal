@@ -111,10 +111,35 @@ export function detectOpportunities(parsedProfile) {
     }
   }
 
-  // Arbitrage PFU 30 % vs option barème sur les revenus du capital (CTO).
+  // Arbitrage 2OP — verdict GLOBAL (div + intérêts + PV) lu du profil quand
+  // disponible ; levier BIDIRECTIONNEL dès que l'option déclarée n'est pas
+  // l'optimum. Fallback anciens profils : arbitrage div + intérêts (exact
+  // quand PV = 0), barème seulement (comportement historique).
   const _div2DC = parsedProfile.dividendes2DC || 0;
   const _int2TR = parsedProfile.intMob2TR || 0;
-  if (_div2DC + _int2TR > 0) {
+  if (parsedProfile.arb2opRecommande) {
+    const reco    = parsedProfile.arb2opRecommande;                       // 'pfu' | 'bareme'
+    const declare = parsedProfile.option2opDeclaree ? 'bareme' : 'pfu';
+    const eco     = parsedProfile.arb2opEconomie || 0;
+    if (reco !== declare && eco >= 50) {
+      const versBareme = reco === 'bareme';
+      opps.push({
+        id: 'arbitrage_pfu_bareme',
+        type: 'gain',
+        urgence: 'avant_declaration',
+        titre: versBareme
+          ? '💡 Option barème (2OP) avantageuse sur l\'ensemble de vos revenus du capital'
+          : '💡 Le PFU serait plus avantageux que votre option barème (2OP)',
+        description: `Arbitrage GLOBAL (dividendes + intérêts + plus-values ensemble — la case 2OP couvre tout d'un bloc) : PFU ${fmt(parsedProfile.arb2opPfu)} € vs barème ${fmt(parsedProfile.arb2opBareme)} €. Votre option actuelle (${declare === 'bareme' ? 'barème' : 'PFU'}) n'est pas l'optimum.`,
+        impact: `Économie estimée : ${fmt(eco)} € en ${versBareme ? 'cochant' : 'décochant'} la case 2OP`,
+        impactEuros: eco,
+        action: versBareme
+          ? 'Cocher la case 2OP lors de la déclaration — l\'option est GLOBALE (dividendes + intérêts + PV), annuelle et irrévocable pour l\'année.'
+          : 'Ne pas cocher la case 2OP cette année : le PFU 30 % est plus avantageux sur l\'ensemble de vos revenus du capital.',
+        questionChat: `Mon arbitrage 2OP global : PFU ${fmt(parsedProfile.arb2opPfu)} € vs barème ${fmt(parsedProfile.arb2opBareme)} € (économie ${fmt(eco)} € en optant pour ${versBareme ? 'le barème' : 'le PFU'}). Peux-tu vérifier ce choix compte tenu de mon TMI, de l'abattement 40 % sur dividendes, des abattements durée sur PV et de la CSG déductible ?`,
+      });
+    }
+  } else if (_div2DC + _int2TR > 0) {
     const arb = arbitragePfuBareme({
       dividendes: _div2DC, interets: _int2TR,
       rniFoyer: rniFoyer || 0, parts: parts || (isCouple ? 2 : 1), isCouple,
