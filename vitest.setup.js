@@ -8,13 +8,14 @@ if (typeof globalThis.DOMMatrix === 'undefined') globalThis.DOMMatrix = DOMMatri
 if (typeof globalThis.ImageData === 'undefined') globalThis.ImageData = ImageData;
 
 import { beforeAll } from 'vitest';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 // 2) Worker pdfjs — chemin fichier réel en env node (test-only)
 beforeAll(async () => {
   // En env node, pointer le worker pdfjs sur le fichier réel (le main-thread
   // fake-worker l'importe). Posé après l'import de pdfReader → gagne l'ordre.
+  // process.cwd() plutôt qu'import.meta.url : sous jsdom, import.meta.url est
+  // une URL http:// et fileURLToPath lèverait (les tests UI partagent ce setup).
   const { GlobalWorkerOptions } = await import('pdfjs-dist');
-  const workerFile = fileURLToPath(new URL('./node_modules/pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url));
-  GlobalWorkerOptions.workerSrc = workerFile;
+  GlobalWorkerOptions.workerSrc = resolve(process.cwd(), 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs');
 });

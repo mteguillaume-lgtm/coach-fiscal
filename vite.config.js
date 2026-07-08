@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{js,ts}'],
+    include: ['src/**/*.test.{js,jsx,ts}'],
     setupFiles: ['./vitest.setup.js'],
     // La rasterisation PDF (pdfjs + canvas) dépasse les 5 s par défaut sur les
     // runners GitHub Actions, plus lents qu'un poste local.
