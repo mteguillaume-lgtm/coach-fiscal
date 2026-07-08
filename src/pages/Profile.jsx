@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useApp } from '../context/AppContext';
 import { parseProfile } from '../lib/profileParser';
+import { extractAiSections } from '../lib/aiSections';
 import { detectOpportunities } from '../lib/opportunitiesDetector';
 import OpportunitiesPanel from '../components/OpportunitiesPanel';
 import { chat, getProviderMeta } from '../lib/providers';
@@ -82,7 +83,12 @@ Construis une stratégie patrimoniale ADAPTÉE AU CYCLE DE VIE du foyer décrit 
 - ALLOCATION CIBLE : propose une répartition (actions / fonds € — obligations / immobilier / liquidités) cohérente avec un glidepath, c'est-à-dire une part actions qui DÉCROÎT avec l'âge et l'approche de la retraite.
 - HIÉRARCHIE DES ENVELOPPES : classe PEA vs PER vs AV selon l'horizon et la phase. Ne recommande JAMAIS un blocage long (PER) incohérent avec un horizon court ; en phase de constitution, privilégie « prendre date » (PEA 5 ans, AV 8 ans) avant tout blocage.
 - TRANSMISSION : dès la phase CONSOLIDATION, aborde l'amorçage des donations (abattement de 100 000 € par parent/enfant renouvelable 15 ans, art. 779 ; don familial art. 790 G) et la réflexion sur le démembrement (art. 669). En PRÉ-RETRAITE et RETRAITE, insiste sur le seuil des 70 ans en assurance-vie (abattement 152 500 € par bénéficiaire art. 990 I avant 70 ans, 30 500 € global art. 757 B après) et la rédaction de la clause bénéficiaire.
-Ne traite que ce qui est réellement présent ou pertinent compte tenu du profil ; n'invente aucun actif.`;
+Ne traite que ce qui est réellement présent ou pertinent compte tenu du profil ; n'invente aucun actif.
+
+RÈGLE STRICTE DE SORTIE : produis UNIQUEMENT les 5 sections ci-dessus, dans ce format exact.
+AUCUNE autre section — en particulier PAS de « DONNÉES POUR CALCUL IR FOYER » ni de lignes
+de totaux chiffrés (« RNI … TOTAL : X € », « IR net : X € ») hors des 5 sections demandées :
+les chiffres officiels sont calculés par l'application et font autorité.`;
 }
 
 // ============================================================================
@@ -205,13 +211,16 @@ export default function Profile() {
         messages: [{ role: 'user', content: enrichmentPrompt }],
         onChunk: chunk => { enrichedText += chunk; },
       });
-      if (enrichedText.trim()) {
-        const newProfile = state.profile.trimEnd() + '\n\n' + enrichedText.trim();
+      // Assainissement E4 : seules les 5 sections narratives whitelistées entrent
+      // dans le profil — jamais de section chiffrée que le parser pourrait lire.
+      const sectionsPropres = extractAiSections(enrichedText);
+      if (sectionsPropres) {
+        const newProfile = state.profile.trimEnd() + '\n\n' + sectionsPropres;
         dispatch({ type: 'SET_PROFILE', payload: newProfile });
         toast.success('Profil enrichi — données actualisées !');
         setEnriched(true);
       } else {
-        toast.error('Réponse vide — réessayez.');
+        toast.error('Réponse IA sans section exploitable — profil inchangé, réessayez.');
       }
     } catch (err) {
       toast.error('Erreur : ' + err.message);
