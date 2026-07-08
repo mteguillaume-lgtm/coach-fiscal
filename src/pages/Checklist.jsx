@@ -254,7 +254,7 @@ function Questionnaire({ onGenerate, onSkip, initialAnswers }) {
 
 // ─── Écran checklist ───────────────────────────────────────────────────────────
 
-function ChecklistView({ items, extractedValues, onReset, onChat }) {
+function ChecklistView({ items, extractedValues, onReset }) {
   const [doneIds, setDoneIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); }
     catch { return new Set(); }
@@ -480,7 +480,6 @@ function ChecklistView({ items, extractedValues, onReset, onChat }) {
 
 export default function Checklist() {
   const { state }  = useApp();
-  const navigate   = useNavigate();
 
   // Pré-remplissage depuis parsedProfile (source de vérité)
   const profileDetected = useMemo(
@@ -526,10 +525,6 @@ export default function Checklist() {
     setStep('questionnaire');
   };
 
-  const handleChat = (question) => {
-    navigate('/chat', { state: { prefill: question } });
-  };
-
   if (step === 'questionnaire') {
     return (
       <div className="relative bg-ink-900 overflow-hidden">
@@ -557,7 +552,6 @@ export default function Checklist() {
           items={items}
           extractedValues={extractedValues}
           onReset={handleReset}
-          onChat={handleChat}
         />
       </div>
     </div>

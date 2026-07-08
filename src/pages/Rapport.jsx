@@ -1750,7 +1750,6 @@ function _buildReallocationPlan(p, sfx) {
       gainAnnuel: Math.round(remaining * 0.03),
       detail: 'Arbitrage final selon horizon et tolérance — privilégier AV pour la souplesse, PEA pour la croissance LT',
     });
-    remaining = 0;
   }
 
   const totalRealloue = steps.reduce((s, x) => s + x.montant, 0);
@@ -3016,6 +3015,17 @@ export default function Rapport() {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
+  // Cascade PER — optimum fiscal (source de vérité pour tout le rapport).
+  // Hook déclaré AVANT le return anticipé (règle des hooks React) : d peut être
+  // null ici, le résultat n'est consommé qu'après la garde !profile || !d.
+  const perOpt = useMemo(() => {
+    if (!d) return null;
+    const nbParts  = p.parts || (d.isCouple ? 2 : 1);
+    // stopRate = TMI retraite estimée (plus favorable du foyer) — n'optimiser que les tranches au-dessus
+    const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
+    return computePerOptimumCascade(d.rniFoyer, nbParts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, d.isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
+  }, [d, p]);
+
   if (!profile || !d) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
@@ -3031,15 +3041,6 @@ export default function Rapport() {
   const isCouple   = d.isCouple;
   const plafondPerTotal = p.plafondPerTotal || ((p.plafondPerD1 || 0) + (p.plafondPerD2 || 0));
   const perSimulation = state.perSimulation ?? {};
-
-  // Cascade PER — optimum fiscal (source de vérité pour tout le rapport)
-  const parts = p.parts || (isCouple ? 2 : 1);
-  // stopRate = TMI retraite estimée (plus favorable du foyer) — n'optimiser que les tranches au-dessus
-  const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
-  const perOpt = useMemo(
-    () => computePerOptimumCascade(d.rniFoyer, parts, p.plafondPerD1 || 0, p.plafondPerD2 || 0, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate),
-    [d.rniFoyer, parts, p.plafondPerD1, p.plafondPerD2, isCouple, p.rniD1, p.rniD2, stopRate]
-  );
 
   // CEHR — Contribution Exceptionnelle Hauts Revenus (art. 223 sexies CGI)
   const cehr = calcCEHR(p.rfr || d.rniFoyer, isCouple);

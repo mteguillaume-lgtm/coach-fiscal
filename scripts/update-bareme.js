@@ -115,7 +115,7 @@ function extractJSON(text) {
   return JSON.parse(m[1]);
 }
 
-function validate(data, year) {
+function validate(data, _year) {
   const t = data.bareme_ir?.tranches;
   if (!Array.isArray(t) || t.length < 5) throw new Error('Tranches invalides');
   if (!data.decote?.seuil_celibataire)    throw new Error('Décote manquante');
