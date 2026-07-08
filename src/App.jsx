@@ -1,5 +1,6 @@
 import { lazy, Suspense, Component } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
 
@@ -59,6 +60,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
+        {/* reducedMotion="user" : toutes les animations framer-motion respectent
+            la préférence système « réduire les animations » (audit E6). */}
+        <MotionConfig reducedMotion="user">
         <BrowserRouter>
           <Suspense fallback={<div className="min-h-screen bg-ink-900" />}>
             <Routes>
@@ -85,6 +89,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </MotionConfig>
       </AppProvider>
     </ErrorBoundary>
   );

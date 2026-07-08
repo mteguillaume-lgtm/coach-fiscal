@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export default function SpotlightCursor({
   size = 500,
@@ -12,6 +12,7 @@ export default function SpotlightCursor({
   const posRef     = useRef({ x: -2000, y: -2000 });
   const movedRef   = useRef(false);           // true after first pointermove
   const [visible, setVisible] = useState(false);
+  const reduced    = useReducedMotion();       // préférence système (audit E6)
 
   useEffect(() => {
     const move = (e) => {
@@ -48,6 +49,9 @@ export default function SpotlightCursor({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [size, color, intensity]);
+
+  // Décoratif pur : rien à rendre si l'utilisateur préfère réduire les animations.
+  if (reduced) return null;
 
   return (
     <motion.div
