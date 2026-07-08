@@ -157,7 +157,7 @@ Positif : `docExtract` local avant masquage, `EXTRACT_PROMPT` interdit les PII e
 | E3 | Arbitre 2OP global (dividendes + PV ensemble) remplaçant les 2 recommandations indépendantes | medium | ✅ 08/07/2026 (branche arbitre-2op-global) — spec + plan dans docs/superpowers/ |
 | E4 | Chiffres `computeFoyerSummary` injectés dans le system prompt (Claude cite, ne recalcule pas) ; enrichissement IA restreint aux sections narratives | medium | ✅ 08/07/2026 (branche chiffres-officiels-e4) — inclut blindage parser (bug latent « DÉCLARANT 2 » corrigé) |
 | E5 | Reformulation CIF-safe des `action` du detector + validation avocat avant commercialisation | small (code) | ✅ 08/07/2026 (branche cif-safe-e5) — spec = livrable avocat ; ⚠️ validation juridique toujours requise avant commercialisation |
-| E6 | Passe accessibilité sur Collect (labels, focus, aria) + `useReducedMotion` — inclut les 25 warnings React Compiler laissés en warn | medium | à planifier |
+| E6 | Passe accessibilité sur Collect (labels, focus, aria) + `useReducedMotion` — inclut les 25 warnings React Compiler laissés en warn | medium | ✅ 08/07/2026 (branche accessibilite-e6) — lint 0/0, premiers tests composants (FieldRow + smoke Rapport) |
 | E7 | Lazy-loading des données skills (chunk 2 Mo → chargement par skill actif) | medium | à planifier |
 | E8 | Test d'architecture anti-hardcode (grep des littéraux fiscaux) | small | ✅ 08/07/2026 (52a3cc5) |
 

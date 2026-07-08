@@ -24,11 +24,6 @@ export default defineConfig([
       'no-irregular-whitespace': ['error', { skipStrings: true, skipTemplates: true, skipJSXText: true, skipRegExps: true }],
       // Préfixe _ = « volontairement inutilisé » (destructuring d'exclusion).
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      // Règles « React Compiler » (plugin v7) : refactor réel prévu (audit E6 —
-      // découpage des pages monolithiques). En warn d'ici là, pas de nouveau code
-      // qui en ajoute : la CI affiche le compteur.
-      'react-hooks/static-components': 'warn',
-      'react-hooks/set-state-in-effect': 'warn',
     },
   },
   {
@@ -43,7 +38,7 @@ export default defineConfig([
   },
   {
     // Tests Vitest : env Node (fs, path, process) en plus du DOM simulé.
-    files: ['src/**/__tests__/**/*.js', 'src/**/*.test.js'],
+    files: ['src/**/__tests__/**/*.{js,jsx}', 'src/**/*.test.{js,jsx}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
 ])
