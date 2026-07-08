@@ -13,8 +13,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # ≥ 24 requis : pdfjs-dist v5 utilise Promise.try (tests de rasterisation).
-          node-version: 24
+          # Aligné sur le poste de dev (Node 26) : pdfjs-dist v5 utilise des
+          # APIs récentes (Promise.try, Uint8Array.toHex) absentes de Node ≤ 24.
+          node-version: 26
           cache: npm
 
       - name: Installer les dépendances
