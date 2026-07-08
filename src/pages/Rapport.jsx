@@ -8,6 +8,7 @@ import DisclaimerBanner from '../components/DisclaimerBanner';
 import {
   TRANCHES, DECOTE, ABT, calcIR, MIN_PLAFOND_PER, MAX_PLAFOND_PER,
   computePerOptimumCascade, calcCEHR, computeFoyerSummary,
+  abattement10Pension,
   ABATTEMENT_DONATION_ENFANT, RAPPEL_FISCAL_DONATION_ANNEES, ABATTEMENT_DON_FAMILIAL,
   ABATTEMENT_AV_AVANT_70, ABATTEMENT_AV_APRES_70, SEUIL_AGE_AV_TRANSMISSION,
 } from '../lib/taxCalculator';
@@ -299,16 +300,77 @@ function ProseCard({ children, color = 'gray' }) {
 
 // ─── Table récap revenus ──────────────────────────────────────────────────────
 
-function RevenusTable({ d, p }) {
-  const fmtTaux = t => t > 0 ? `${t} %` : '—';
+const HORIZON_COLORS = {
+  teal:   { border: 'border-teal-200',   bg: 'bg-teal-50',   dot: 'bg-teal-600',   text: 'text-teal-800',   sub: 'text-teal-600' },
+  amber:  { border: 'border-amber-200',  bg: 'bg-amber-50',  dot: 'bg-amber-500',  text: 'text-amber-800',  sub: 'text-amber-600' },
+  gray:   { border: 'border-gray-200',   bg: 'bg-gray-50',   dot: 'bg-gray-400',   text: 'text-gray-800',   sub: 'text-gray-500' },
+  violet: { border: 'border-violet-200', bg: 'bg-violet-50', dot: 'bg-violet-500', text: 'text-violet-800', sub: 'text-violet-600' },
+};
 
-  const Row = ({ label, v1, v2, sub = false, minus: isMinus = false }) => (
+// Bloc d'horizon de la feuille de route — hoisté hors du rendu (static-components).
+function HorizonBloc({ label, badge, items }) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{label}</span>
+        <span className="text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{badge}</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {items.map((pr, i) => {
+          const c = HORIZON_COLORS[pr.color] || HORIZON_COLORS.gray;
+          return (
+            <div key={i} className={`rounded-xl border ${c.border} ${c.bg} p-4 flex gap-3 items-start`}>
+              <div className={`shrink-0 mt-0.5 w-2.5 h-2.5 rounded-full ${c.dot}`} />
+              <div className="flex-1">
+                <p className={`text-sm font-bold ${c.text}`}>{pr.title}</p>
+                <p className={`text-xs ${c.sub} mt-0.5 leading-relaxed`}>{pr.levier}</p>
+                <div className="flex flex-wrap gap-4 mt-2">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">Impact</p>
+                    <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">Échéance</p>
+                    <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Onglet de l'allocation patrimoniale — hoisté hors du rendu (static-components).
+function AllocTab({ v, label, active, onSelect }) {
+  return (
+    <button onClick={() => onSelect(v)}
+      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+        active ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+      }`}>
+      {label}
+    </button>
+  );
+}
+
+// Ligne de la table des revenus — hoistée hors du rendu (react-hooks/static-components).
+// NB : la prop s'appelle `minus` (les appels historiques passent `isMinus`, ignoré — quirk
+// préservé à l'identique, correction visuelle éventuelle hors périmètre E6).
+function RevenusRow({ label, v1, v2, sub = false, minus: isMinus = false, isCouple }) {
+  return (
     <tr className={sub ? 'bg-gray-50/50' : ''}>
       <Td className={sub ? 'pl-8' : ''}>{label}</Td>
       <Td right bold={sub} minus={isMinus}>{v1}</Td>
-      {d.isCouple && <Td right bold={sub} minus={isMinus}>{v2 ?? v1}</Td>}
+      {isCouple && <Td right bold={sub} minus={isMinus}>{v2 ?? v1}</Td>}
     </tr>
   );
+}
+
+function RevenusTable({ d, p }) {
+  const fmtTaux = t => t > 0 ? `${t} %` : '—';
 
   return (
     <SectionBox title={d.isCouple ? 'Revenus 2025 — D1 & D2' : 'Revenus 2025'} num="02a">
@@ -322,10 +384,10 @@ function RevenusTable({ d, p }) {
         </thead>
         <tbody>
           {(d.brutD1 > 0 || d.brutD2 > 0) && (
-            <Row label="Brut imposable" v1={e2(d.brutD1)} v2={e2(d.brutD2)} />
+            <RevenusRow isCouple={d.isCouple} label="Brut imposable" v1={e2(d.brutD1)} v2={e2(d.brutD2)} />
           )}
-          <Row label="Net imposable (case 1AJ)" v1={e2(d.netD1)} v2={e2(d.netD2)} />
-          <Row label="− Abattement 10 % frais pro" v1={`− ${e2(d.abt10D1)}`} v2={`− ${e2(d.abt10D2)}`} sub isMinus />
+          <RevenusRow isCouple={d.isCouple} label="Net imposable (case 1AJ)" v1={e2(d.netD1)} v2={e2(d.netD2)} />
+          <RevenusRow isCouple={d.isCouple} label="− Abattement 10 % frais pro" v1={`− ${e2(d.abt10D1)}`} v2={`− ${e2(d.abt10D2)}`} sub isMinus />
           <tr className="bg-gray-50/60">
             <Td bold>Salaires retenus</Td>
             <Td right bold>{e2(d.salRetD1 ?? d.retD1)}</Td>
@@ -339,22 +401,22 @@ function RevenusTable({ d, p }) {
               </td>
             </tr>
             {p.rente1BsD1 > 0 && (
-              <Row label="Rente/pension 1AS D1 (après abat. 10%)" v1={e2(p.rniRenteD1 || Math.round(p.rente1BsD1 * 0.9))} v2="—" />
+              <RevenusRow isCouple={d.isCouple} label="Rente/pension 1AS D1 (après abat. 10%)" v1={e2(p.rniRenteD1 || abattement10Pension(p.rente1BsD1))} v2="—" />
             )}
             {d.isCouple && p.rente1BsD2 > 0 && (
-              <Row label="Rente/pension 1BS D2 (après abat. 10%)" v1={d.isCouple ? '—' : e2(p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))} v2={e2(p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))} />
+              <RevenusRow isCouple={d.isCouple} label="Rente/pension 1BS D2 (après abat. 10%)" v1={d.isCouple ? '—' : e2(p.rniRenteD2 || abattement10Pension(p.rente1BsD2))} v2={e2(p.rniRenteD2 || abattement10Pension(p.rente1BsD2))} />
             )}
           </>}
           {/* ARE */}
           {(p.rniAreD1 > 0 || p.rniAreD2 > 0) && (
-            <Row label="Allocations chômage (ARE)" v1={p.rniAreD1 > 0 ? e2(p.rniAreD1) : '—'} v2={p.rniAreD2 > 0 ? e2(p.rniAreD2) : '—'} />
+            <RevenusRow isCouple={d.isCouple} label="Allocations chômage (ARE)" v1={p.rniAreD1 > 0 ? e2(p.rniAreD1) : '—'} v2={p.rniAreD2 > 0 ? e2(p.rniAreD2) : '—'} />
           )}
-          <Row label="PAS prélevé 2025" v1={e2(d.pasD1)} v2={e2(d.pasD2)} />
+          <RevenusRow isCouple={d.isCouple} label="PAS prélevé 2025" v1={e2(d.pasD1)} v2={e2(d.pasD2)} />
           {(p.tauxPasD1 > 0 || p.tauxPasD2 > 0) && (
-            <Row label="Taux PAS effectif" v1={fmtTaux(p.tauxPasD1)} v2={fmtTaux(p.tauxPasD2)} />
+            <RevenusRow isCouple={d.isCouple} label="Taux PAS effectif" v1={fmtTaux(p.tauxPasD1)} v2={fmtTaux(p.tauxPasD2)} />
           )}
           {(p.peroD1 > 0 || p.peroD2 > 0) && (
-            <Row label="PERO — déjà inclus dans 1AJ" v1={p.peroD1 > 0 ? e0(p.peroD1) : '—'} v2={p.peroD2 > 0 ? e0(p.peroD2) : '—'} />
+            <RevenusRow isCouple={d.isCouple} label="PERO — déjà inclus dans 1AJ" v1={p.peroD1 > 0 ? e0(p.peroD1) : '—'} v2={p.peroD2 > 0 ? e0(p.peroD2) : '—'} />
           )}
           {/* Total revenus nets imposables par déclarant (avant agrégation foyer) */}
           <tr className="bg-teal-50/40 border-t-2 border-teal-100">
@@ -518,12 +580,12 @@ function RniTable({ d, p = {} }) {
             </tr>
             <tr>
               <Td className="pl-8">− Abattement 10 % pensions D1</Td>
-              <Td right minus>− {e2(Math.round(p.rente1BsD1 - (p.rniRenteD1 || Math.round(p.rente1BsD1 * 0.9))))}</Td>
+              <Td right minus>− {e2(Math.round(p.rente1BsD1 - (p.rniRenteD1 || abattement10Pension(p.rente1BsD1))))}</Td>
               <Td muted>art. 158-5-a CGI</Td>
             </tr>
             <tr className="bg-gray-50/50">
               <Td bold>= Rente retenue D1</Td>
-              <Td right bold>{e2(p.rniRenteD1 || Math.round(p.rente1BsD1 * 0.9))}</Td>
+              <Td right bold>{e2(p.rniRenteD1 || abattement10Pension(p.rente1BsD1))}</Td>
               <Td muted />
             </tr>
           </>}
@@ -563,12 +625,12 @@ function RniTable({ d, p = {} }) {
             </tr>
             <tr>
               <Td className="pl-8">− Abattement 10 % pensions D2</Td>
-              <Td right minus>− {e2(Math.round(p.rente1BsD2 - (p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))))}</Td>
+              <Td right minus>− {e2(Math.round(p.rente1BsD2 - (p.rniRenteD2 || abattement10Pension(p.rente1BsD2))))}</Td>
               <Td muted>art. 158-5-a CGI</Td>
             </tr>
             <tr className="bg-gray-50/50">
               <Td bold>= Rente retenue D2</Td>
-              <Td right bold>{e2(p.rniRenteD2 || Math.round(p.rente1BsD2 * 0.9))}</Td>
+              <Td right bold>{e2(p.rniRenteD2 || abattement10Pension(p.rente1BsD2))}</Td>
               <Td muted />
             </tr>
           </>}
@@ -2024,14 +2086,6 @@ function AllocationActifsModule({ p }) {
   const scoreBg    = score >= 7 ? 'bg-teal-50 border-teal-200' : score >= 4 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
   const scoreLabel = score >= 7 ? 'Bonne diversification' : score >= 4 ? 'Diversification partielle' : 'Concentration élevée';
 
-  const Tab = ({ v, label }) => (
-    <button onClick={() => setView(v)}
-      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-        view === v ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-      }`}>
-      {label}
-    </button>
-  );
 
   const fouerTotal = buildData('foyer').reduce((s, d) => s + d.value, 0);
 
@@ -2043,9 +2097,9 @@ function AllocationActifsModule({ p }) {
         <div className="p-4 flex flex-col gap-4">
           {isCouple && (
             <div className="flex gap-2">
-              <Tab v="foyer" label="Foyer" />
-              <Tab v="D1"    label="D1" />
-              <Tab v="D2"    label="D2" />
+              <AllocTab v="foyer" label="Foyer" active={view === 'foyer'} onSelect={setView} />
+              <AllocTab v="D1" label="D1" active={view === 'D1'} onSelect={setView} />
+              <AllocTab v="D2" label="D2" active={view === 'D2'} onSelect={setView} />
             </div>
           )}
           <div className="flex flex-col sm:flex-row gap-6 items-start">
@@ -2369,49 +2423,6 @@ function FeuilleRouteModule({ p, d }) {
     });
   }
 
-  const colorMap = {
-    teal:   { border: 'border-teal-200',   bg: 'bg-teal-50',   dot: 'bg-teal-600',   text: 'text-teal-800',   sub: 'text-teal-600' },
-    amber:  { border: 'border-amber-200',  bg: 'bg-amber-50',  dot: 'bg-amber-500',  text: 'text-amber-800',  sub: 'text-amber-600' },
-    gray:   { border: 'border-gray-200',   bg: 'bg-gray-50',   dot: 'bg-gray-400',   text: 'text-gray-800',   sub: 'text-gray-500' },
-    violet: { border: 'border-violet-200', bg: 'bg-violet-50', dot: 'bg-violet-500', text: 'text-violet-800', sub: 'text-violet-600' },
-  };
-
-  const Horizon = ({ label, badge, items }) => {
-    if (items.length === 0) return null;
-    return (
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{label}</span>
-          <span className="text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{badge}</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {items.map((pr, i) => {
-            const c = colorMap[pr.color] || colorMap.gray;
-            return (
-              <div key={i} className={`rounded-xl border ${c.border} ${c.bg} p-4 flex gap-3 items-start`}>
-                <div className={`shrink-0 mt-0.5 w-2.5 h-2.5 rounded-full ${c.dot}`} />
-                <div className="flex-1">
-                  <p className={`text-sm font-bold ${c.text}`}>{pr.title}</p>
-                  <p className={`text-xs ${c.sub} mt-0.5 leading-relaxed`}>{pr.levier}</p>
-                  <div className="flex flex-wrap gap-4 mt-2">
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide">Impact</p>
-                      <p className="text-xs font-semibold text-gray-800">{pr.gain}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide">Échéance</p>
-                      <p className="text-xs font-semibold text-gray-800">{pr.deadline}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   const hasAny = ct.length + mt.length + lt.length > 0;
 
   return (
@@ -2421,9 +2432,9 @@ function FeuilleRouteModule({ p, d }) {
           <p className="text-xs text-gray-500 py-2">Aucune priorité identifiée avec les données disponibles.</p>
         ) : (
           <>
-            <Horizon label="Court terme" badge="< 1 an" items={ct} />
-            <Horizon label="Moyen terme" badge="1 – 5 ans" items={mt} />
-            <Horizon label="Long terme" badge="> 5 ans" items={lt} />
+            <HorizonBloc label="Court terme" badge="< 1 an" items={ct} />
+            <HorizonBloc label="Moyen terme" badge="1 – 5 ans" items={mt} />
+            <HorizonBloc label="Long terme" badge="> 5 ans" items={lt} />
           </>
         )}
       </div>
