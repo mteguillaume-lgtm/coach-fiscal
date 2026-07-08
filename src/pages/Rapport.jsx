@@ -2999,8 +2999,10 @@ export default function Rapport() {
   // chiffres affichés en tête du rapport (d.totalDu / d.tmi) plutôt que de laisser
   // genererSynthese recalculer, pour ne pas afficher deux montants divergents.
   const synthese = useMemo(
-    () => genererSynthese(p, { totalDu: d.totalDu, tmi: d.tmi }),
-    [p, d.totalDu, d.tmi],
+    // d est null tant qu'aucun profil n'est chargé (1er rendu avant hydratation) —
+    // genererSynthese recalcule alors le summary lui-même.
+    () => genererSynthese(p, d ? { totalDu: d.totalDu, tmi: d.tmi } : null),
+    [p, d],
   );
 
   const handleExportPDF = () => {
