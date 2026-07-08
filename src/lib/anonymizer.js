@@ -6,6 +6,7 @@ import { extractWordsWithPositions } from './pdfReader';
 import { buildPatterns, applyEnabledLabels, labelsForGroups, LOGO_ZONE } from './patterns';
 import { detectType, getType } from '../data/documentTypes/index.js';
 import { extractFields } from './docExtract';
+import { debug } from './debug';
 
 const DEFAULT_PADDING = 3; // identique à PADDING = 3 dans app.py
 
@@ -34,7 +35,7 @@ const MOIS_TEXT = {
 export function detectPeriod(text) {
   const lower = text.toLowerCase();
 
-  console.log('[detectPeriod] TEXTE EXTRAIT (300 premiers caractères):', lower.substring(0, 300));
+  debug('[detectPeriod] TEXTE EXTRAIT (300 premiers caractères):', lower.substring(0, 300));
 
   // ── 1. Type de document — ordre strict : spécifique → général ───
   // Les termes génériques (employeur, brut…) sont volontairement absents
@@ -130,8 +131,8 @@ export function detectPeriod(text) {
     'document-anonymise': `document-anonymise-${month}-${year}.pdf`,
   }[type];
 
-  console.log('[detectPeriod] TYPE DÉTECTÉ:', type);
-  console.log('[detectPeriod] NOM FICHIER FINAL:', suggestedFilename);
+  debug('[detectPeriod] TYPE DÉTECTÉ:', type);
+  debug('[detectPeriod] NOM FICHIER FINAL:', suggestedFilename);
 
   return { type, month, year, suggestedFilename };
 }

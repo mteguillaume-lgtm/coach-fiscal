@@ -3,6 +3,8 @@
 // chaque adaptateur (anthropic/mistral) fait son propre mapping de 'haiku'|'sonnet'|'opus'
 // vers ses modèles réels. Voir src/lib/providers/.
 
+import { debug } from './debug';
+
 // Plafonds de tokens logiques par tier — valeurs canoniques, réutilisées par chaque
 // adaptateur (compatibles Anthropic comme Mistral large ~128K de contexte).
 export const MAX_TOKENS = {
@@ -73,7 +75,7 @@ export function detectComplexity(userMessage, skills = []) {
   else if (score >= 1) { model = 'sonnet'; reason = `score +${score}`; }
   else                  { model = 'haiku';  reason = `score ${score}`; }
 
-  console.log(
+  debug(
     `[Kapio Model] ${model.toUpperCase()} (score ${score >= 0 ? '+' : ''}${score})` +
     ` — ${len}c · ${sc} skills · max_tokens ${MAX_TOKENS[model]}`
   );

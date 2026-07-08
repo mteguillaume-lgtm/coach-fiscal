@@ -1258,11 +1258,6 @@ export default function Collect() {
   useEffect(() => { if (state.d1Data)   setD1Data(state.d1Data);     }, [state.d1Data]);
   useEffect(() => { if (state.d2Data)   setD2Data(state.d2Data);     }, [state.d2Data]);
 
-  useEffect(() => {
-    console.log('Fichiers anonymisés disponibles:', state.anonymizedFiles);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Pré-remplissage depuis l'extraction LOCALE faite à l'anonymisation (Couche 3).
   // Une seule fois : les valeurs extraites ne remplacent jamais une saisie existante.
   const prefilledRef = useRef(false);

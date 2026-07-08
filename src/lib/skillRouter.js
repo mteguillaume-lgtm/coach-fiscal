@@ -2,6 +2,7 @@
 // Évite d'envoyer tous les skills à Claude à chaque tour — économise les tokens.
 
 import { SKILLS_MAP, SKILL_DATA, SKILL_REFS } from '../data/skillsLoader';
+import { debug } from './debug';
 
 // ─── Mots-clés par skill ───────────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ export function detectRelevantSkills(userMessage) {
   }
 
   const result = [...active];
-  console.log('[skillRouter] Skills activés :', result.join(', '), '| Message :', userMessage.slice(0, 80));
+  debug('[skillRouter] Skills activés :', result.join(', '), '| Message :', userMessage.slice(0, 80));
   return result;
 }
 
@@ -150,7 +151,7 @@ export function buildSystemPrompt({ skills, profile, masterPrompt, model }) {
         }
       }
 
-      console.log(
+      debug(
         `[skillRouter] ${id} : ${dataEntries.length} data, ${refEntries.length} refs`,
       );
 
