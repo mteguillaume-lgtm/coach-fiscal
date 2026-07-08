@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate }       from 'react-router-dom';
 import { TrendingUp, AlertTriangle, Zap, MessageCircle, Euro, Info } from 'lucide-react';
+import { MENTION_NON_CONSEIL } from '../lib/conseilPatrimonial';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -122,6 +123,9 @@ export default function OpportunitiesPanel({ opportunities }) {
           {opportunities.length}
         </span>
       </div>
+
+      {/* Mention non-conseil (audit E5 — frontière CIF) */}
+      <p className="text-xs text-ink-300 leading-relaxed -mt-2">{MENTION_NON_CONSEIL}</p>
 
       {/* Bannière gains potentiels */}
       {totalGains > 0 && (

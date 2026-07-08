@@ -246,11 +246,12 @@ describe('Couple — PV mobilière foyer + crypto par déclarant', () => {
 });
 
 describe('Détecteur — leviers PHASE 4', () => {
-  it('option barème proposée à TMI faible (PV mobilière, salaire modeste)', () => {
+  it('option barème proposée à TMI faible via le levier GLOBAL 2OP (E3/E5 : plus de reco PV isolée)', () => {
     const formData = { statut: 'Célibataire', net_imp: '15000', pv_mob_gain: '5000' };
     const parsed = parseProfile(buildProfile(formData, {}, {}, [], false));
     const opps = detectOpportunities(parsed);
-    expect(opps.some(o => o.id === 'levier_option_bareme_pv')).toBe(true);
+    expect(opps.some(o => o.id === 'arbitrage_pfu_bareme')).toBe(true);
+    expect(opps.some(o => o.id === 'levier_option_bareme_pv')).toBe(false);
   });
 
   it('levier moins-values reportables + PV immo détectés', () => {

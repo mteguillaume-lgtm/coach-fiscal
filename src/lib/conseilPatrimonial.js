@@ -16,6 +16,13 @@ export const DISCLAIMER_GLOBAL =
 
 export const LIEN_VERIF_OFFICIEL = 'https://www.impots.gouv.fr';
 
+// Mention affichée en tête des leviers (audit E5) — pédagogie, pas de conseil
+// en investissement personnalisé (frontière CIF/AMF).
+export const MENTION_NON_CONSEIL =
+  'Pistes pédagogiques chiffrées à partir de vos données — pas un conseil en '
+  + 'investissement personnalisé. Chaque décision est à valider selon votre '
+  + 'situation, le cas échéant avec un professionnel.';
+
 const fmt = (v) => Math.round(v || 0).toLocaleString('fr-FR');
 
 /**

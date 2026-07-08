@@ -1,7 +1,7 @@
 // ─── detectOpportunities ──────────────────────────────────────────────────────
 // Accepte un objet parsedProfile (résultat de parseProfile) ou un texte brut.
 
-import { calcIR, computePerOptimumCascade, arbitragePfuBareme, calcPvMobiliere, calcCrypto, plafonnementNichesDeuxEtages, TAUX_PS_CAPITAL, PLAFOND_LDDS, PLAFOND_LEP, SEUIL_RFR_LEP_SOLO, SEUIL_RFR_LEP_COUPLE } from './taxCalculator';
+import { calcIR, computePerOptimumCascade, arbitragePfuBareme, plafonnementNichesDeuxEtages, TAUX_PS_CAPITAL, PLAFOND_LDDS, PLAFOND_LEP, SEUIL_RFR_LEP_SOLO, SEUIL_RFR_LEP_COUPLE } from './taxCalculator';
 import { GAIN_DIFF_LDDS, GAIN_DIFF_LEP, GAIN_DIFF_AV_LT, GAIN_DIFF_PEA_LT, GAIN_DIFF_DEFAUT } from './hypothesesRendement';
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
@@ -102,8 +102,8 @@ export function detectOpportunities(parsedProfile) {
         impact: `Économie IR optimum (${zoneLabel}) : ${fmt(opt.economieOptimum)} €`,
         impactEuros: opt.economieOptimum,
         action: isCouple
-          ? `${prio} (plus imposé·e, plafond ${fmt(prioPl)} €) : verser ${fmt(prioOpt)} € en priorité${secOpt > 0 ? ` — puis ${second} : ${fmt(secOpt)} €` : ''} avant le 31/12`
-          : `Verser ${fmt(opt.optimumTotal)} € sur votre PER avant le 31/12 (plafond max : ${fmt(opt.plafondTotal)} €)`,
+          ? `À étudier : un versement de ${fmt(prioOpt)} € par ${prio} (plus imposé·e, plafond ${fmt(prioPl)} €) avant le 31/12${secOpt > 0 ? ` — puis ${fmt(secOpt)} € par ${second}` : ''} réduirait l'IR d'environ ${fmt(opt.economieOptimum)} €. Décision à valider selon votre situation (blocage jusqu'à la retraite sauf cas légaux de déblocage).`
+          : `À étudier : un versement de ${fmt(opt.optimumTotal)} € avant le 31/12 (plafond disponible ${fmt(opt.plafondTotal)} €) réduirait l'IR d'environ ${fmt(opt.economieOptimum)} €. Décision à valider selon votre situation (blocage jusqu'à la retraite sauf cas légaux de déblocage).`,
         questionChat: isCouple
           ? `Mon foyer est marié/pacsé. RNI foyer : ${fmt(rniFoyer)} €, ${nbParts} parts fiscales, TMI ${opt.tmiDepart} %. Déclarant prioritaire : ${prio} (plafond ${fmt(prioPl)} €, plus imposé). Optimum fiscal : ${prio} verse ${fmt(prioOpt)} €${secOpt > 0 ? `, ${second} verse ${fmt(secOpt)} €` : ''} (total ${fmt(opt.optimumTotal)} €) → économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € (rendement PER 11 % → PEA/AV à comparer).` : ''} Comment choisir nos PER ?`
           : `RNI : ${fmt(rniFoyer)} €, ${nbParts} part(s) fiscale(s), TMI ${opt.tmiDepart} %. Optimum fiscal PER : ${fmt(opt.optimumTotal)} € effacent la tranche ${opt.tmiDepart} %, économie IR réelle ${fmt(opt.economieOptimum)} € (effort net ${fmt(opt.effortNet)} €).${opt.capaciteResiduelle > 0 ? ` Résiduel ${fmt(opt.capaciteResiduelle)} € → PEA/AV (rendement PER résiduel 11 %).` : ''} Quel PER choisir ?`,
@@ -134,8 +134,8 @@ export function detectOpportunities(parsedProfile) {
         impact: `Économie estimée : ${fmt(eco)} € en ${versBareme ? 'cochant' : 'décochant'} la case 2OP`,
         impactEuros: eco,
         action: versBareme
-          ? 'Cocher la case 2OP lors de la déclaration — l\'option est GLOBALE (dividendes + intérêts + PV), annuelle et irrévocable pour l\'année.'
-          : 'Ne pas cocher la case 2OP cette année : le PFU 30 % est plus avantageux sur l\'ensemble de vos revenus du capital.',
+          ? `À étudier : l'option barème (case 2OP) serait plus avantageuse d'environ ${fmt(eco)} €. Option GLOBALE (dividendes + intérêts + PV), annuelle et irrévocable — à valider avant de cocher.`
+          : `À étudier : ne pas cocher la case 2OP cette année — le PFU 30 % serait plus avantageux d'environ ${fmt(eco)} € sur l'ensemble de vos revenus du capital.`,
         questionChat: `Mon arbitrage 2OP global : PFU ${fmt(parsedProfile.arb2opPfu)} € vs barème ${fmt(parsedProfile.arb2opBareme)} € (économie ${fmt(eco)} € en optant pour ${versBareme ? 'le barème' : 'le PFU'}). Peux-tu vérifier ce choix compte tenu de mon TMI, de l'abattement 40 % sur dividendes, des abattements durée sur PV et de la CSG déductible ?`,
       });
     }
@@ -153,7 +153,7 @@ export function detectOpportunities(parsedProfile) {
         description: `Vos dividendes/intérêts (${fmt(_div2DC + _int2TR)} €) seraient moins taxés au barème (${fmt(arb.bareme)} €) qu'au PFU 30 % (${fmt(arb.pfu)} €) — grâce à l'abattement 40 % sur dividendes et à la CSG déductible (6,8 %).`,
         impact: `Économie estimée : ${fmt(arb.economie)} € en optant pour le barème (case 2OP)`,
         impactEuros: arb.economie,
-        action: 'Cocher la case 2OP (imposition au barème) lors de la déclaration — attention : l\'option est GLOBALE pour tous les revenus du capital de l\'année et irrévocable.',
+        action: 'À étudier : l\'option barème (case 2OP) serait plus avantageuse. Option GLOBALE pour tous les revenus du capital de l\'année et irrévocable — à valider avant de cocher.',
         questionChat: `Mes revenus du capital (dividendes ${fmt(_div2DC)} €, intérêts ${fmt(_int2TR)} €) : l'option barème (2OP) semble plus avantageuse que le PFU 30 % (économie ~${fmt(arb.economie)} €). Peux-tu confirmer l'arbitrage compte tenu de mon TMI et m'expliquer l'effet de la CSG déductible l'année suivante ?`,
       });
     }
@@ -232,36 +232,9 @@ export function detectOpportunities(parsedProfile) {
     });
   }
 
-  // Levier option barème sur les plus-values (PHASE 4) — TMI faible / titres < 2018.
-  const _pvMobGain    = parsedProfile.pvMobGain || 0;
-  const _cryptoPvImp  = parsedProfile.cryptoExoneree ? 0 : (parsedProfile.cryptoPvImposable || 0);
-  if (_pvMobGain + _cryptoPvImp > 0) {
-    const _parts = parts || (isCouple ? 2 : 1);
-    const pm = _pvMobGain > 0
-      ? calcPvMobiliere({ plusValue: _pvMobGain, rniFoyer: rniFoyer || 0, parts: _parts, isCouple })
-      : null;
-    const cp = _cryptoPvImp > 0
-      ? calcCrypto({ plusValue: _cryptoPvImp, totalCessions: Math.max(_cryptoPvImp, 306), rniFoyer: rniFoyer || 0, parts: _parts, isCouple })
-      : null;
-    const economie = (pm && pm.recommande === 'bareme' ? pm.economie : 0)
-                   + (cp && cp.recommande === 'bareme' ? cp.economie : 0);
-    if (economie >= 50) {
-      opps.push({
-        id: 'levier_option_bareme_pv',
-        type: 'gain',
-        urgence: 'avant_declaration',
-        titre: '💡 Plus-values : l\'option barème (2OP) semble plus avantageuse',
-        description: 'Vos plus-values (mobilières/crypto) sont imposées par défaut au PFU 12,8 % d\'IR. À votre tranche marginale, le barème progressif serait moins coûteux. Si vos titres ont été acquis avant 2018, le barème ouvre en plus droit à un abattement pour durée de détention (50 % à 85 %), réservé à l\'IR.',
-        impact: `Économie estimée : ${fmt(economie)} € en optant pour le barème (case 2OP).`,
-        impactEuros: economie,
-        action: 'Cocher la case 2OP lors de la déclaration. ATTENTION : l\'option est GLOBALE pour tous les revenus du capital de l\'année (dividendes, intérêts, plus-values) et irrévocable.',
-        questionChat: `Mes plus-values seraient-elles moins taxées au barème (case 2OP) qu'au PFU 12,8 % ? Économie estimée ~${fmt(economie)} €. Peux-tu confirmer compte tenu de mon TMI et m'expliquer l'abattement pour durée de détention si mes titres datent d'avant 2018 ?`,
-      });
-    }
-  }
-
   // Levier moins-values reportables (PHASE 4) : plus-value déclarée → vérifier le stock
   // de moins-values des 10 années précédentes (3VH), imputables sur les PV de même nature.
+  const _pvMobGain = parsedProfile.pvMobGain || 0;
   if (_pvMobGain > 0) {
     opps.push({
       id: 'levier_moins_values_reportables',
@@ -309,7 +282,7 @@ export function detectOpportunities(parsedProfile) {
         description: `Vos réductions soumises au plafonnement global atteignent ${fmt(_nicheGlobal + _nicheSpecifique)} €, au-delà du plafond effectif de ${fmt(plaf.plafondEffectif)} € (10 000 € de base, 18 000 € avec SOFICA/outre-mer). L'excédent n'est ni reportable ni remboursable.`,
         impact: `Avantage fiscal PERDU : ${fmt(plaf.exces)} €.`,
         impactEuros: -plaf.exces,
-        action: 'Étaler les investissements défiscalisants sur plusieurs années ou privilégier les dispositifs hors plafond (Malraux, déficit foncier) / la déduction PER.',
+        action: 'À étudier : étaler les investissements défiscalisants sur plusieurs années, ou examiner les dispositifs hors plafond (Malraux, déficit foncier) et la déduction PER.',
         questionChat: `Mes réductions d'impôt dépassent le plafond global des niches (excédent ${fmt(plaf.exces)} € perdu). Comment réorganiser mes investissements (étalement, dispositifs hors plafond, PER) pour ne plus perdre cet avantage ?`,
       });
     }
@@ -341,7 +314,7 @@ export function detectOpportunities(parsedProfile) {
       description: 'L\'un de vos dispositifs (Pinel/Denormandie depuis le 31/12/2024, Censi-Bouvard depuis le 31/12/2022) est fermé aux nouvelles acquisitions. Seules les réductions des engagements antérieurs continuent à courir (report annuel jusqu\'au terme de l\'engagement).',
       impact: 'Aucune nouvelle souscription possible ; anticiper la fin de la réduction.',
       impactEuros: 0,
-      action: 'Anticiper la sortie : à l\'échéance Pinel, arbitrer entre conservation, revente ou passage en location nue/meublée. Pour Censi-Bouvard, bascule possible en LMNP réel.',
+      action: 'À étudier à l\'échéance : conservation, revente ou passage en location nue/meublée (Pinel) ; bascule possible en LMNP réel (Censi-Bouvard). Un CGP peut chiffrer chaque scénario.',
       questionChat: 'Mon dispositif Pinel/Censi-Bouvard arrive à son terme. Quelles options (revente, conservation, bascule LMNP) et quel impact fiscal à la sortie ?',
     });
   }
@@ -412,7 +385,7 @@ export function detectOpportunities(parsedProfile) {
     if (lddsRoom > 0 && remaining > 1_000) {
       const move = Math.min(lddsRoom, remaining);
       const gain = Math.round(move * GAIN_DIFF_LDDS);
-      plan.push(`Saturer LDDS (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux 3 % vs ~1,5 %)`);
+      plan.push(`saturer le LDDS (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux 3 % vs ~1,5 %)`);
       remaining -= move; gainTotal += gain;
     }
     if (eligibleLEP) {
@@ -420,7 +393,7 @@ export function detectOpportunities(parsedProfile) {
       if (lepRoom > 0 && remaining > 1_000) {
         const move = Math.min(lepRoom, remaining);
         const gain = Math.round(move * GAIN_DIFF_LEP);
-        plan.push(`Saturer LEP (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux ~5 %, meilleur taux garanti)`);
+        plan.push(`saturer le LEP (${fmt(move)} €) — gain +${fmt(gain)} €/an (taux ~5 %, meilleur taux garanti)`);
         remaining -= move; gainTotal += gain;
       }
     }
@@ -428,14 +401,14 @@ export function detectOpportunities(parsedProfile) {
       const move = Math.min(remaining, 30_000);
       const gain = Math.round(move * GAIN_DIFF_AV_LT);
       const avExists = (avD1 || 0) + (avD2 || 0) > 0;
-      plan.push(`${avExists ? 'Renforcer' : 'Ouvrir'} AV multisupport (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (rendement ~4 % net)`);
+      plan.push(`${avExists ? 'renforcer' : 'ouvrir'} une AV multisupport (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (rendement ~4 % net)`);
       remaining -= move; gainTotal += gain;
     }
     if (remaining > 5_000) {
       const move = Math.min(remaining, 20_000);
       const gain = Math.round(move * GAIN_DIFF_PEA_LT);
       const peaExists = (peaD1 || 0) + (peaD2 || 0) > 0;
-      plan.push(`${peaExists ? 'Renforcer' : 'Ouvrir'} PEA (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (ETF Monde ~6 %, exo IR > 5 ans)`);
+      plan.push(`${peaExists ? 'renforcer' : 'ouvrir'} un PEA (${fmt(move)} €) — gain +${fmt(gain)} €/an espéré LT (ETF Monde ~6 %, exo IR > 5 ans)`);
       remaining -= move; gainTotal += gain;
     }
     if (remaining > 5_000) {
@@ -459,8 +432,8 @@ export function detectOpportunities(parsedProfile) {
       impact: `Gain annuel récurrent espéré : +${fmt(gainTotal)} €/an`,
       impactEuros: gainTotal,
       action: plan.length > 0
-        ? plan.map((p, i) => `${i + 1}. ${p}`).join(' | ')
-        : 'Identifier le surplus au-delà de 3-6 mois de charges, puis alimenter LDDS/LEP saturés, AV, PEA',
+        ? 'À étudier (ordre indicatif) : ' + plan.map((p, i) => `${i + 1}. ${p}`).join(' | ')
+        : 'À étudier : identifier le surplus au-delà de 3-6 mois de charges, puis envisager LDDS/LEP saturés, AV, PEA.',
       questionChat: isCouple
         ? `Mon foyer (couple) a ${fmt(livretTotal)} € d'épargne liquide${livretPlusTotal > 0 ? `, dont ${fmt(livretPlusTotal)} € sur Livret+/bancaire à ~1,5 % net` : ''}. Plan de réallocation proposé : ${plan.join(' / ')}. Quel ordre exécuter, quels supports AV/PEA choisir, lump sum ou DCA, et comment équilibrer entre D1 et D2 ?`
         : `J'ai ${fmt(livretTotal)} € d'épargne liquide${livretPlusTotal > 0 ? `, dont ${fmt(livretPlusTotal)} € sur Livret+/bancaire à ~1,5 % net` : ''}. Plan de réallocation proposé : ${plan.join(' / ')}. Peux-tu valider l'ordre, suggérer des supports AV/PEA concrets, et comparer lump sum vs DCA ?`,
@@ -504,7 +477,7 @@ export function detectOpportunities(parsedProfile) {
         description: analyses.map(a => a.msg).join(' '),
         impact: 'Préserver le rendement net avant la bascule au PFU 30 %',
         impactEuros: Math.round(pelTotal * 0.0075), // perte fiscale annuelle si conservé après échéance : ~0,75% (PFU sur 2,5% = 0,75 € manqué/100 € capital)
-        action: 'Arbitrer fin de l\'avant-dernière année : conserver le PEL comme matelas garanti, ou clôturer pour basculer vers AV multisupport (fiscalité plus douce après 8 ans, meilleur rendement LT)',
+        action: 'À étudier avant la fin de l\'avant-dernière année : conserver le PEL comme matelas garanti, ou le clôturer au profit d\'une AV multisupport (fiscalité plus douce après 8 ans). Les deux scénarios se chiffrent selon votre horizon.',
         questionChat: `J'ai un PEL : ${analyses.map(a => a.msg).join(' ')} Faut-il conserver ce PEL jusqu'à l'échéance des 12 ans, clôturer avant, ou basculer le capital vers AV multisupport ? Compare le rendement net après la bascule PFU avec une AV bien gérée.`,
       });
     }
@@ -525,8 +498,8 @@ export function detectOpportunities(parsedProfile) {
         : 'Exonération IR sur toutes les plus-values après 5 ans',
       impactEuros: 500,
       action: isCouple
-        ? 'Ouvrir un PEA chacun (même avec 1 €) pour faire partir le délai de 5 ans dès maintenant'
-        : 'Ouvrir un PEA même avec 1 € pour faire partir le délai de 5 ans',
+        ? 'À étudier : ouvrir un PEA chacun, même avec un versement symbolique, ferait courir le délai fiscal de 5 ans dès maintenant (« prendre date »).'
+        : 'À étudier : ouvrir un PEA même avec un versement symbolique ferait courir le délai fiscal de 5 ans dès maintenant (« prendre date »).',
       questionChat: isCouple
         ? 'Mon couple n\'a pas encore de PEA. Peut-on ouvrir un PEA chacun et cumuler les plafonds (150 000 € × 2 = 300 000 €) ? Quels courtiers recommander pour un couple en 2025 et comment organiser nos placements entre les deux PEA ?'
         : 'Je n\'ai pas encore de PEA. Quelle banque ou quel courtier recommander pour ouvrir un PEA en 2025, et quels points de vigilance lors de l\'ouverture ?',
@@ -550,8 +523,8 @@ export function detectOpportunities(parsedProfile) {
           : 'Gain : taux 5 % vs Livret A 3 % — soit +200 €/an pour 10 000 €',
         impactEuros: isCouple ? 400 : 200,
         action: isCouple
-          ? 'Ouvrir un LEP chacun (La Banque Postale, Caisse d\'Épargne…) — plafond 10 000 €/personne'
-          : 'Ouvrir un LEP à La Banque Postale, Caisse d\'Épargne ou votre banque',
+          ? 'À étudier : un LEP par personne (plafond 10 000 € chacun), ouvert dans la plupart des banques sur justificatif d\'éligibilité.'
+          : 'À étudier : le LEP est ouvert dans la plupart des banques sur justificatif d\'éligibilité (avis d\'imposition).',
         questionChat: isCouple
           ? `Notre foyer (RFR ${fmt(rfr)} €) est éligible au LEP. Peut-on ouvrir un LEP chacun pour cumuler 20 000 € au taux de 5 % ? Comment vérifier l'éligibilité de chaque membre du couple et où ouvrir nos LEP ?`
           : `Mon RFR est de ${fmt(rfr)} €. Suis-je éligible au LEP et comment l'ouvrir pour bénéficier du taux de 5 % ?`,
