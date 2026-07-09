@@ -163,7 +163,7 @@ Positif : `docExtract` local avant masquage, `EXTRACT_PROMPT` interdit les PII e
 
 ### Moyenne
 
-- Scénarios A/B/C PER + bloc sensibilité TMI sortie (medium)
+- ✅ 09/07/2026 (branche per-scenarios) Scénarios A/B/C PER + bloc sensibilité TMI sortie — module pur `perScenarios.js`, TMI résiduelle par scénario, sensibilité 0/11/30 % dérivée du barème
 - Mutualisation 6QR dans la cascade (medium)
 - Rachats AV 2CH (medium)
 - Routeur de skills tokenisé + lexiques depuis paperasse (small)
