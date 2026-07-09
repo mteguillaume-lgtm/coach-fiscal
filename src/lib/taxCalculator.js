@@ -1543,6 +1543,8 @@ export function computeFoyerSummary(profile) {
   const hasCapitalBase = (profile.pvCapitalIR || 0) > 0
                       || (profile.pvCapitalPsBase || 0) > 0
                       || (profile.immoPsBase || 0) > 0
+                      || (profile.avRachatIR || 0) > 0
+                      || (profile.avRachatPsBase || 0) > 0
                       || (profile.ifiDu || 0) > 0;   // IFI seul (RNI barème nul mais patrimoine taxable)
   if (!rniFoyer && !hasCapitalBase) return null;
 
@@ -1642,7 +1644,11 @@ export function computeFoyerSummary(profile) {
   const pvCapitalIR = profile.pvCapitalIR || 0;
   const psCapital   = Math.round((profile.pvCapitalPsBase || 0) * TAUX_PS_CAPITAL);
 
-  const totalDu = irNet + cehr + psFoncier + psImmo + pvCapitalIR + psCapital;
+  // Rachat d'assurance-vie (2CG/2BH) : IR régime PFU par défaut + PS 17,2 % sur les gains.
+  const avRachatIR = profile.avRachatIR || 0;
+  const avRachatPS = Math.round((profile.avRachatPsBase || 0) * TAUX_PS_CAPITAL);
+
+  const totalDu = irNet + cehr + psFoncier + psImmo + pvCapitalIR + psCapital + avRachatIR + avRachatPS;
 
   // Priorité à pasTotal consolidé (tous plugins) si disponible
   const pasTotal = profile.pasTotal > 0
@@ -1694,6 +1700,9 @@ export function computeFoyerSummary(profile) {
     pvCapitalIR,
     psCapital,
     pvCapitalPsBase: profile.pvCapitalPsBase || 0,
+    avRachatIR,
+    avRachatPS,
+    avRachatPsBase: profile.avRachatPsBase || 0,
     // PHASE 5 : IFI — impôt distinct (avis séparé), NON inclus dans totalDu IR.
     ifi: profile.ifiDu || 0,
     ifiAssiette: profile.ifiAssiette || 0,

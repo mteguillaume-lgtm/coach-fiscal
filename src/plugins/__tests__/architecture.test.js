@@ -28,10 +28,10 @@ describe('architecture — interface IncomePlugin (8 propriétés)', () => {
 // ─── Unicité des IDs ──────────────────────────────────────────────────────────
 
 describe('architecture — unicité des IDs', () => {
-  it('aucun id en double parmi les 21 plugins', () => {
+  it('aucun id en double parmi les 23 plugins', () => {
     const ids = registry.getAll().map(p => p.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids.length).toBe(22); // 22 actifs + 0 stub
+    expect(ids.length).toBe(23); // 23 actifs + 0 stub
   });
 });
 
@@ -51,9 +51,9 @@ describe('architecture — plugins actifs (v1.0.0)', () => {
     'ifi', 'defiscalisation', 'revenus-etrangers',
   ];
 
-  it('exactement 22 plugins actifs (version 1.0.0)', () => {
+  it('exactement 23 plugins actifs (version 1.0.0)', () => {
     const active = registry.getAll().filter(p => p.version === '1.0.0');
-    expect(active.length).toBe(22);
+    expect(active.length).toBe(23);
   });
 
   it('plugins PHASE 1 sans champs propres : parser fonctionnel', () => {

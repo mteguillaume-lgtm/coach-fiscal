@@ -1,4 +1,4 @@
-import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo, calcIFI, calcReductionDefisc, DEFISC_DISPOSITIFS, plafonnementNichesDeuxEtages, arbitrage2OP } from './taxCalculator';
+import { abattement10, abattement10Pension, calcPlafondPer, calcParts, calcDeductionsRevenu, calcMicroTns, estimCotisationsMicro, MICRO_TNS_REGIMES, MIN_PLAFOND_PER, MAX_PLAFOND_PER, calcFoncierReel, calcDeficitFoncier, calcLmnpMicro, detectLmp, LMNP_MICRO_REGIMES, SEUIL_MICRO_FONCIER, ABATTEMENT_MICRO_FONCIER, TAUX_PS_CAPITAL, calcPvMobiliere, calcCrypto, calcPvImmo, calcIFI, calcReductionDefisc, DEFISC_DISPOSITIFS, plafonnementNichesDeuxEtages, arbitrage2OP, calcRachatAV } from './taxCalculator';
 
 const APP_VERSION = 'v4.1.0';
 
@@ -266,6 +266,31 @@ Base PS immobilier foyer : ${fmtN(psBase)}`;
 // réintégrés au total dû foyer. PV immobilière (cession hors RP) = ESTIMATION séparée,
 // prélevée à la source par le notaire → HORS solde annuel + routage notaire.
 // `declarants` = [{ decl }] (consolidation crypto par déclarant, comme _tnsBlock).
+// Rachat d'assurance-vie (2CG/2BH) — fiscalité de vivant. Consolide avRachatIR
+// (régime PFU par défaut) + avRachatPsBase (= gains) au foyer, comme _capitalGainsBlock.
+function _avRachatBlock(d, rniFoyer = 0, parts = 1, isCouple = false) {
+  const gains = parseFloat(d.av_rachat_gains || 0);
+  if (!(gains > 0)) return { section: '', avRachatIR: 0, avRachatPsBase: 0 };
+  const huitAns = d.av_rachat_8ans === 'Oui';
+  const primesFoyer = parseFloat(d.av_verse || 0);
+  const r = calcRachatAV({ gainsRachat: gains, contratHuitAns: huitAns, primesNettesFoyer: primesFoyer, rniFoyer, parts, isCouple });
+
+  const lignes = [
+    `Rachat AV — part de gains imposable : ${fmtN(r.gainsRachat)} | contrat : ${huitAns ? '≥ 8 ans' : '< 8 ans'}`,
+    `Rachat AV — abattement appliqué : ${fmtN(r.abattement)} | base IR : ${fmtN(r.baseIR)}`,
+    `Rachat AV — IR (case ${r.case2042}) : ${fmtN(r.ir)} | base PS : ${fmtN(r.gainsRachat)} | régime : ${huitAns ? 'PFL 7,5 %' : 'PFU 12,8 %'}`,
+    `Rachat AV — IR foyer : ${fmtN(r.ir)}`,
+    `Rachat AV — base PS foyer : ${fmtN(r.gainsRachat)}`,
+  ];
+  if (r.bareme.recommande === 'bareme' && r.bareme.economie > 0) {
+    lignes.push(`ℹ️ Rachat AV : option barème (2BH) plus avantageuse (~${fmtN(r.bareme.economie)} d'écart) — option globale et irrévocable`);
+  }
+  if (r.flags.primesSuperieur150k) {
+    lignes.push(`⚠️ Versements foyer > 150 000 € : la fraction au-delà est imposée à 12,8 % (non calculée ici) — vérifier avec l'assureur`);
+  }
+  return { section: `\n${lignes.join('\n')}`, avRachatIR: r.ir, avRachatPsBase: r.gainsRachat };
+}
+
 function _capitalGainsBlock(d, declarants, rniFoyer = 0, parts = 1, isCouple = false) {
   // ─ PV mobilières (champs foyer) ─
   const pvMobGain    = parseFloat(d.pv_mob_gain || 0);
@@ -528,6 +553,7 @@ function _buildSolo(d, docSums) {
   const fam      = _famille(d, false);
   const parts    = fam.parts;
   const cap      = _capitalGainsBlock(d, [{ decl: d }], rniTotal, parts, false);
+  const avr      = _avRachatBlock(d, rniTotal, parts, false);
   const patrimoine = _patrimoineBlock(d);
   const defisc     = _defiscBlock(d, false);
   const intl       = _internationalBlock(d);
@@ -586,7 +612,7 @@ ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
 ${immo.section}
-${cap.section}
+${cap.section}${avr.section}
 ${defisc.section}
 ${patrimoine.section}
 ${intl.section}
@@ -700,6 +726,7 @@ function _buildCouple(d, d1, d2, docSums) {
   const immo     = _immoBlock(d, rniD1 + rniD2 + tns.deltaRni);
   const rniFoyer = Math.max(0, rniD1 + rniD2 + foncier.net + dedInfo.deltaRni + tns.deltaRni + immo.deltaRni);
   const cap      = _capitalGainsBlock(d, [{ decl: d1 }, { decl: d2 }], rniFoyer, parts, true);
+  const avr      = _avRachatBlock(d, rniFoyer, parts, true);
   const patrimoine = _patrimoineBlock(d);
   const defisc     = _defiscBlock(d, true);
   const intl       = _internationalBlock(d);
@@ -776,7 +803,7 @@ ${parseFloat(d.int_mob_2ck || 0) > 0 ? `PFU 12,8% prélevé (case 2CK) : ${fmtN(
 Intérêts soumis PS (case 2BH) : ${fmtN(parseFloat(d.int_mob_2tr))}` : ''}
 ${tns.section}
 ${immo.section}
-${cap.section}
+${cap.section}${avr.section}
 ${defisc.section}
 ${patrimoine.section}
 ${intl.section}
