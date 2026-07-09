@@ -164,7 +164,7 @@ Positif : `docExtract` local avant masquage, `EXTRACT_PROMPT` interdit les PII e
 ### Moyenne
 
 - ✅ 09/07/2026 (branche per-scenarios) Scénarios A/B/C PER + bloc sensibilité TMI sortie — module pur `perScenarios.js`, TMI résiduelle par scénario, sensibilité 0/11/30 % dérivée du barème
-- Mutualisation 6QR dans la cascade (medium)
+- ⓘ 09/07/2026 Mutualisation 6QR — **non-bug (finding périmé)** : `computePerOptimumCascade` calcule déjà l'optimum sur le plafond CUMULÉ (`plafondTotal = pd1 + pd2`) puis répartit sous chaque plafond individuel. En imposition commune, un versement sur l'un des PER réduit le même RNI foyer → optimum ni sous-estimé ni sur-estimé, et la répartition reste déclarable sans 6QR. Le 6QR ne sert qu'à *concentrer* > plafond individuel sur un seul PER (cas étroit). Seul manque résiduel : note pédagogique UI (faible valeur, non fait).
 - Rachats AV 2CH (medium)
 - Routeur de skills tokenisé + lexiques depuis paperasse (small)
 - Troncature historique chat (small)
