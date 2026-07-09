@@ -6,6 +6,7 @@ import {
 import { buildProfile } from '../profileGenerator';
 import { parseProfile } from '../profileParser';
 import { computeFoyerSummary } from '../taxCalculator';
+import { detectOpportunities } from '../opportunitiesDetector';
 
 describe('calcRachatAV — rachats AV (cases 2CG/2BH)', () => {
   it('≥ 8 ans, gains sous l\'abattement solo : IR nul, PS sur les gains pleins', () => {
@@ -74,5 +75,18 @@ describe('Rachat AV — chaîne complète form → summary', () => {
   it('sans rachat : aucun champ av rachat, comportement inchangé', () => {
     const parsed = parseProfile(buildProfile({ statut: 'Célibataire', net_imp: '40000' }, {}, {}, [], false));
     expect(parsed.avRachatIR ?? 0).toBe(0);
+  });
+});
+
+
+describe('Opportunité rachat AV', () => {
+  it('option barème 2BH signalée à TMI faible, formulée « à étudier »', () => {
+    const parsed = parseProfile(buildProfile(
+      { statut: 'Célibataire', net_imp: '12000', av: '80000', av_rachat_gains: '10000', av_rachat_8ans: 'Oui' },
+      {}, {}, [], false,
+    ));
+    const opps = detectOpportunities(parsed).filter(o => o.id === 'arbitrage_av_rachat');
+    expect(opps).toHaveLength(1);
+    expect(opps[0].action.toLowerCase()).toContain('à étudier');
   });
 });

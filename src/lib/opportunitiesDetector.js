@@ -159,6 +159,22 @@ export function detectOpportunities(parsedProfile) {
     }
   }
 
+  // Rachat AV : option barème (2BH) avantageuse à TMI faible (levier informatif CIF-safe).
+  const _avEco = parsedProfile.avRachatBaremeEco || 0;
+  if (_avEco >= 50) {
+    opps.push({
+      id: 'arbitrage_av_rachat',
+      type: 'gain',
+      urgence: 'avant_declaration',
+      titre: '💡 Rachat AV : l\'option barème (2BH) pourrait être plus avantageuse',
+      description: `Sur votre rachat d'assurance-vie, l'imposition au barème (case 2BH) serait moins coûteuse que le PFU d'environ ${fmt(_avEco)} € — typique à tranche marginale faible. L'option barème est globale et irrévocable pour l'année.`,
+      impact: `Économie estimée : ${fmt(_avEco)} € au barème`,
+      impactEuros: _avEco,
+      action: 'À étudier : cocher l\'option barème (2BH) si votre TMI est faible ; et fractionner les rachats sur plusieurs années pour rester sous l\'abattement annuel renouvelable (4 600 €/9 200 €).',
+      questionChat: `Mon rachat d'assurance-vie : l'option barème (2BH) est-elle plus avantageuse que le PFU compte tenu de ma TMI ? Peux-tu m'expliquer l'abattement annuel et l'intérêt de fractionner mes rachats ?`,
+    });
+  }
+
   // Levier dons : réduction 66 % (75 % aide aux personnes) non exploitée.
   const _donsDeclares = (parsedProfile.donsGeneral || 0) + (parsedProfile.donsAidePersonnes || 0);
   if (_donsDeclares === 0 && irNetEstime > 500) {
