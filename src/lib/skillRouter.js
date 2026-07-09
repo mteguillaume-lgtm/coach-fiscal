@@ -3,70 +3,112 @@
 
 import { buildChiffresOfficiels } from './chiffresOfficiels';
 import { debug } from './debug';
+import { DEFISC_DISPOSITIFS } from './taxCalculator';
+
+// ─── Tokeniseur & matching par mot entier ───────────────────────────────────
+
+/** Minuscules, accents retirés (NFD), découpe sur tout non-alphanumérique. */
+export function tokenize(str) {
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+// Un mot-clé (déjà tokenisé) matche s'il apparaît comme sous-séquence contiguë
+// des tokens du message. Mono-token → simple appartenance ; multi-mots → contigu.
+function matchesKeyword(msgTokens, kwTokens) {
+  if (kwTokens.length === 0) return false;
+  if (kwTokens.length === 1) return msgTokens.includes(kwTokens[0]);
+  for (let i = 0; i + kwTokens.length <= msgTokens.length; i++) {
+    if (kwTokens.every((t, j) => msgTokens[i + j] === t)) return true;
+  }
+  return false;
+}
+
+/** Mots-clés defisc dérivés des clés de DEFISC_DISPOSITIFS (paperasse-first) :
+ *  ajouter un dispositif au JSON le route automatiquement vers le fiscaliste. */
+export function deriveDefiscKeywords() {
+  const out = new Set();
+  for (const key of Object.keys(DEFISC_DISPOSITIFS)) {
+    for (const tok of key.split('_')) {
+      if (tok === 'ir') continue;          // trop générique (déjà mot-clé fiscaliste)
+      if (tok.length >= 3) out.add(tok);   // fcpi, fip, madelin, sofica, pinel, censi, bouvard…
+    }
+  }
+  return [...out];
+}
 
 // ─── Mots-clés par skill ───────────────────────────────────────────────────────
+// Le tokeniseur gère accents et tirets : pas de variantes accentuées ni de paddings
+// d'espaces. Les phrases multi-mots sont matchées comme sous-séquences contiguës.
 
 const SKILL_RULES = [
   {
     skill: 'fiscaliste',
     keywords: [
-      'impôt', 'impot', 'ir ', ' ir,', ' ir.', 'tmi', 'tranche', 'déclaration', 'declaration',
-      'case ', ' case', 'plafond', 'per ', ' per,', ' per.', 'pea', 'assurance-vie', 'assurance vie',
-      'déduction', 'deduction', 'crédit d\'impôt', "credit d'impot", 'réduction d\'impôt',
-      'foncier', 'bic', 'bnc', 'micro', 'régime réel', 'regime reel',
-      'pfu', 'flat tax', 'prélèvement forfaitaire', 'prelevement forfaitaire',
-      'ps ', 'prélèvements sociaux', 'prelevements sociaux',
-      'pas ', 'prélèvement à la source', 'taux pas',
-      'déficit foncier', 'deficit foncier', 'lmnp', 'lmp',
-      'abattement', 'exonération', 'exoneration',
-      'frais réels', 'frais reels', 'forfait 10',
-      'quotient familial', 'parts fiscales',
+      'impot', 'ir', 'tmi', 'tranche', 'declaration', 'case', 'plafond',
+      'per', 'pea', 'assurance vie', 'deduction', "credit d'impot", "reduction d'impot",
+      'foncier', 'bic', 'bnc', 'micro', 'regime reel',
+      'pfu', 'flat tax', 'prelevement forfaitaire',
+      'ps', 'prelevements sociaux', 'taux pas', 'prelevement a la source',
+      'deficit foncier', 'lmnp', 'lmp', 'abattement', 'exoneration',
+      'frais reels', 'forfait 10', 'quotient familial', 'parts fiscales',
+      'ifi', 'cehr',
+      ...deriveDefiscKeywords(),
     ],
   },
   {
     skill: 'notaire',
     keywords: [
-      'succession', 'héritage', 'heritage', 'donation', 'testament',
-      'démembrement', 'demembrement', 'usufruit', 'nue-propriété', 'nue propriété',
-      'indivision', 'sci ', ' sci,', 'partage', 'droit de succession',
+      'succession', 'heritage', 'donation', 'testament',
+      'demembrement', 'usufruit', 'nue propriete',
+      'indivision', 'sci', 'partage', 'droit de succession',
       'droits de mutation', 'pacte dutreil', 'dutreil',
-      'assurance vie succession', 'clause bénéficiaire', 'clause beneficiaire',
+      'assurance vie succession', 'clause beneficiaire',
     ],
   },
   {
     skill: 'comptable',
     keywords: [
-      'tva', 'liasse', 'is ', 'impôt sur les sociétés', 'bilan', 'compte de résultat',
-      'écriture comptable', 'ecriture comptable', 'amortissement', 'facturation',
-      'factur-x', 'fec', 'expert-comptable', 'expert comptable',
-      'plan comptable', 'charge déductible', 'charge deductible',
+      'tva', 'liasse', 'is', 'impot sur les societes', 'bilan', 'compte de resultat',
+      'ecriture comptable', 'amortissement', 'facturation',
+      'factur x', 'fec', 'expert comptable',
+      'plan comptable', 'charge deductible', 'holding',
     ],
   },
   {
     skill: 'commissaire-aux-comptes',
     keywords: [
       'cac', 'commissaire aux comptes', 'certification', 'nep', 'opinion',
-      'audit légal', 'audit legal', 'rapport de gestion', 'alerte',
+      'audit legal', 'rapport de gestion', 'alerte',
     ],
   },
   {
     skill: 'controleur-fiscal',
     keywords: [
-      'dgfip', 'vérification', 'verification', 'redressement', 'contrôle fiscal', 'controle fiscal',
+      'dgfip', 'verification', 'redressement', 'controle fiscal',
       'proposition de rectification', 'rectification', 'mise en demeure',
-      'pénalité fiscale', 'penalite fiscale', 'majoration', 'intérêt de retard',
-      'prescription', 'délai de reprise', 'delai de reprise',
+      'penalite fiscale', 'majoration', 'interet de retard',
+      'prescription', 'delai de reprise',
     ],
   },
   {
     skill: 'syndic',
     keywords: [
-      'syndic', 'copropriété', 'copropriete', ' ag ', 'assemblée générale',
-      'assemblee generale', 'charges de copropriété', 'tantièmes', 'tantiemes',
-      'règlement de copropriété', 'reglement de copropriete', 'lot ', 'parties communes',
+      'syndic', 'copropriete', 'ag', 'assemblee generale',
+      'charges de copropriete', 'tantiemes',
+      'reglement de copropriete', 'lot', 'parties communes',
     ],
   },
 ];
+
+// Pré-tokenisation des mots-clés (une fois au chargement).
+const SKILL_RULES_TOKENIZED = SKILL_RULES.map(r => ({
+  skill: r.skill,
+  kw: r.keywords.map(tokenize),
+}));
 
 // ─── Détection des skills pertinents ──────────────────────────────────────────
 
@@ -78,11 +120,11 @@ const SKILL_RULES = [
  * @returns {string[]} skills identifiants (clés de SKILLS_MAP)
  */
 export function detectRelevantSkills(userMessage) {
-  const lower = userMessage.toLowerCase();
+  const msgTokens = tokenize(userMessage);
   const active = new Set(['gcp']); // toujours présent
 
-  for (const rule of SKILL_RULES) {
-    if (rule.keywords.some(kw => lower.includes(kw))) {
+  for (const rule of SKILL_RULES_TOKENIZED) {
+    if (rule.kw.some(kwTokens => matchesKeyword(msgTokens, kwTokens))) {
       active.add(rule.skill);
     }
   }
