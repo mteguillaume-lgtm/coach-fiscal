@@ -13,6 +13,7 @@ import {
   ABATTEMENT_AV_AVANT_70, ABATTEMENT_AV_APRES_70, SEUIL_AGE_AV_TRANSMISSION,
 } from '../lib/taxCalculator';
 import { isAiSection } from '../lib/aiSections';
+import { getEffectivePlafondsWithReports, buildPerScenarios, buildTmiSortieSensitivity } from '../lib/perScenarios';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { genererSynthese } from '../lib/conseilPatrimonial';
 import { deriveRoadmapContext } from '../lib/lifeStage';
@@ -1025,18 +1026,7 @@ function AccordCoupleProseBlock({ d }) {
 
 // ─── Helper : plafonds PER effectifs avec reports N-1/N-2/N-3 (INC-03) ──────
 // Les reports sont stockés au niveau foyer → pro-ratés par RNI en couple mode.
-function getEffectivePlafondsWithReports(p) {
-  const rniD1    = p.rniD1 || 0;
-  const rniD2    = p.rniD2 || 0;
-  const rniTot   = rniD1 + rniD2;
-  const repTotal = (p.perReportableN1 || 0) + (p.perReportableN2 || 0) + (p.perReportableN3 || 0);
-  const repD1    = rniTot > 0 ? Math.round(repTotal * (rniD1 / rniTot)) : repTotal;
-  const repD2    = repTotal - repD1;
-  return {
-    plafondD1: (p.plafondPerD1 || 0) + repD1,
-    plafondD2: (p.plafondPerD2 || 0) + repD2,
-  };
-}
+// getEffectivePlafondsWithReports : déplacé dans src/lib/perScenarios.js (module pur).
 
 // ─── Tableau 4 scénarios PER ─────────────────────────────────────────────────
 
@@ -1207,47 +1197,18 @@ function PerScenariosTable({ p, d }) {
   const isCouple = d.isCouple;
   // INC-03 : reports inclus
   const { plafondD1: plafD1, plafondD2: plafD2 } = getEffectivePlafondsWithReports(p);
-  const irAvant = d.irNetFoyer;
   const parts = p.parts || (isCouple ? 2 : 1);
   const stopRate = Math.min(p.tmiRetraiteD1 ?? 11, p.tmiRetraiteD2 ?? (p.tmiRetraiteD1 ?? 11)) / 100;
 
-  const perOpt = computePerOptimumCascade(d.rniFoyer, parts, plafD1, plafD2, isCouple, p.rniD1 || 0, p.rniD2 || 0, stopRate);
+  // Scénarios + sensibilité : module déterministe pur (src/lib/perScenarios.js).
+  const { scenarios, recommendedId } = buildPerScenarios({
+    rniFoyer: d.rniFoyer, parts, isCouple, plafondD1: plafD1, plafondD2: plafD2,
+    rniD1: p.rniD1 || 0, rniD2: p.rniD2 || 0, stopRate, irAvant: d.irNetFoyer,
+  });
+  if (scenarios.length === 0) return null;
 
-  const calcScen = (versement) => {
-    if (versement === 0) return { versement: 0, irApres: irAvant, economie: 0, effort: 0, rendement: 0 };
-    const rniApres = Math.max(0, d.rniFoyer - versement);
-    const irApres = calcIR(rniApres, parts, isCouple);
-    const economie = Math.max(0, irAvant - irApres);
-    const effort = versement - economie;
-    const rendement = Math.round((economie / versement) * 100);
-    return { versement, irApres, economie, effort, rendement };
-  };
-
-  let scenarios;
-  if (isCouple && (plafD1 > 0 || plafD2 > 0)) {
-    const prio  = perOpt.prioritaire || 'D1';
-    const sec   = prio === 'D1' ? 'D2' : 'D1';
-    const prioOpt  = prio === 'D1' ? perOpt.optimumD1 : perOpt.optimumD2;
-    const prioPlaf = prio === 'D1' ? plafD1 : plafD2;
-    const secPlaf  = prio === 'D1' ? plafD2 : plafD1;
-    scenarios = [
-      { label: 'A — Statu quo',            desc: 'Aucun versement',                                    ...calcScen(0) },
-      { label: `B — Optimum ${prio}`,      desc: `${prio} seul · ${e0(prioOpt)} (effacement tranche max)`,  ...calcScen(prioOpt) },
-      { label: `C — Optimum ${prio}+${sec}`, desc: `Total optimal · ${e0(perOpt.optimumTotal)}`,        ...calcScen(perOpt.optimumTotal) },
-      { label: 'D — Plafond max',          desc: `${prio} ${e0(prioPlaf)} + ${sec} ${e0(secPlaf)}`,     ...calcScen(plafD1 + plafD2) },
-    ];
-  } else if (!isCouple && plafD1 > 0) {
-    const optV = perOpt.optimumTotal || 0;
-    const t75  = Math.round((plafD1 * 0.75) / 100) * 100;
-    scenarios = [
-      { label: 'A — Statu quo',       desc: 'Aucun versement',                             ...calcScen(0) },
-      { label: 'B — Optimum fiscal',  desc: `Effacement tranches > 11% · ${e0(optV)}`,     ...calcScen(optV) },
-      { label: 'C — Partiel 75%',     desc: `${e0(t75)} versés`,                           ...calcScen(t75) },
-      { label: 'D — Plafond max',     desc: `${e0(plafD1)} versés`,                        ...calcScen(plafD1) },
-    ];
-  } else return null;
-
-  const bestScen = scenarios.reduce((best, s) => s.economie > best.economie ? s : best, scenarios[0]);
+  const reco = scenarios.find(s => s.id === recommendedId) ?? scenarios[0];
+  const sensibilite = buildTmiSortieSensitivity({ versement: reco.versement, economie: reco.economie, stopRate });
 
   return (
     <SectionBox
@@ -1268,13 +1229,14 @@ function PerScenariosTable({ p, d }) {
             <Th right>Économie</Th>
             <Th right>Effort net</Th>
             <Th right>Rendement</Th>
+            <Th right>TMI après</Th>
           </tr>
         </thead>
         <tbody>
           {scenarios.map((s, i) => {
-            const isBest = s.label === bestScen.label && i > 0;
+            const isBest = s.id === recommendedId && i > 0;
             return (
-              <tr key={i} className={isBest ? 'bg-teal-50/50' : i === 0 ? 'bg-gray-50/40' : ''}>
+              <tr key={s.id} className={isBest ? 'bg-teal-50/50' : i === 0 ? 'bg-gray-50/40' : ''}>
                 <td className="px-4 py-2.5 border-b border-gray-50">
                   <span className={`font-semibold ${isBest ? 'text-teal-800' : 'text-gray-800'}`}>{s.label}</span>
                   <span className="text-gray-400 ml-2 text-xs">{s.desc}</span>
@@ -1285,11 +1247,41 @@ function PerScenariosTable({ p, d }) {
                 <Td right plus={s.economie > 0} bold={isBest}>{s.economie > 0 ? e0(s.economie) : '—'}</Td>
                 <Td right muted={s.effort === 0}>{s.effort > 0 ? e0(s.effort) : '—'}</Td>
                 <Td right muted={s.rendement === 0}>{s.rendement > 0 ? `${s.rendement} %` : '—'}</Td>
+                <Td right muted={s.versement === 0}>{`${s.tmiResiduelle} %`}</Td>
               </tr>
             );
           })}
         </tbody>
       </table>
+
+      {reco.versement > 0 && (
+        <div className="mx-4 mb-4 mt-3 rounded-xl border border-gray-200 bg-gray-50/60 overflow-hidden">
+          <div className="px-4 py-2 border-b border-gray-200 bg-gray-100">
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Sensibilité — le PER est un report d'imposition</p>
+          </div>
+          <div className="p-4">
+            <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+              Sur le scénario recommandé (<strong>{e0(reco.versement)}</strong> versés, <strong>{e0(reco.economie)}</strong> d'économie à l'entrée),
+              l'avantage net réel dépend de votre taux d'imposition à la retraite&nbsp;:
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {sensibilite.points.map(pt => {
+                const perdant = pt.avantageNet <= 0;
+                return (
+                  <div key={pt.tmiSortie} className={`rounded-lg border p-3 text-center ${pt.estTmiDeclaree ? 'border-teal-300 bg-teal-50' : 'border-gray-200 bg-white'}`}>
+                    <p className="text-2xs text-gray-400 uppercase tracking-wide">TMI sortie {Math.round(pt.tmiSortie * 100)} %{pt.estTmiDeclaree ? ' · déclarée' : ''}</p>
+                    <p className={`text-sm font-bold tabular-nums mt-1 ${perdant ? 'text-red-600' : 'text-teal-800'}`}>{perdant ? e0(pt.avantageNet) : `+${e0(pt.avantageNet)}`}</p>
+                    {perdant && <p className="text-2xs text-red-500 mt-0.5">PER neutre/perdant</p>}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-2xs text-gray-400 italic mt-3 leading-relaxed">
+              Estimation prudente : capitalisation de l'économie d'entrée et fiscalité PFU des gains non comptées (elles jouent en votre faveur). Vérifiez votre situation avec un professionnel.
+            </p>
+          </div>
+        </div>
+      )}
     </SectionBox>
   );
 }
