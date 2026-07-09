@@ -877,6 +877,54 @@ export function calcCrypto({
   };
 }
 
+/**
+ * Fiscalité d'un rachat d'assurance-vie (de vivant) — art. 125-0 A CGI.
+ * Cases 2042 : 2CG (gains au PFU) / 2BH (gains au barème sur option).
+ * Entrée = part de produits imposable fournie par l'assureur (pas de recalcul de
+ * proportionnalité). Millésime 2025 : un contrat pré-27/09/2017 est ≥ 8 ans → le
+ * régime ne dépend que de l'ancienneté :
+ *   ≥ 8 ans : abattement (4 600/9 200 €, IR uniquement) puis 7,5 % ; PS 17,2 % pleins.
+ *   < 8 ans : PFU 12,8 % sans abattement ; PS 17,2 %.
+ * Fraction de versements > 150 000 € (12,8 % sur l'excédent) : signalée (flag), non calculée.
+ *
+ * @param {object} o
+ * @param {number}  o.gainsRachat        - part de produits imposable (assureur)
+ * @param {boolean} o.contratHuitAns     - contrat ≥ 8 ans
+ * @param {number}  [o.primesNettesFoyer=0] - total versements nets foyer (flag 150 k)
+ * @param {number}  [o.rniFoyer=0] @param {number} [o.parts=1] @param {boolean} [o.isCouple=false]
+ */
+export function calcRachatAV({
+  gainsRachat = 0, contratHuitAns = false, primesNettesFoyer = 0,
+  rniFoyer = 0, parts = 1, isCouple = false,
+} = {}) {
+  const gains = Math.max(0, gainsRachat || 0);
+  const abattement = contratHuitAns
+    ? (isCouple ? AV_ABATTEMENT_8ANS_COUPLE : AV_ABATTEMENT_8ANS_SOLO)
+    : 0;
+  const baseIR = Math.max(0, gains - abattement);
+  const tauxIR = contratHuitAns ? AV_TAUX_IR_APRES_8ANS : PFU_TAUX_IR;
+  const ir = _round(baseIR * tauxIR);
+  const ps = _round(gains * TAUX_PS_CAPITAL);
+  const total = ir + ps;
+
+  // Arbitrage barème (case 2BH) — informatif : IR marginal sur la base après abattement.
+  const irBareme = gains > 0
+    ? Math.max(0, calcIR(rniFoyer + baseIR, parts, isCouple) - calcIR(rniFoyer, parts, isCouple))
+    : 0;
+  const totalBareme = irBareme + ps;
+
+  return {
+    gainsRachat: gains, abattement, baseIR, ir, ps, total, tauxIR,
+    case2042: '2CG',
+    bareme: {
+      ir: irBareme, total: totalBareme,
+      recommande: totalBareme <= total ? 'bareme' : 'pfu',
+      economie: Math.abs(total - totalBareme),
+    },
+    flags: { primesSuperieur150k: (primesNettesFoyer || 0) > AV_SEUIL_PRIMES_TAUX_REDUIT },
+  };
+}
+
 /** Abattement durée de détention PV immo — grille IR (exonération 22 ans). */
 function tauxAbattementImmoIR(duree) {
   const g = PV_IMMO_ABATT_IR;
