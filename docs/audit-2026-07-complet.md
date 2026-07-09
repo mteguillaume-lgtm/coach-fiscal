@@ -165,7 +165,7 @@ Positif : `docExtract` local avant masquage, `EXTRACT_PROMPT` interdit les PII e
 
 - ✅ 09/07/2026 (branche per-scenarios) Scénarios A/B/C PER + bloc sensibilité TMI sortie — module pur `perScenarios.js`, TMI résiduelle par scénario, sensibilité 0/11/30 % dérivée du barème
 - ⓘ 09/07/2026 Mutualisation 6QR — **non-bug (finding périmé)** : `computePerOptimumCascade` calcule déjà l'optimum sur le plafond CUMULÉ (`plafondTotal = pd1 + pd2`) puis répartit sous chaque plafond individuel. En imposition commune, un versement sur l'un des PER réduit le même RNI foyer → optimum ni sous-estimé ni sur-estimé, et la répartition reste déclarable sans 6QR. Le 6QR ne sert qu'à *concentrer* > plafond individuel sur un seul PER (cas étroit). Seul manque résiduel : note pédagogique UI (faible valeur, non fait).
-- Rachats AV 2CH (medium)
+- ✅ 09/07/2026 (branche rachats-av) Rachats AV — cases réelles **2CG/2BH** (le titre audit « 2CH » était imprécis) : `calcRachatAV` (abattement 8 ans + 7,5/12,8 %), plugin `assurance-vie-rachat`, intégration total dû, opportunité barème CIF-safe. Insight 2025 : cas < 8 ans + PFL dégressif impossible cette année
 - ✅ 09/07/2026 (branche routeur-skills) Routeur de skills tokenisé — matching par mot entier (fini les hacks « ir »/« is »), lexique defisc dérivé de DEFISC_DISPOSITIFS, ajouts ifi/cehr/holding, 11 tests (le routeur n'en avait aucun)
 - Troncature historique chat (small)
 - Extraction logique métier hors de Rapport/Simulator/Collect + premiers tests composants (medium)

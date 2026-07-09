@@ -46,8 +46,8 @@ Légende : ✅ couvert | 🟡 partiel | ❌ non couvert | 🚫 hors scope V1
 | Dividendes avec abattement 40% (option barème) | 2DC + 2OP | ✅ | 1 — arbitragePfuBareme |
 | Option globale barème vs PFU simulateur | 2OP | ✅ | 1 — levier détecteur chiffré |
 | Coupons obligations | 2TR | 🟡 | B |
-| Produits d'AV < 8 ans rachat | 2CH | ❌ | B |
-| Produits d'AV > 8 ans rachat avec abattement | 2CH/2BH | ❌ | B |
+| Produits d'AV < 8 ans rachat | 2CG | ✅ | 2026-07 — PFU 12,8 % + 17,2 % PS (calcRachatAV) |
+| Produits d'AV > 8 ans rachat avec abattement | 2CG/2BH | ✅ | 2026-07 — abattement 4 600/9 200 € + 7,5 % / option barème (calcRachatAV) |
 | Crédit d'impôt sur dividendes étrangers | 2AB | ❌ | — |
 
 ## Plus-values mobilières et crypto
