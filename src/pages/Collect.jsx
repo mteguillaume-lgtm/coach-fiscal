@@ -265,6 +265,15 @@ const PV_FIELDS = [
     hint: 'Laissez vide pour appliquer le forfait 15 % (si détention ≥ 5 ans). Non cumulable avec les travaux déjà déduits des revenus fonciers.' },
 ];
 
+// Rachat d'assurance-vie (2CG/2BH) — part de gains fournie par l'assureur. Champs foyer.
+const AV_RACHAT_FIELDS = [
+  { key: 'av_rachat_gains', label: 'Rachat AV — part de gains imposable (fournie par l\'assureur) (€)', type: 'number', ph: '0', requires: 'assuranceVie', advanced: true,
+    hint: 'Montant des produits/gains imposables de votre rachat, tel qu\'indiqué sur le relevé/IFU de l\'assureur (pas le montant total racheté).' },
+  { key: 'av_rachat_8ans', label: 'Contrat ≥ 8 ans ?', type: 'select', opts: ['Non', 'Oui'], requires: 'assuranceVie', advanced: true,
+    dependsOn: { key: 'av_rachat_gains', check: v => parseFloat(v || 0) > 0 },
+    hint: 'Ancienneté du CONTRAT (pas des versements). ≥ 8 ans : abattement 4 600 €/9 200 € + taux 7,5 %. Sinon PFU 12,8 %.' },
+];
+
 // IFI — Impôt sur la Fortune Immobilière (PHASE 5). Impôt distinct, dû si patrimoine
 // immobilier net ≥ 1,3 M€ au 1er janvier. Champs foyer.
 const IFI_FIELDS = [
@@ -416,6 +425,7 @@ const SECTION_REV_SOLO = {
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
     ...PV_FIELDS,
+    ...AV_RACHAT_FIELDS,
     ...INTL_FIELDS,
     ...TNS_FIELDS,
   ],
@@ -524,6 +534,7 @@ const SECTION_REV_FOYER = {
       hint: 'Dividendes d\'actions (CTO). Le rapport compare PFU 30 % vs option barème (abattement 40 % + CSG déductible).' },
     { key: 'crypto', label: 'Revenus crypto (€)',       type: 'number', ph: '0', requires: 'crypto' },
     ...PV_FIELDS,
+    ...AV_RACHAT_FIELDS,
     ...INTL_FIELDS,
   ],
 };
