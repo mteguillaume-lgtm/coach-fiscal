@@ -3,8 +3,11 @@ import { getBackendConfig } from '../lib/patrimoine/backendConfigStore';
 import { getConsolidatedSnapshot } from '../lib/providers/bank';
 import { summary } from '../lib/patrimoine/calculator';
 import { appendSnapshot } from '../lib/patrimoine/history';
+import { useApp } from '../context/AppContext';
+import ManualPositions from '../components/patrimoine/ManualPositions';
 
 export default function Patrimoine() {
+  const { state } = useApp();
   const [snap, setSnap] = useState({ positions: [], errors: [] });
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +42,7 @@ export default function Patrimoine() {
       {snap.positions.length === 0 && !loading && (
         <p className="mt-6 text-gray-500">Aucun compte. Connecte une banque ou ajoute un placement.</p>
       )}
+      <ManualPositions mode={state.mode} onChange={refresh} />
     </div>
   );
 }
