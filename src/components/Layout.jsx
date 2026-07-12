@@ -31,14 +31,14 @@ function KapioLogo() {
   );
 }
 
-function NavItem({ to, Icon, label, isActive }) {
+function NavItem({ to, Icon, label, isActive, iconOnly = false }) {
   const baseClass = 'flex items-center gap-2 shrink-0 text-sm font-medium px-2.5 xl:px-4 py-2.5 rounded-xl transition-all duration-200';
   const activeClass = 'text-ink-0 bg-white/[0.08]';
   const inactiveClass = 'text-ink-200 hover:text-ink-0 hover:bg-white/[0.05]';
   return (
     <Link to={to} title={label} className={baseClass + ' ' + (isActive ? activeClass : inactiveClass)}>
       <Icon size={16} aria-hidden="true" />
-      <span className="hidden xl:inline">{label}</span>
+      {iconOnly ? null : <span className="hidden xl:inline">{label}</span>}
     </Link>
   );
 }
@@ -147,7 +147,7 @@ export default function Layout() {
             <div className="hidden sm:block w-px h-5 bg-white/[0.12] mx-3 shrink-0" />
 
             {/* Nav desktop */}
-            <nav className="hidden sm:flex items-center gap-0.5 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <nav className="hidden sm:flex items-center gap-0.5">
               {NAV_LINKS.map(link => {
                 const isActive = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
                 return <NavItem key={link.to} to={link.to} Icon={link.Icon} label={link.label} isActive={isActive} />;
@@ -158,6 +158,7 @@ export default function Layout() {
                   Icon={FlaskConical}
                   label="Fixtures"
                   isActive={pathname.startsWith('/dev/fixtures')}
+                  iconOnly
                 />
               )}
             </nav>
