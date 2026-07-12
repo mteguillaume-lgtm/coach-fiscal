@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { getBackendConfig } from '../lib/patrimoine/backendConfigStore';
 import { getConsolidatedSnapshot } from '../lib/providers/bank';
 import { summary } from '../lib/patrimoine/calculator';
-import { appendSnapshot } from '../lib/patrimoine/history';
+import { appendSnapshot, listHistory } from '../lib/patrimoine/history';
 import { useApp } from '../context/AppContext';
 import ManualPositions from '../components/patrimoine/ManualPositions';
+import AllocationDonut from '../components/patrimoine/AllocationDonut';
+import NetWorthChart from '../components/patrimoine/NetWorthChart';
+import AccountsList from '../components/patrimoine/AccountsList';
 
 export default function Patrimoine() {
   const { state } = useApp();
@@ -39,9 +42,17 @@ export default function Patrimoine() {
         </button>
       </div>
       <p className="mt-2 text-3xl font-semibold">{s.netWorth.toLocaleString('fr-FR')} €</p>
+      <p className="text-sm text-gray-500">
+        Actifs {s.assets.toLocaleString('fr-FR')} € − Dettes {s.debts.toLocaleString('fr-FR')} €
+      </p>
       {snap.positions.length === 0 && !loading && (
         <p className="mt-6 text-gray-500">Aucun compte. Connecte une banque ou ajoute un placement.</p>
       )}
+      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <AllocationDonut positions={snap.positions} />
+        <NetWorthChart history={listHistory()} />
+      </div>
+      <AccountsList positions={snap.positions} />
       <ManualPositions mode={state.mode} onChange={refresh} />
     </div>
   );
