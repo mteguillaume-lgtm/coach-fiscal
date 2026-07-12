@@ -5,7 +5,7 @@ import Stepper from './Stepper';
 import { useApp } from '../context/AppContext';
 
 const STORAGE_KEY = 'kapio.state';
-const GITHUB_URL = 'https://github.com/mteguillaume-lgtm/kapio';
+const GITHUB_URL = 'https://github.com/mteguillaume-lgtm/coach-fiscal';
 const VERSION = '0.1.0';
 const HIDE_STEPPER = ['/', '/about', '/privacy'];
 const FULL_WIDTH_PAGES = ['/', '/dashboard', '/profile', '/setup', '/rapport', '/opportunites', '/checklist', '/simulator', '/declaration'];
@@ -32,13 +32,13 @@ function KapioLogo() {
 }
 
 function NavItem({ to, Icon, label, isActive }) {
-  const baseClass = 'flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl transition-all duration-200';
+  const baseClass = 'flex items-center gap-2 shrink-0 text-sm font-medium px-2.5 xl:px-4 py-2.5 rounded-xl transition-all duration-200';
   const activeClass = 'text-ink-0 bg-white/[0.08]';
   const inactiveClass = 'text-ink-200 hover:text-ink-0 hover:bg-white/[0.05]';
   return (
-    <Link to={to} className={baseClass + ' ' + (isActive ? activeClass : inactiveClass)}>
+    <Link to={to} title={label} className={baseClass + ' ' + (isActive ? activeClass : inactiveClass)}>
       <Icon size={16} aria-hidden="true" />
-      <span className="hidden lg:inline">{label}</span>
+      <span className="hidden xl:inline">{label}</span>
     </Link>
   );
 }
@@ -147,7 +147,7 @@ export default function Layout() {
             <div className="hidden sm:block w-px h-5 bg-white/[0.12] mx-3 shrink-0" />
 
             {/* Nav desktop */}
-            <nav className="hidden sm:flex items-center gap-0.5">
+            <nav className="hidden sm:flex items-center gap-0.5 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {NAV_LINKS.map(link => {
                 const isActive = pathname === link.to || (link.to !== '/' && pathname.startsWith(link.to));
                 return <NavItem key={link.to} to={link.to} Icon={link.Icon} label={link.label} isActive={isActive} />;
@@ -164,7 +164,7 @@ export default function Layout() {
           </div>
 
           {/* ── Droite : actions utilitaires ── */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={handleReset}
