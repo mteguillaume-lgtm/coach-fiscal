@@ -43,6 +43,16 @@ export default function Patrimoine() {
         </button>
       </div>
       <ConnectBankButton mode={state.mode} />
+      {snap.errors?.length > 0 && (
+        <div role="alert" className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          <p className="font-medium">Synchronisation bancaire indisponible — reconnecte tes banques.</p>
+          <ul className="mt-1 list-disc pl-5">
+            {snap.errors.map((err, i) => (
+              <li key={i}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p className="mt-2 text-3xl font-semibold">{s.netWorth.toLocaleString('fr-FR')} €</p>
       <p className="text-sm text-gray-500">
         Actifs {s.assets.toLocaleString('fr-FR')} € − Dettes {s.debts.toLocaleString('fr-FR')} €

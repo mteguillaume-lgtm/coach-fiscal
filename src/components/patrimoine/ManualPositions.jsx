@@ -45,6 +45,11 @@ export default function ManualPositions({ mode = 'solo', onChange }) {
         </label>
         <label className="flex flex-col text-sm">Valeur (€)
           <input type="number" step="0.01" value={form.value} onChange={set('value')} className="rounded border p-2" />
+          {form.type === 'loan' && (
+            <span className="mt-1 text-xs text-gray-500">
+              Saisis le capital restant dû ; il sera compté comme une dette.
+            </span>
+          )}
         </label>
         {mode === 'couple' && (
           <label className="flex flex-col text-sm">Titulaire

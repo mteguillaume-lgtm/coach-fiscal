@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getBackendConfig, setBackendConfig, hasBackendConfig } from '../../lib/patrimoine/backendConfigStore';
 import * as gocardless from '../../lib/providers/bank/gocardless';
 
@@ -8,6 +8,16 @@ export default function ConnectBankButton({ mode = 'solo' }) {
   const [institutionId, setInstitutionId] = useState('');
   const [owner, setOwner] = useState('d1');
   const [error, setError] = useState('');
+  const [institutions, setInstitutions] = useState([]);
+
+  useEffect(() => {
+    if (!configured) return;
+    let cancelled = false;
+    gocardless.listInstitutions(getBackendConfig())
+      .then((list) => { if (!cancelled) setInstitutions(Array.isArray(list) ? list : []); })
+      .catch(() => { if (!cancelled) setInstitutions([]); });
+    return () => { cancelled = true; };
+  }, [configured]);
 
   const saveConfig = (e) => {
     e.preventDefault();
@@ -18,7 +28,8 @@ export default function ConnectBankButton({ mode = 'solo' }) {
   const connect = async () => {
     setError('');
     try {
-      const { link } = await gocardless.startConnect({ ...getBackendConfig(), institutionId, owner });
+      const institutionName = institutions.find((i) => i.id === institutionId)?.name;
+      const { link } = await gocardless.startConnect({ ...getBackendConfig(), institutionId, institutionName, owner });
       window.location.href = link;
     } catch (e) {
       setError(e.message);
@@ -42,8 +53,17 @@ export default function ConnectBankButton({ mode = 'solo' }) {
 
   return (
     <div className="mt-4 flex flex-wrap items-end gap-2">
-      <label className="flex flex-col text-sm">Banque (identifiant GoCardless)
-        <input value={institutionId} onChange={(e) => setInstitutionId(e.target.value)} placeholder="ex. BNP_FR…" className="rounded border p-2" />
+      <label className="flex flex-col text-sm">Banque
+        {institutions.length > 0 ? (
+          <select value={institutionId} onChange={(e) => setInstitutionId(e.target.value)} className="rounded border p-2">
+            <option value="">— Choisir une banque —</option>
+            {institutions.map((inst) => (
+              <option key={inst.id} value={inst.id}>{inst.name}</option>
+            ))}
+          </select>
+        ) : (
+          <input value={institutionId} onChange={(e) => setInstitutionId(e.target.value)} placeholder="ex. BNP_FR…" className="rounded border p-2" />
+        )}
       </label>
       {mode === 'couple' && (
         <label className="flex flex-col text-sm">Titulaire

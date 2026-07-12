@@ -20,6 +20,18 @@ describe('patrimoine/model', () => {
     expect(isDebt(makePosition({ value: 0 }))).toBe(false);
   });
 
+  it('makePosition force les types dette (loan) en valeur négative', () => {
+    expect(makePosition({ type: 'loan', value: 184000 }).value).toBe(-184000);
+  });
+
+  it('makePosition laisse les types actif inchangés', () => {
+    expect(makePosition({ type: 'pea', value: 184000 }).value).toBe(184000);
+  });
+
+  it('makePosition conserve un prêt déjà négatif', () => {
+    expect(makePosition({ type: 'loan', value: -184000 }).value).toBe(-184000);
+  });
+
   it('POSITION_TYPES couvre les 8 types du contrat', () => {
     expect(POSITION_TYPES).toEqual(
       expect.arrayContaining(['checking','savings','life_insurance','pea','securities','per','loan','real_estate']),

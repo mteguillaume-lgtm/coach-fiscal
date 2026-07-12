@@ -19,13 +19,15 @@ const randomId = () =>
 
 /** Complète un poste partiel avec les défauts du contrat. */
 export function makePosition(partial = {}) {
+  const type = partial.type ?? 'checking';
+  const v = Number(partial.value ?? 0);
   return {
     id: partial.id ?? `pos-${randomId()}`,
     source: partial.source ?? 'manual',
     bank: partial.bank ?? '',
-    type: partial.type ?? 'checking',
+    type,
     label: partial.label ?? '',
-    value: Number(partial.value ?? 0),
+    value: DEBT_TYPES.has(type) ? -Math.abs(v) : v,
     currency: partial.currency ?? 'EUR',
     ...(partial.iban_last4 ? { iban_last4: partial.iban_last4 } : {}),
     owner: partial.owner ?? 'd1',

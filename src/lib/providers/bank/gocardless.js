@@ -19,10 +19,10 @@ export async function getPositions({ url, secret }, fetchImpl = fetch) {
   return positions || [];
 }
 
-export async function startConnect({ url, secret, institutionId, owner }, fetchImpl = fetch) {
+export async function startConnect({ url, secret, institutionId, institutionName, owner }, fetchImpl = fetch) {
   return call(url, secret, '/api/bank/connect', {
     method: 'POST',
-    body: JSON.stringify({ institutionId, owner }),
+    body: JSON.stringify({ institutionId, institutionName, owner }),
   }, fetchImpl);
 }
 

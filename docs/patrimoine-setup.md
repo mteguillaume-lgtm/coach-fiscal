@@ -16,7 +16,9 @@ Le module Patrimoine a deux sources de données :
    backend (quelques fonctions serverless dans `api/`) qui parle à
    [GoCardless Bank Account Data](https://gocardless.com/bank-account-data/)
    (ex-Nordigen), l'agrégateur bancaire européen. Kapio ne stocke jamais vos
-   identifiants bancaires : le backend ne fait que relayer un jeton chiffré.
+   identifiants bancaires : le backend ne conserve que des références de
+   requisition (identifiant, titulaire, banque) ; le jeton d'accès GoCardless
+   est redemandé à chaque appel et n'est jamais persisté.
 2. **Placements saisis à la main** (PEA, assurance-vie, compte-titres, PER,
    immobilier, prêts…) — directement dans `/patrimoine`, sans rien à
    installer. GoCardless ne donne pas accès à ces enveloppes, donc cette
@@ -59,9 +61,9 @@ GOCARDLESS_SECRET_KEY=...
 ## Étape 2 — Créer une base Upstash Redis
 
 Le backend a besoin d'un petit espace de stockage clé-valeur pour garder la
-trace des connexions bancaires en cours (chiffrées) et limiter les abus
-(rate-limiting). Upstash Redis convient très bien et son offre gratuite est
-largement suffisante pour un usage personnel.
+trace des références de connexion bancaire (requisitions) en cours et limiter
+les abus (rate-limiting). Upstash Redis convient très bien et son offre
+gratuite est largement suffisante pour un usage personnel.
 
 1. Créez un compte sur https://upstash.com/ (gratuit).
 2. **Create Database** → choisissez une région proche de vous → type
@@ -75,26 +77,19 @@ UPSTASH_REDIS_REST_TOKEN=...
 
 ---
 
-## Étape 3 — Générer les deux secrets internes
+## Étape 3 — Générer le secret interne
 
-Le backend chiffre les jetons bancaires avant de les stocker, et exige un
-mot de passe personnel pour éviter que n'importe qui puisse l'appeler.
-Générez ces deux valeurs vous-même, avec `openssl` :
+Le backend exige un mot de passe personnel pour éviter que n'importe qui
+puisse l'appeler. Générez cette valeur vous-même, avec `openssl` :
 
 ```bash
-# Clé de chiffrement des jetons bancaires (32 octets = 64 caractères hexa)
-openssl rand -hex 32
-# → à mettre dans TOKEN_ENCRYPTION_KEY
-
 # Votre jeton secret personnel (utilisé par Kapio pour s'authentifier au backend)
 openssl rand -hex 24
 # → à mettre dans KAPIO_BACKEND_SECRET
 ```
 
-Conservez ces deux valeurs de côté : `TOKEN_ENCRYPTION_KEY` ne doit **jamais**
-changer une fois des connexions bancaires actives (sinon elles deviennent
-indéchiffrables), et `KAPIO_BACKEND_SECRET` est le mot de passe que vous
-saisirez plus tard dans Kapio.
+Conservez cette valeur de côté : `KAPIO_BACKEND_SECRET` est le mot de passe
+que vous saisirez plus tard dans Kapio.
 
 ---
 
@@ -125,7 +120,6 @@ Ensuite, renseignez les variables d'environnement (reprenez les valeurs des
 ```bash
 vercel env add GOCARDLESS_SECRET_ID production
 vercel env add GOCARDLESS_SECRET_KEY production
-vercel env add TOKEN_ENCRYPTION_KEY production
 vercel env add KAPIO_BACKEND_SECRET production
 vercel env add UPSTASH_REDIS_REST_URL production
 vercel env add UPSTASH_REDIS_REST_TOKEN production
@@ -159,11 +153,12 @@ elle-même, puisque backend et frontend vivent dans le même projet.
 3. Cliquez sur **Enregistrer**. Ces deux valeurs sont sauvegardées dans le
    `localStorage` de votre navigateur (comme votre clé API Claude) — elles ne
    sont jamais envoyées ailleurs qu'à votre propre backend.
-4. Le formulaire fait place à un second bloc : saisissez l'**identifiant
-   GoCardless de votre banque** (« Banque (identifiant GoCardless) », ex.
-   `BNP_FR...` — la liste des identifiants par établissement est disponible
-   via l'API GoCardless, `institutions.js` dans `api/bank/`). En mode couple,
-   choisissez aussi le **titulaire** (Déclarant 1 / Déclarant 2 / Commun).
+4. Le formulaire fait place à un second bloc : choisissez votre **banque**
+   dans la liste déroulante (remplie automatiquement via l'API GoCardless,
+   `institutions.js` dans `api/bank/`). Si la liste ne peut pas être chargée,
+   un champ texte de secours apparaît pour saisir directement l'identifiant
+   GoCardless (ex. `BNP_FR...`). En mode couple, choisissez aussi le
+   **titulaire** (Déclarant 1 / Déclarant 2 / Commun).
 5. Cliquez sur **« Connecter une banque »**. Vous êtes redirigé vers le
    parcours d'authentification bancaire officiel (site de votre banque ou
    partenaire GoCardless). Une fois le consentement donné, vous revenez sur
@@ -220,7 +215,7 @@ puis redéployé la SPA. Cette même consigne figure en tête de `.env.example`.
 
 | Symptôme | Piste |
 |---|---|
-| Le bouton « Connecter une banque » reste inactif | Vérifiez que l'identifiant GoCardless de la banque n'est pas vide. |
+| Le bouton « Connecter une banque » reste inactif | Vérifiez qu'une banque est bien sélectionnée (ou l'identifiant GoCardless saisi si la liste déroulante n'a pas pu se charger). |
 | Erreur affichée après clic sur « Connecter une banque » | Vérifiez `GOCARDLESS_SECRET_ID` / `GOCARDLESS_SECRET_KEY` côté Vercel, et que le backend est bien redéployé après ajout des variables d'environnement. |
 | L'appel au backend est bloqué silencieusement (rien ne se passe, erreur CSP dans la console navigateur) | Le backend n'est probablement pas sur la même origine que la SPA — voir la note de sécurité ci-dessus. |
 | Les comptes ne se rafraîchissent plus après un moment | Le consentement bancaire (~90 jours) a probablement expiré — reconnectez la banque concernée. |
