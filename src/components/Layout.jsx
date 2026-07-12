@@ -8,7 +8,7 @@ const STORAGE_KEY = 'kapio.state';
 const GITHUB_URL = 'https://github.com/mteguillaume-lgtm/coach-fiscal';
 const VERSION = '0.1.0';
 const HIDE_STEPPER = ['/', '/about', '/privacy'];
-const FULL_WIDTH_PAGES = ['/', '/dashboard', '/profile', '/setup', '/rapport', '/opportunites', '/checklist', '/simulator', '/declaration'];
+const FULL_WIDTH_PAGES = ['/', '/dashboard', '/patrimoine', '/profile', '/setup', '/rapport', '/opportunites', '/checklist', '/simulator', '/declaration'];
 
 const NAV_LINKS = [
   { to: '/dashboard',   Icon: LayoutDashboard, label: 'Dashboard',   mobileLabel: 'Board'    },
