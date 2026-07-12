@@ -32,8 +32,8 @@ export default defineConfig([
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {
-    // Scripts d'outillage exécutés par Node (update-bareme, syncs).
-    files: ['scripts/**/*.js', 'vitest.setup.js'],
+    // Scripts d'outillage exécutés par Node (update-bareme, syncs) + backend api/ (Vercel Functions).
+    files: ['scripts/**/*.js', 'vitest.setup.js', 'api/**/*.js'],
     languageOptions: { globals: globals.node },
   },
   {
