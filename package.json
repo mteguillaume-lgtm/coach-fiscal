@@ -17,6 +17,7 @@
     "sync:all": "npm run sync:paperasse && npm run sync:skills"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.0",
     "framer-motion": "^12.39.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.14.0",

@@ -15,6 +15,7 @@ const Opportunites   = lazy(() => import('./pages/Opportunites'));
 const Simulator      = lazy(() => import('./pages/Simulator'));
 const DeclarationGuide = lazy(() => import('./pages/DeclarationGuide'));
 const Dashboard      = lazy(() => import('./pages/Dashboard'));
+const Patrimoine     = lazy(() => import('./pages/Patrimoine'));
 const Rapport        = lazy(() => import('./pages/Rapport'));
 const About          = lazy(() => import('./pages/About'));
 const Privacy        = lazy(() => import('./pages/Privacy'));
@@ -73,6 +74,7 @@ export default function App() {
                 <Route path="/collect"    element={<Collect />}        />
                 <Route path="/profile"    element={<Profile />}        />
                 <Route path="/dashboard"  element={<Dashboard />}      />
+                <Route path="/patrimoine" element={<Patrimoine />}     />
                 <Route path="/chat"       element={<Chat />}           />
                 <Route path="/checklist"  element={<Checklist />}      />
                 <Route path="/opportunites" element={<Opportunites />} />

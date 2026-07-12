@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { GitFork, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw, Lock, FlaskConical, Eye } from 'lucide-react';
+import { GitFork, ClipboardList, Calculator, LayoutDashboard, BookOpen, MessageSquare, TrendingUp, RotateCcw, Lock, FlaskConical, Eye, Wallet } from 'lucide-react';
 import Stepper from './Stepper';
 import { useApp } from '../context/AppContext';
 
@@ -12,6 +12,7 @@ const FULL_WIDTH_PAGES = ['/', '/dashboard', '/profile', '/setup', '/rapport', '
 
 const NAV_LINKS = [
   { to: '/dashboard',   Icon: LayoutDashboard, label: 'Dashboard',   mobileLabel: 'Board'    },
+  { to: '/patrimoine',  Icon: Wallet,          label: 'Patrimoine',  mobileLabel: 'Patrim.'  },
   { to: '/opportunites',Icon: TrendingUp,       label: 'Opportunites',mobileLabel: 'Opport.'  },
   { to: '/checklist',   Icon: ClipboardList,    label: 'Checklist',   mobileLabel: 'Check'    },
   { to: '/simulator',   Icon: Calculator,       label: 'Simulateur',  mobileLabel: 'Simul.'   },

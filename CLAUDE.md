@@ -84,6 +84,7 @@ Sections are delimited by `== SECTION NAME ==`. In couple mode, sections are dup
 | `/collect` | Data collection form | needs API key |
 | `/profile` | Generated profile view | needs profile |
 | `/dashboard` | Tax summary + breakdown | needs profile |
+| `/patrimoine` | Patrimoine (comptes auto + saisie manuelle) | needs profile |
 | `/rapport` | AI-generated report | needs profile |
 | `/opportunites` | Optimization opportunities | needs profile |
 | `/simulator` | Savings envelope simulator | needs profile |
