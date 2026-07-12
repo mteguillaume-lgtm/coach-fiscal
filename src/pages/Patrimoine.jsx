@@ -8,6 +8,7 @@ import ManualPositions from '../components/patrimoine/ManualPositions';
 import AllocationDonut from '../components/patrimoine/AllocationDonut';
 import NetWorthChart from '../components/patrimoine/NetWorthChart';
 import AccountsList from '../components/patrimoine/AccountsList';
+import ConnectBankButton from '../components/patrimoine/ConnectBankButton';
 
 export default function Patrimoine() {
   const { state } = useApp();
@@ -41,6 +42,7 @@ export default function Patrimoine() {
           {loading ? 'Actualisation…' : '↻ Actualiser'}
         </button>
       </div>
+      <ConnectBankButton mode={state.mode} />
       <p className="mt-2 text-3xl font-semibold">{s.netWorth.toLocaleString('fr-FR')} €</p>
       <p className="text-sm text-gray-500">
         Actifs {s.assets.toLocaleString('fr-FR')} € − Dettes {s.debts.toLocaleString('fr-FR')} €
