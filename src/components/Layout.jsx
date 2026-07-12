@@ -80,9 +80,7 @@ export default function Layout() {
     ? 'h-screen overflow-x-hidden overflow-y-hidden flex flex-col bg-ink-900'
     : 'min-h-screen overflow-x-hidden flex flex-col bg-ink-900';
 
-  const headerInnerClass = isFullWidth
-    ? 'max-w-7xl mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4'
-    : 'max-w-[1100px] mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4';
+  const headerInnerClass = 'max-w-7xl mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between gap-4';
 
   const mainContentClass = isFullWidth
     ? 'w-full animate-fade-in'
