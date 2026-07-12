@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { listHistory, appendSnapshot, HISTORY_KEY } from '../history';
+import { appendSnapshot, HISTORY_KEY } from '../history';
 
 function memStorage(init) {
   const m = new Map(init ? [[HISTORY_KEY, init]] : []);
