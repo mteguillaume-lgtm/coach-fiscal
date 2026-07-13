@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { RotateCcw, Wallet, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { getBackendConfig } from '../lib/patrimoine/backendConfigStore';
 import { getConsolidatedSnapshot } from '../lib/providers/bank';
+import { completeConnect } from '../lib/providers/bank/enablebanking';
 import { summary } from '../lib/patrimoine/calculator';
 import { appendSnapshot, listHistory } from '../lib/patrimoine/history';
 import { useApp } from '../context/AppContext';
@@ -37,6 +38,7 @@ export default function Patrimoine() {
   const { state } = useApp();
   const [snap, setSnap] = useState({ positions: [], errors: [] });
   const [loading, setLoading] = useState(false);
+  const [connectError, setConnectError] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -53,8 +55,20 @@ export default function Patrimoine() {
   // Chargement initial au montage (pattern data-fetching documenté react.dev :
   // https://react.dev/learn/synchronizing-with-effects#fetching-data — le setLoading(true)
   // synchrone en tête de `refresh` est un faux positif connu de cette règle stricte).
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { refresh(); }, [refresh]);
+  // Si la banque vient de nous rediriger (?code=…&state=…), on finalise d'abord
+  // la connexion auprès du backend, puis on rafraîchit.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!code) { refresh(); return; }
+    window.history.replaceState({}, '', window.location.pathname);
+    completeConnect({ ...getBackendConfig(), code, state })
+      .then(() => setConnectError(''))
+      .catch((e) => setConnectError(`Connexion bancaire non finalisée : ${e.message}`))
+      .finally(() => refresh());
+  }, [refresh]);
 
   const s = summary(snap.positions);
 
@@ -91,7 +105,7 @@ export default function Patrimoine() {
         </motion.div>
 
         {/* ERREURS DE SYNC */}
-        {snap.errors?.length > 0 && (
+        {(snap.errors?.length > 0 || connectError) && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -104,7 +118,7 @@ export default function Patrimoine() {
               Synchronisation bancaire indisponible — reconnecte tes banques.
             </p>
             <ul className="mt-2 list-disc pl-6 text-warning-400/80">
-              {snap.errors.map((err, i) => (
+              {[...(connectError ? [connectError] : []), ...snap.errors].map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
             </ul>

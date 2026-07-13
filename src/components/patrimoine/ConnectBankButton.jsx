@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Landmark, Plus } from 'lucide-react';
 import { getBackendConfig, setBackendConfig, hasBackendConfig } from '../../lib/patrimoine/backendConfigStore';
-import * as gocardless from '../../lib/providers/bank/gocardless';
+import * as enablebanking from '../../lib/providers/bank/enablebanking';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -19,7 +19,7 @@ export default function ConnectBankButton({ mode = 'solo' }) {
   useEffect(() => {
     if (!configured) return;
     let cancelled = false;
-    gocardless.listInstitutions(getBackendConfig())
+    enablebanking.listInstitutions(getBackendConfig())
       .then((list) => { if (!cancelled) setInstitutions(Array.isArray(list) ? list : []); })
       .catch(() => { if (!cancelled) setInstitutions([]); });
     return () => { cancelled = true; };
@@ -35,7 +35,7 @@ export default function ConnectBankButton({ mode = 'solo' }) {
     setError('');
     try {
       const institutionName = institutions.find((i) => i.id === institutionId)?.name;
-      const { link } = await gocardless.startConnect({ ...getBackendConfig(), institutionId, institutionName, owner });
+      const { link } = await enablebanking.startConnect({ ...getBackendConfig(), institutionId, institutionName, owner });
       window.location.href = link;
     } catch (e) {
       setError(e.message);
@@ -102,7 +102,7 @@ export default function ConnectBankButton({ mode = 'solo' }) {
                   </select>
                 ) : (
                   <input value={institutionId} onChange={(e) => setInstitutionId(e.target.value)}
-                         placeholder="ex. BNP_FR…" className="input-dark" />
+                         placeholder="ex. FR::BoursoBank" className="input-dark" />
                 )}
               </label>
               {mode === 'couple' && (
