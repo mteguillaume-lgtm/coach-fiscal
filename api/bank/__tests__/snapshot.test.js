@@ -2,14 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../_lib/auth.js', () => ({ requireSecret: vi.fn() }));
 vi.mock('../../_lib/store.js', () => ({
-  listRequisitions: vi.fn().mockResolvedValue([{ id: 'req-1', owner: 'd1', bank: 'BNP' }]),
+  listSessions: vi.fn().mockResolvedValue([{ id: 'sess-1', owner: 'd1', bank: 'BNP' }]),
 }));
-vi.mock('../../_lib/gocardlessClient.js', () => ({
-  getAccessToken: vi.fn().mockResolvedValue('tok'),
-  getRequisitionAccounts: vi.fn().mockResolvedValue(['acc-1']),
-  getAccountDetails: vi.fn().mockResolvedValue({ cashAccountType: 'CACC', name: 'CC', iban: 'FR760001' }),
-  getAccountBalance: vi.fn().mockResolvedValue({ amount: '3000', currency: 'EUR' }),
+vi.mock('../../_lib/enableBankingClient.js', () => ({
+  getSessionAccounts: vi.fn().mockResolvedValue({ status: 'AUTHORIZED', accountUids: ['acc-1'] }),
+  getAccountDetails: vi.fn().mockResolvedValue({ cash_account_type: 'CACC', name: 'CC', account_id: { iban: 'FR760001' } }),
+  getAccountBalances: vi.fn().mockResolvedValue([{ balance_type: 'ITAV', balance_amount: { amount: '3000', currency: 'EUR' } }]),
 }));
+
+import { getSessionAccounts } from '../../_lib/enableBankingClient.js';
 
 function mockRes() {
   return { statusCode: 200, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
@@ -23,6 +24,18 @@ describe('GET /api/bank/snapshot', () => {
     const res = mockRes();
     await handler({ method: 'GET', headers: {} }, res);
     expect(res.statusCode).toBe(200);
-    expect(res.body.positions[0]).toMatchObject({ source: 'gocardless', type: 'checking', value: 3000, bank: 'BNP', owner: 'd1' });
+    expect(res.body.positions[0]).toMatchObject({ source: 'enablebanking', type: 'checking', value: 3000, bank: 'BNP', owner: 'd1' });
+    expect(res.body.errors).toEqual([]);
+  });
+
+  it('une session en échec remonte dans errors sans casser la réponse', async () => {
+    getSessionAccounts.mockRejectedValueOnce(new Error('Enable Banking 401: consent expired'));
+    const { default: handler } = await import('../snapshot.js');
+    const res = mockRes();
+    await handler({ method: 'GET', headers: {} }, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.positions).toEqual([]);
+    expect(res.body.errors[0]).toMatch(/BNP/);
+    expect(res.body.errors[0]).toMatch(/reconnectez/i);
   });
 });
