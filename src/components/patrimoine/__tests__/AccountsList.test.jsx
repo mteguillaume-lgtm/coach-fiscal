@@ -8,8 +8,8 @@ import AccountsList from '../AccountsList';
 describe('AccountsList', () => {
   it('groupe les comptes auto par banque et ignore le manuel', () => {
     render(<AccountsList positions={[
-      { id: 'gc-1', source: 'gocardless', bank: 'BNP', type: 'checking', label: 'CC', value: 3000 },
-      { id: 'gc-2', source: 'gocardless', bank: 'BNP', type: 'savings', label: 'Livret', value: 2000 },
+      { id: 'eb-1', source: 'enablebanking', bank: 'BNP', type: 'checking', label: 'CC', value: 3000 },
+      { id: 'eb-2', source: 'enablebanking', bank: 'BNP', type: 'savings', label: 'Livret', value: 2000 },
       { id: 'man-1', source: 'manual', bank: 'Bourso', type: 'pea', label: 'PEA', value: 42000 },
     ]} />);
     expect(screen.getByText('BNP')).toBeInTheDocument();

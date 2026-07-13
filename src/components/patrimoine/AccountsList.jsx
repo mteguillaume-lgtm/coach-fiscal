@@ -3,7 +3,7 @@ import { Landmark } from 'lucide-react';
 import { byBank } from '../../lib/patrimoine/calculator';
 
 export default function AccountsList({ positions }) {
-  const auto = positions.filter((p) => p.source === 'gocardless');
+  const auto = positions.filter((p) => p.source === 'enablebanking');
   if (auto.length === 0) return null;
   const totals = byBank(auto);
   const banks = [...new Set(auto.map((p) => p.bank || '—'))];

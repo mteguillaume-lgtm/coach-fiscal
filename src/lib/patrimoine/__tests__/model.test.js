@@ -10,8 +10,8 @@ describe('patrimoine/model', () => {
   });
 
   it('makePosition conserve les valeurs fournies', () => {
-    const p = makePosition({ id: 'x', source: 'gocardless', owner: 'joint', manual: false, value: -5, type: 'loan', bank: 'X', label: 'P' });
-    expect(p).toMatchObject({ id: 'x', source: 'gocardless', owner: 'joint', manual: false });
+    const p = makePosition({ id: 'x', source: 'enablebanking', owner: 'joint', manual: false, value: -5, type: 'loan', bank: 'X', label: 'P' });
+    expect(p).toMatchObject({ id: 'x', source: 'enablebanking', owner: 'joint', manual: false });
   });
 
   it('isAsset/isDebt suivent le signe de value', () => {

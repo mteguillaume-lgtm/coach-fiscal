@@ -1,4 +1,4 @@
-// Modèle normalisé « Position » — contrat partagé entre sources (GoCardless,
+// Modèle normalisé « Position » — contrat partagé entre sources (Enable Banking,
 // saisie manuelle) et calculs. value > 0 = actif, value < 0 = dette.
 
 export const POSITION_TYPES = [
