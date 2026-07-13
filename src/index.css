@@ -269,6 +269,14 @@
   .scroll-area {
     @apply overflow-y-auto max-h-[60vh] pr-2;
   }
+
+  /* Inputs sombres — formulaires Patrimoine */
+  .input-dark {
+    @apply w-full rounded-lg border border-white/[0.08] bg-ink-850 px-3 py-2 text-sm text-ink-0 placeholder:text-ink-300 outline-none transition-colors duration-200;
+  }
+  .input-dark:focus {
+    @apply border-kapio-500/50 ring-1 ring-kapio-500/30;
+  }
 }
 
 /* ────────────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // src/components/patrimoine/__tests__/ManualPositions.test.jsx
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import ManualPositions from '../ManualPositions';
 import { MANUAL_KEY } from '../../../lib/patrimoine/manualStore';
 
@@ -27,14 +27,24 @@ beforeAll(() => {
 });
 
 beforeEach(() => localStorage.clear());
+// Pas de globals:true dans vite.config.js → RTL n'auto-nettoie pas le DOM entre tests
+afterEach(cleanup);
 
 describe('ManualPositions', () => {
+  it('replie le formulaire par défaut et l’ouvre via « Ajouter un placement »', () => {
+    render(<ManualPositions mode="solo" />);
+    expect(screen.queryByLabelText(/libellé/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /ajouter un placement/i }));
+    expect(screen.getByLabelText(/libellé/i)).toBeInTheDocument();
+  });
+
   it('ajoute un poste manuel via le formulaire', () => {
     const onChange = vi.fn();
     render(<ManualPositions mode="solo" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /ajouter un placement/i }));
     fireEvent.change(screen.getByLabelText(/libellé/i), { target: { value: 'Mon PEA' } });
     fireEvent.change(screen.getByLabelText(/valeur/i), { target: { value: '42000' } });
-    fireEvent.click(screen.getByRole('button', { name: /ajouter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^ajouter$/i }));
     expect(JSON.parse(localStorage.getItem(MANUAL_KEY))).toHaveLength(1);
     expect(onChange).toHaveBeenCalled();
     expect(screen.getByText('Mon PEA')).toBeInTheDocument();
