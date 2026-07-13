@@ -11,9 +11,15 @@ export async function listSessions() {
   return (await redis().get(SESSIONS_KEY)) || [];
 }
 
+// Reconnecter une banque remplace la session précédente du même couple
+// owner/bank (en plus du dédoublonnage par id) pour éviter de compter les
+// mêmes comptes deux fois.
 export async function saveSession({ id, owner, bank, validUntil }) {
   const list = await listSessions();
-  const next = [...list.filter((s) => s.id !== id), { id, owner, bank, validUntil, createdAt: new Date().toISOString() }];
+  const next = [
+    ...list.filter((s) => s.id !== id && !(s.owner === owner && s.bank === bank)),
+    { id, owner, bank, validUntil, createdAt: new Date().toISOString() },
+  ];
   await redis().set(SESSIONS_KEY, next);
 }
 

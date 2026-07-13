@@ -11,6 +11,9 @@ function privateKeyPem() {
 }
 
 export function makeJwt(now = Date.now()) {
+  if (!process.env.ENABLE_BANKING_APP_ID || !process.env.ENABLE_BANKING_PRIVATE_KEY) {
+    throw new Error('ENABLE_BANKING_APP_ID / ENABLE_BANKING_PRIVATE_KEY non configurés côté serveur');
+  }
   const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
   const iat = Math.floor(now / 1000);
   const header = b64({ typ: 'JWT', alg: 'RS256', kid: process.env.ENABLE_BANKING_APP_ID });

@@ -31,6 +31,20 @@ describe('enableBankingClient', () => {
     expect(ok).toBe(true);
   });
 
+  it('makeJwt échoue avec un message clair si les env vars ne sont pas configurées', async () => {
+    const { makeJwt } = await import('../enableBankingClient.js');
+    const appId = process.env.ENABLE_BANKING_APP_ID;
+    const privateKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
+    delete process.env.ENABLE_BANKING_APP_ID;
+    delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    try {
+      expect(() => makeJwt()).toThrow(/non configurés/);
+    } finally {
+      process.env.ENABLE_BANKING_APP_ID = appId;
+      process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    }
+  });
+
   it('listAspsps appelle /aspsps avec Bearer JWT et mappe la réponse', async () => {
     const { listAspsps } = await import('../enableBankingClient.js');
     const fetchMock = vi.fn().mockResolvedValue({

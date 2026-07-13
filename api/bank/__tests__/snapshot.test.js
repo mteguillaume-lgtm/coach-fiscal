@@ -11,6 +11,7 @@ vi.mock('../../_lib/enableBankingClient.js', () => ({
 }));
 
 import { getSessionAccounts } from '../../_lib/enableBankingClient.js';
+import { listSessions } from '../../_lib/store.js';
 
 function mockRes() {
   return { statusCode: 200, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
@@ -37,5 +38,16 @@ describe('GET /api/bank/snapshot', () => {
     expect(res.body.positions).toEqual([]);
     expect(res.body.errors[0]).toMatch(/BNP/);
     expect(res.body.errors[0]).toMatch(/reconnectez/i);
+  });
+
+  it('une session au consentement expiré est ignorée sans appel à Enable Banking', async () => {
+    listSessions.mockResolvedValueOnce([{ id: 'sess-old', owner: 'd1', bank: 'BNP', validUntil: '2020-01-01T00:00:00Z' }]);
+    const { default: handler } = await import('../snapshot.js');
+    const res = mockRes();
+    await handler({ method: 'GET', headers: {} }, res);
+    expect(res.statusCode).toBe(200);
+    expect(getSessionAccounts).not.toHaveBeenCalled();
+    expect(res.body.errors[0]).toMatch(/consentement expiré/);
+    expect(res.body.positions).toEqual([]);
   });
 });

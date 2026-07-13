@@ -12,6 +12,10 @@ export default async function handler(req, res) {
     // Une banque en échec (consentement expiré, révoqué…) ne doit pas
     // empêcher les autres de remonter.
     for (const s of sessions) {
+      if (s.validUntil && Date.parse(s.validUntil) < Date.now()) {
+        errors.push(`${s.bank} : consentement expiré — reconnectez la banque`);
+        continue;
+      }
       try {
         const { accountUids } = await getSessionAccounts(s.id);
         for (const uid of accountUids) {

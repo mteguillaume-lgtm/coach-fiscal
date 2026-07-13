@@ -55,15 +55,22 @@ export default function Patrimoine() {
   // Chargement initial au montage (pattern data-fetching documenté react.dev :
   // https://react.dev/learn/synchronizing-with-effects#fetching-data — le setLoading(true)
   // synchrone en tête de `refresh` est un faux positif connu de cette règle stricte).
-  // Si la banque vient de nous rediriger (?code=…&state=…), on finalise d'abord
-  // la connexion auprès du backend, puis on rafraîchit.
+  // Si la banque vient de nous rediriger (?code=…&state=… ou ?error=…), on
+  // nettoie d'abord l'URL, puis on finalise la connexion ou on affiche
+  // l'annulation/le refus avant de rafraîchir.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const bankError = params.get('error');
+    if (code || bankError) window.history.replaceState({}, '', window.location.pathname);
+    if (bankError) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConnectError(`Connexion bancaire annulée ou refusée : ${bankError}`);
+      refresh();
+      return;
+    }
     if (!code) { refresh(); return; }
-    window.history.replaceState({}, '', window.location.pathname);
     completeConnect({ ...getBackendConfig(), code, state })
       .then(() => setConnectError(''))
       .catch((e) => setConnectError(`Connexion bancaire non finalisée : ${e.message}`))
@@ -95,7 +102,7 @@ export default function Patrimoine() {
           </div>
           <button
             type="button"
-            onClick={refresh}
+            onClick={() => { setConnectError(''); refresh(); }}
             disabled={loading}
             className="btn-ghost-dark !text-sm shrink-0 disabled:opacity-50"
           >
