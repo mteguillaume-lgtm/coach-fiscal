@@ -50,4 +50,52 @@ describe('POST /api/bank/connect', () => {
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toMatch(/Inconnue/);
   });
+
+  it('clamp consentement à la validité maximale annoncée par la banque (90j)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-13T00:00:00Z'));
+    const { listAspsps } = await import('../../_lib/enableBankingClient.js');
+    listAspsps.mockResolvedValueOnce([{ name: 'BoursoBank', country: 'FR', maximumConsentValidity: 7776000 }]);
+    const { default: handler } = await import('../connect.js');
+    const res = mockRes();
+    await handler({ method: 'POST', headers: {}, body: { institutionId: 'FR::BoursoBank', owner: 'd1' } }, res);
+    expect(res.statusCode).toBe(200);
+    const authArgs = startAuthorization.mock.calls[0][0];
+    const expectedValidUntil = new Date(Date.parse('2026-07-13T00:00:00Z') + 7776000 * 1000).toISOString();
+    expect(authArgs.validUntil).toBe(expectedValidUntil);
+    vi.useRealTimers();
+  });
+
+  it('clamp consentement à 180j quand maximumConsentValidity absent', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-13T00:00:00Z'));
+    const { listAspsps } = await import('../../_lib/enableBankingClient.js');
+    listAspsps.mockResolvedValueOnce([{ name: 'OtherBank', country: 'FR' }]);
+    const { default: handler } = await import('../connect.js');
+    const res = mockRes();
+    await handler({ method: 'POST', headers: {}, body: { institutionId: 'FR::OtherBank', owner: 'd1' } }, res);
+    expect(res.statusCode).toBe(200);
+    const authArgs = startAuthorization.mock.calls[0][0];
+    const expectedValidUntil = new Date(Date.parse('2026-07-13T00:00:00Z') + 180 * 86400 * 1000).toISOString();
+    expect(authArgs.validUntil).toBe(expectedValidUntil);
+    vi.useRealTimers();
+  });
+
+  it('405 si méthode non-POST', async () => {
+    const { default: handler } = await import('../connect.js');
+    const res = mockRes();
+    await handler({ method: 'GET', headers: {} }, res);
+    expect(res.statusCode).toBe(405);
+    expect(res.body.error).toMatch(/Méthode non autorisée/);
+  });
+
+  it('500 si APP_ORIGIN non configuré', async () => {
+    const { default: handler } = await import('../connect.js');
+    delete process.env.APP_ORIGIN;
+    const res = mockRes();
+    await handler({ method: 'POST', headers: {}, body: { institutionId: 'FR::BoursoBank' } }, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toMatch(/APP_ORIGIN/);
+    process.env.APP_ORIGIN = 'https://kapio.app';
+  });
 });

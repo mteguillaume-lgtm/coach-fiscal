@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const aspsp = aspsps.find((a) => a.name === name);
     if (!aspsp) return res.status(400).json({ error: `Banque inconnue : ${name}` });
 
-    const validitySeconds = Math.min(MAX_CONSENT_S, aspsp.maximumConsentValidity || MAX_CONSENT_S);
+    const validitySeconds = Math.min(MAX_CONSENT_S, aspsp.maximumConsentValidity ?? MAX_CONSENT_S);
     const state = randomUUID();
     const { url } = await startAuthorization({
       aspsp: { name, country },
