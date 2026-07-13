@@ -1,222 +1,87 @@
-# Installer le module Patrimoine (agrégation bancaire)
+# Patrimoine — mise en route de la synchronisation bancaire (Enable Banking)
 
-> Ce guide est autonome : il vous accompagne pas à pas pour activer la page
-> `/patrimoine` de Kapio, qui affiche votre valeur nette (comptes bancaires
-> connectés automatiquement + PEA/assurance-vie saisis à la main).
->
-> Rien de tout cela n'est obligatoire : sans backend configuré, `/patrimoine`
-> fonctionne quand même en mode 100 % saisie manuelle. Ce guide ne concerne
-> que la partie **connexion automatique aux banques**.
+La page Patrimoine remonte automatiquement vos comptes courants et livrets via
+[Enable Banking](https://enablebanking.com) (agrégateur agréé, gratuit pour un
+usage personnel en « Restricted Production » : seuls les comptes que **vous**
+liez sont accessibles). Les placements (PEA, assurance-vie, PER) et les prêts
+restent en saisie manuelle — la réglementation DSP2 ne les couvre pas.
 
-## Vue d'ensemble
+## Prérequis
 
-Le module Patrimoine a deux sources de données :
+- Un compte [Enable Banking](https://enablebanking.com) (gratuit)
+- Un compte [Upstash](https://upstash.com) (Redis gratuit)
+- Un compte [Vercel](https://vercel.com) pour héberger le backend (dossier `api/`)
 
-1. **Comptes bancaires connectés** (comptes courants, livrets…) — via un petit
-   backend (quelques fonctions serverless dans `api/`) qui parle à
-   [GoCardless Bank Account Data](https://gocardless.com/bank-account-data/)
-   (ex-Nordigen), l'agrégateur bancaire européen. Kapio ne stocke jamais vos
-   identifiants bancaires : le backend ne conserve que des références de
-   requisition (identifiant, titulaire, banque) ; le jeton d'accès GoCardless
-   est redemandé à chaque appel et n'est jamais persisté.
-2. **Placements saisis à la main** (PEA, assurance-vie, compte-titres, PER,
-   immobilier, prêts…) — directement dans `/patrimoine`, sans rien à
-   installer. GoCardless ne donne pas accès à ces enveloppes, donc cette
-   saisie manuelle restera toujours nécessaire pour elles.
+## 1. Créer l'application Enable Banking
 
-Ce guide couvre l'installation de la partie 1 (le backend). Comptez 15-20
-minutes la première fois.
+1. Créez un compte sur https://enablebanking.com et ouvrez le Control Panel.
+2. Créez une application : le portail génère une **clé privée RSA** (fichier
+   `.pem`). **Téléchargez-la et conservez-la en lieu sûr — elle ne sera plus
+   jamais affichée et ne doit jamais être commitée.** Notez l'**Application ID**.
+3. Dans les réglages de l'application, ajoutez l'URL de redirection :
+   `https://VOTRE-APP.vercel.app/patrimoine` (la même valeur que `APP_ORIGIN`
+   ci-dessous, suivie de `/patrimoine`).
+4. Activez l'application en **Restricted Production** via « Activate by linking
+   accounts » : vous lierez vos propres comptes bancaires (et ceux du
+   déclarant 2) — l'API ne pourra accéder qu'à ces comptes-là.
 
-### Ce dont vous aurez besoin
+## 2. Variables d'environnement (Vercel)
 
-- Un compte [Vercel](https://vercel.com) (gratuit) — c'est là que vit déjà la
-  SPA Kapio si vous l'avez déployée ; le backend patrimoine se déploie dans
-  **ce même projet**.
-- Un compte [GoCardless Bank Account Data](https://bankaccountdata.gocardless.com/)
-  (gratuit en usage modéré).
-- Un compte [Upstash](https://upstash.com/) (offre gratuite, Redis).
-- `openssl` en ligne de commande (préinstallé sur macOS et Linux ; sur
-  Windows, utilisez Git Bash ou WSL).
+| Variable | Valeur |
+|---|---|
+| `ENABLE_BANKING_APP_ID` | l'Application ID du Control Panel |
+| `ENABLE_BANKING_PRIVATE_KEY` | le fichier `.pem` encodé en base64 (voir ci-dessous) |
+| `KAPIO_BACKEND_SECRET` | un jeton long et aléatoire de votre choix (ex. `openssl rand -hex 32`) |
+| `APP_ORIGIN` | l'URL de votre app (ex. `https://VOTRE-APP.vercel.app`) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | fournis par Upstash |
 
----
+Encoder la clé privée en base64 (une seule ligne, sans retour chariot) :
 
-## Étape 1 — Créer un compte GoCardless Bank Account Data
+    base64 -i cle-privee.pem | tr -d '\n'
 
-1. Rendez-vous sur https://bankaccountdata.gocardless.com/ et créez un compte
-   gratuit (« Bank Account Data », anciennement Nordigen — ne pas confondre
-   avec le GoCardless « prélèvements SEPA », c'est un produit différent).
-2. Une fois connecté, allez dans **Developers → Create new secret**.
-3. Notez les deux valeurs affichées : **Secret ID** et **Secret key**. La clé
-   secrète ne sera affichée qu'une seule fois — copiez-la immédiatement dans
-   un gestionnaire de mots de passe ou un fichier temporaire.
+Ajouter les variables :
 
-Vous obtenez ainsi :
-```
-GOCARDLESS_SECRET_ID=...
-GOCARDLESS_SECRET_KEY=...
-```
+    vercel env add ENABLE_BANKING_APP_ID production
+    vercel env add ENABLE_BANKING_PRIVATE_KEY production
+    vercel env add KAPIO_BACKEND_SECRET production
+    vercel env add APP_ORIGIN production
 
----
+Redéployez ensuite le projet pour que les variables soient prises en compte.
 
-## Étape 2 — Créer une base Upstash Redis
+## 3. Configurer Kapio
 
-Le backend a besoin d'un petit espace de stockage clé-valeur pour garder la
-trace des références de connexion bancaire (requisitions) en cours et limiter
-les abus (rate-limiting). Upstash Redis convient très bien et son offre
-gratuite est largement suffisante pour un usage personnel.
+Sur la page Patrimoine, section « Synchronisation bancaire » : renseignez
+l'URL du backend (votre déploiement Vercel) et le jeton secret
+(`KAPIO_BACKEND_SECRET`). À faire une seule fois par navigateur.
 
-1. Créez un compte sur https://upstash.com/ (gratuit).
-2. **Create Database** → choisissez une région proche de vous → type
-   « Regional » (pas besoin de « Global » pour cet usage).
-3. Une fois la base créée, ouvrez l'onglet **REST API** de sa page de détail.
-4. Copiez les deux valeurs :
-```
-UPSTASH_REDIS_REST_URL=...
-UPSTASH_REDIS_REST_TOKEN=...
-```
+## 4. Connecter une banque
 
----
+1. « Connecter une banque » → choisissez la banque et le titulaire (D1/D2/commun).
+2. Vous êtes redirigé vers l'écran sécurisé de votre banque (authentification
+   forte). Validez l'accès en lecture.
+3. De retour sur Kapio, la connexion se finalise automatiquement et les comptes
+   apparaissent après actualisation.
 
-## Étape 3 — Générer le secret interne
+Le consentement DSP2 dure au maximum **180 jours** (parfois moins selon la
+banque). À expiration, la banque remonte en erreur dans le bandeau — refaites
+simplement « Connecter une banque » pour elle.
 
-Le backend exige un mot de passe personnel pour éviter que n'importe qui
-puisse l'appeler. Générez cette valeur vous-même, avec `openssl` :
+## Limites à connaître
 
-```bash
-# Votre jeton secret personnel (utilisé par Kapio pour s'authentifier au backend)
-openssl rand -hex 24
-# → à mettre dans KAPIO_BACKEND_SECRET
-```
+- **Périmètre** : comptes courants + livrets (ce que la banque expose en DSP2).
+  PEA / assurance-vie / PER / prêts : saisie manuelle.
+- **Rafraîchissement** : la DSP2 limite à ~4 actualisations automatiques par
+  jour et par compte.
+- **Restricted Production** : seuls les comptes liés dans le Control Panel
+  Enable Banking sont accessibles — pensez à y lier les comptes des deux
+  déclarants.
 
-Conservez cette valeur de côté : `KAPIO_BACKEND_SECRET` est le mot de passe
-que vous saisirez plus tard dans Kapio.
-
----
-
-## Étape 4 — Déployer le backend sur Vercel
-
-Le dossier `api/` de ce dépôt contient les fonctions serverless du backend
-(`api/bank/connect.js`, `api/bank/institutions.js`, `api/bank/snapshot.js`).
-**Il doit être déployé dans le même projet Vercel que la SPA Kapio** (voir
-l'encadré CSP plus bas — c'est important, pas juste une commodité).
-
-Si vous avez déjà déployé Kapio sur Vercel, il vous suffit de redéployer
-(le dossier `api/` fait partie du même dépôt) :
-
-```bash
-vercel --prod
-```
-
-Si ce n'est pas encore fait, depuis la racine du dépôt :
-
-```bash
-vercel        # première fois : suit les questions (lier/créer un projet)
-vercel --prod # déploiement de production
-```
-
-Ensuite, renseignez les variables d'environnement (reprenez les valeurs des
-étapes 1 à 3, voir aussi `.env.example`) :
-
-```bash
-vercel env add GOCARDLESS_SECRET_ID production
-vercel env add GOCARDLESS_SECRET_KEY production
-vercel env add KAPIO_BACKEND_SECRET production
-vercel env add UPSTASH_REDIS_REST_URL production
-vercel env add UPSTASH_REDIS_REST_TOKEN production
-vercel env add APP_ORIGIN production   # ex. https://mon-kapio.vercel.app
-```
-
-(Vous pouvez aussi les saisir depuis le dashboard Vercel : **Project →
-Settings → Environment Variables**.)
-
-Redéployez une dernière fois pour que les variables soient prises en compte :
-
-```bash
-vercel --prod
-```
-
-**Notez l'URL de production** (ex. `https://mon-kapio.vercel.app`) — vous en
-aurez besoin à l'étape suivante. C'est la même URL que celle de la SPA
-elle-même, puisque backend et frontend vivent dans le même projet.
-
----
-
-## Étape 5 — Connecter Kapio à votre backend
-
-1. Ouvrez Kapio, allez sur la page **`/patrimoine`**.
-2. Un petit formulaire s'affiche (« Configure ton backend patrimoine, une
-   seule fois ») :
-   - **URL du backend** : l'URL notée à l'étape 4 (ex.
-     `https://mon-kapio.vercel.app`).
-   - **Jeton secret** : la valeur de `KAPIO_BACKEND_SECRET` générée à
-     l'étape 3.
-3. Cliquez sur **Enregistrer**. Ces deux valeurs sont sauvegardées dans le
-   `localStorage` de votre navigateur (comme votre clé API Claude) — elles ne
-   sont jamais envoyées ailleurs qu'à votre propre backend.
-4. Le formulaire fait place à un second bloc : choisissez votre **banque**
-   dans la liste déroulante (remplie automatiquement via l'API GoCardless,
-   `institutions.js` dans `api/bank/`). Si la liste ne peut pas être chargée,
-   un champ texte de secours apparaît pour saisir directement l'identifiant
-   GoCardless (ex. `BNP_FR...`). En mode couple, choisissez aussi le
-   **titulaire** (Déclarant 1 / Déclarant 2 / Commun).
-5. Cliquez sur **« Connecter une banque »**. Vous êtes redirigé vers le
-   parcours d'authentification bancaire officiel (site de votre banque ou
-   partenaire GoCardless). Une fois le consentement donné, vous revenez sur
-   Kapio et vos comptes apparaissent automatiquement dans `/patrimoine`
-   (valeur nette, répartition en donut, historique).
-
----
-
-## Rappels importants
-
-- **Re-consentement tous les ~90 jours** : par réglementation bancaire
-  européenne (DSP2), l'autorisation d'accès à vos comptes expire
-  automatiquement au bout de 90 jours maximum. Kapio ne peut pas la
-  renouveler tout seul — vous devrez recliquer sur « Connecter une banque »
-  pour la banque concernée quand l'accès expire (l'affichage vous le
-  signalera si les comptes ne se rafraîchissent plus).
-- **PEA et assurance-vie restent en saisie manuelle** : GoCardless (comme la
-  plupart des agrégateurs bancaires) ne couvre que les comptes bancaires
-  courants/livrets, pas les enveloppes d'épargne réglementée par votre
-  assureur ou courtier. Utilisez le bloc « Placements & prêts (saisie
-  manuelle) » en bas de `/patrimoine` pour ces lignes — elles sont conservées
-  localement et comptent dans le calcul de la valeur nette au même titre que
-  les comptes connectés.
-- Vos identifiants bancaires ne transitent jamais par Kapio ni par son
-  backend : la connexion se fait directement entre vous et votre banque via
-  le parcours officiel GoCardless.
-
----
-
-## Note de sécurité — CSP et origine du backend
-
-La Content-Security-Policy de Kapio (`vercel.json`) restreint par défaut les
-appels réseau du navigateur à `connect-src 'self'` (plus les API IA
-autorisées). **C'est pour cela que ce guide recommande de déployer `api/`
-dans le même projet Vercel que la SPA** : le backend est alors servi sur la
-même origine que la page (ex. `https://mon-kapio.vercel.app/api/bank/...`),
-et la CSP l'autorise sans aucune modification.
-
-Si vous choisissez malgré tout d'héberger le backend sur une **autre
-origine** (un autre domaine ou projet Vercel), le navigateur **bloquera**
-l'appel `fetch` de Kapio vers ce backend tant que vous n'aurez pas ajouté
-cette origine à la directive `connect-src` de `vercel.json` de la SPA, par
-exemple :
-
-```json
-"connect-src 'self' https://api.anthropic.com https://api.mistral.ai https://mon-backend-separe.vercel.app"
-```
-
-puis redéployé la SPA. Cette même consigne figure en tête de `.env.example`.
-
----
-
-## Dépannage rapide
+## Dépannage
 
 | Symptôme | Piste |
 |---|---|
-| Le bouton « Connecter une banque » reste inactif | Vérifiez qu'une banque est bien sélectionnée (ou l'identifiant GoCardless saisi si la liste déroulante n'a pas pu se charger). |
-| Erreur affichée après clic sur « Connecter une banque » | Vérifiez `GOCARDLESS_SECRET_ID` / `GOCARDLESS_SECRET_KEY` côté Vercel, et que le backend est bien redéployé après ajout des variables d'environnement. |
-| L'appel au backend est bloqué silencieusement (rien ne se passe, erreur CSP dans la console navigateur) | Le backend n'est probablement pas sur la même origine que la SPA — voir la note de sécurité ci-dessus. |
-| Les comptes ne se rafraîchissent plus après un moment | Le consentement bancaire (~90 jours) a probablement expiré — reconnectez la banque concernée. |
-| « URL du backend » ou « Jeton secret » oubliés | Ce sont les valeurs de l'étape 4 (URL de déploiement Vercel) et de l'étape 3 (`KAPIO_BACKEND_SECRET`) ; elles sont stockées dans le `localStorage` du navigateur, propres à cet appareil. |
+| « Non autorisé » au refresh | Le jeton saisi dans Kapio diffère de `KAPIO_BACKEND_SECRET`. |
+| Erreur affichée après « Connecter une banque » | Vérifiez `ENABLE_BANKING_APP_ID` / `ENABLE_BANKING_PRIVATE_KEY` (base64 sans retour chariot) et que le backend a été redéployé après l'ajout des variables. |
+| « Connexion inconnue ou expirée » au retour de la banque | Le lien de consentement a plus d'une heure — relancez « Connecter une banque ». |
+| Une banque en erreur dans le bandeau | Consentement expiré (≤ 180 j) : reconnectez cette banque. |
+| Banque absente de la liste | Vérifiez qu'elle est proposée pour la France dans le Control Panel Enable Banking (`GET /aspsps?country=FR`). |
