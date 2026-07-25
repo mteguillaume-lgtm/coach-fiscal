@@ -68,8 +68,13 @@ l'authentification forte de sa banque.
 
 ## Ce qu'il vous faut sous la main
 
-- L'URL de votre Kapio déployé. Par défaut : `https://kapio.vercel.app`
-  (remplacez partout dans ce guide si la vôtre diffère).
+- L'URL de votre Kapio déployé : **`https://kapio-coach.vercel.app`**.
+
+  > ⚠️ Attention : le projet Vercel s'appelle `coach-fiscal`, mais son domaine de
+  > production est `kapio-coach.vercel.app`. **`kapio.vercel.app` appartient à
+  > quelqu'un d'autre** — s'y tromper fait échouer toute la configuration de façon
+  > incompréhensible. Pour retrouver la bonne URL en cas de doute : tableau de bord
+  > Vercel → projet `coach-fiscal` → l'adresse affichée sous **Domains**.
 - Vos identifiants bancaires (à taper **uniquement** sur le site de vos banques).
 - Votre téléphone, pour l'authentification forte.
 - Le téléphone de votre conjoint·e, pour les étapes 8 et 10.
@@ -154,9 +159,9 @@ Remplissez le formulaire ainsi :
 | **Application name** | `Kapio` |
 | **Description** | `Application personnelle de suivi fiscal et patrimonial. Consultation en lecture seule des soldes de mes propres comptes.` (ce texte est affiché à vous-même pendant le consentement bancaire) |
 | **Data protection email** | votre adresse e-mail |
-| **Privacy policy URL** | `https://kapio.vercel.app/confidentialite.html` |
-| **Terms of service URL** | `https://kapio.vercel.app/conditions.html` |
-| **Redirect URL** | `https://kapio.vercel.app/patrimoine` |
+| **Privacy policy URL** | `https://kapio-coach.vercel.app/confidentialite.html` |
+| **Terms of service URL** | `https://kapio-coach.vercel.app/conditions.html` |
+| **Redirect URL** | `https://kapio-coach.vercel.app/patrimoine` |
 
 > ⚠️ **Le champ Redirect URL est celui qui pardonne le moins.** Il doit
 > correspondre **exactement**, au caractère près, à l'adresse où votre banque vous
@@ -229,7 +234,7 @@ le chemin s'écrit tout seul. Complétez ensuite avec ` | tr -d '\n' | pbcopy`.
 | `ENABLE_BANKING_APP_ID` | l'Application ID (UUID) de l'étape 4 |
 | `ENABLE_BANKING_PRIVATE_KEY` | la longue ligne base64 de l'étape 5 |
 | `KAPIO_BACKEND_SECRET` | le jeton de l'étape 2 |
-| `APP_ORIGIN` | `https://kapio.vercel.app` |
+| `APP_ORIGIN` | `https://kapio-coach.vercel.app` |
 | `UPSTASH_REDIS_REST_URL` | valeur Upstash de l'étape 1 |
 | `UPSTASH_REDIS_REST_TOKEN` | valeur Upstash de l'étape 1 |
 
@@ -259,7 +264,7 @@ l'étape 2 :
 
 ```bash
 curl -s -H "x-kapio-secret: VOTRE_JETON" \
-  "https://kapio.vercel.app/api/bank/institutions?country=fr" | head -c 400
+  "https://kapio-coach.vercel.app/api/bank/institutions?country=fr" | head -c 400
 ```
 
 > ✅ **Vérification** : vous devez voir une liste de banques françaises
@@ -308,9 +313,9 @@ elle/lui-même sur le site de sa banque à ce moment-là.
 
 ## Étape 9 — Configurer Kapio
 
-1. Ouvrez `https://kapio.vercel.app/patrimoine`.
+1. Ouvrez `https://kapio-coach.vercel.app/patrimoine`.
 2. Dans l'encadré **« Synchronisation bancaire »**, renseignez :
-   - **URL du backend** : `https://kapio.vercel.app`
+   - **URL du backend** : `https://kapio-coach.vercel.app`
    - **Jeton secret** : celui de l'étape 2
 3. Enregistrez.
 
