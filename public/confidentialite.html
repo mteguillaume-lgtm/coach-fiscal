@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Kapio — Politique de confidentialité</title>
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 3rem 1.25rem 5rem;
+      background: #0A0A0B; color: #E7E7EA;
+      font: 400 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+    main { max-width: 44rem; margin: 0 auto; }
+    h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 .5rem; letter-spacing: -.02em; }
+    h2 { font-size: 1.05rem; margin: 2.5rem 0 .75rem; color: #fff; letter-spacing: -.01em; }
+    p, li { color: #B4B4BC; }
+    li { margin: .35rem 0; }
+    a { color: #7DD3C0; }
+    .meta { font-size: .85rem; color: #75757F; margin: 0 0 2.5rem; }
+    .note {
+      border-left: 2px solid #7DD3C0; padding: .75rem 0 .75rem 1rem;
+      margin: 2rem 0; background: rgba(125,211,192,.05);
+    }
+    .note p { margin: 0; color: #E7E7EA; }
+    footer { margin-top: 4rem; font-size: .85rem; color: #75757F; border-top: 1px solid rgba(255,255,255,.08); padding-top: 1.5rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Politique de confidentialité</h1>
+  <p class="meta">Kapio — application personnelle, à usage privé et non commercial. Dernière mise à jour : 25 juillet 2026.</p>
+
+  <div class="note">
+    <p><strong>En une phrase :</strong> Kapio fonctionne intégralement dans votre navigateur. Vos données fiscales et patrimoniales ne sont envoyées à aucun serveur nous appartenant, et nous ne les conservons nulle part.</p>
+  </div>
+
+  <h2>1. Qui est responsable du traitement</h2>
+  <p>Kapio est une application développée et utilisée à titre strictement personnel et privé, sans finalité commerciale. Elle n'est pas mise à la disposition du public. Le responsable du traitement est l'utilisateur lui-même, qui héberge et exploite sa propre instance de l'application.</p>
+
+  <h2>2. Où sont stockées vos données</h2>
+  <p>Kapio est une application « client-side » : le code s'exécute dans votre navigateur, et il n'existe aucune base de données centrale.</p>
+  <ul>
+    <li>Votre profil fiscal, vos revenus, votre patrimoine et l'historique de vos échanges sont enregistrés dans le <strong>stockage local de votre navigateur</strong> (<code>localStorage</code>), sur votre appareil uniquement.</li>
+    <li>Vos clés d'API personnelles sont stockées au même endroit et ne sont transmises qu'aux fournisseurs correspondants.</li>
+    <li>Effacer les données de site de votre navigateur supprime définitivement l'ensemble de ces informations.</li>
+  </ul>
+
+  <h2>3. Traitements par des services tiers</h2>
+  <p><strong>Fournisseurs d'intelligence artificielle.</strong> Lorsque vous demandez une analyse ou utilisez le chat, le contenu de votre profil est transmis directement depuis votre navigateur à l'API du fournisseur que vous avez choisi (Anthropic ou Mistral), authentifié par votre propre clé d'API. Ces échanges sont régis par la politique de confidentialité du fournisseur concerné.</p>
+  <p><strong>Agrégation bancaire.</strong> La synchronisation des comptes s'appuie sur <a href="https://enablebanking.com" rel="noopener">Enable Banking</a>, prestataire de services d'information sur les comptes agréé. L'authentification se déroule <strong>exclusivement sur le site sécurisé de votre banque</strong> : aucun identifiant bancaire n'est saisi dans Kapio, ni transmis à Kapio, ni stocké par Kapio.</p>
+
+  <h2>4. Ce que conserve le service d'agrégation</h2>
+  <p>La fonction de synchronisation bancaire s'appuie sur un petit service technique hébergé sur Vercel, avec une base Upstash Redis. Il conserve uniquement :</p>
+  <ul>
+    <li>l'identifiant technique de la session Enable Banking ;</li>
+    <li>le nom de la banque et le titulaire associé (déclarant 1 ou 2) ;</li>
+    <li>la date d'expiration du consentement.</li>
+  </ul>
+  <p>Il ne conserve <strong>ni soldes, ni IBAN complet, ni transactions, ni identifiants bancaires</strong>. Les soldes sont récupérés à la demande auprès de l'API et transmis au navigateur sans être enregistrés côté serveur.</p>
+
+  <h2>5. Consentement bancaire et durée</h2>
+  <p>L'accès en lecture à vos comptes repose sur un consentement explicite que vous donnez sur l'écran de votre banque, conformément à la directive européenne sur les services de paiement (DSP2). Sa durée est fixée par votre banque, dans la limite de <strong>180 jours</strong>. À l'expiration, l'accès cesse automatiquement tant que vous ne le renouvelez pas.</p>
+  <p>Vous pouvez révoquer ce consentement à tout moment, soit depuis l'espace client de votre banque, soit en supprimant la connexion correspondante dans Kapio.</p>
+
+  <h2>6. Vos droits</h2>
+  <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation et de portabilité de vos données. Compte tenu de l'architecture décrite ci-dessus, ces droits s'exercent directement : vos données étant sur votre appareil, vous pouvez les consulter, les exporter et les supprimer sans intermédiaire.</p>
+  <p>Vous avez également le droit d'introduire une réclamation auprès de la <a href="https://www.cnil.fr" rel="noopener">CNIL</a>.</p>
+
+  <h2>7. Cookies</h2>
+  <p>Kapio n'utilise aucun cookie de suivi, aucun traceur publicitaire et aucun outil de mesure d'audience.</p>
+
+  <h2>8. Contact</h2>
+  <p>Pour toute question relative à la protection des données : <a href="mailto:mte.guillaume@gmail.com">mte.guillaume@gmail.com</a></p>
+
+  <footer>
+    Kapio — usage personnel et non commercial. <a href="/conditions.html">Conditions d'utilisation</a> · <a href="/">Retour à l'application</a>
+  </footer>
+</main>
+</body>
+</html>
